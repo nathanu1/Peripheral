@@ -1,0 +1,195 @@
+{
+  "schemaVersion": 1,
+  "project": "Peripheral",
+  "repository": "nathanu1/Peripheral",
+  "branch": "main",
+  "primaryContributor": {
+    "name": "Nathan",
+    "githubLogin": "nathanu1",
+    "gitAuthorName": "nathanu1",
+    "gitAuthorEmail": "129923698+nathanu1@users.noreply.github.com"
+  },
+  "schedule": {
+    "startDate": "2026-09-07",
+    "endDate": "2026-09-13",
+    "timezone": "America/New_York",
+    "dayparts": [
+      "morning",
+      "afternoon",
+      "evening"
+    ],
+    "timingMode": "flexible_schedule",
+    "plannedRuns": 21,
+    "automationId": null,
+    "status": "pending_activation"
+  },
+  "nextStage": 0,
+  "stages": [
+    {
+      "stage": 0,
+      "name": "Skeleton, harness, module boundaries",
+      "commitMessage": "chore: skeleton and inline test harness",
+      "status": "pending",
+      "reportPath": "docs/stages/stage-00.md",
+      "testResults": null
+    },
+    {
+      "stage": 1,
+      "name": "Camera pipeline + synthetic fallback",
+      "commitMessage": "feat: frame pipeline with synthetic fallback",
+      "status": "pending",
+      "reportPath": "docs/stages/stage-01.md",
+      "testResults": null
+    },
+    {
+      "stage": 2,
+      "name": "Geometry core",
+      "commitMessage": "feat(core): angular geometry and FOV model",
+      "status": "pending",
+      "reportPath": "docs/stages/stage-02.md",
+      "testResults": null
+    },
+    {
+      "stage": 3,
+      "name": "GazeSource + head gaze",
+      "commitMessage": "feat(core): gaze source abstraction",
+      "status": "pending",
+      "reportPath": "docs/stages/stage-03.md",
+      "testResults": null
+    },
+    {
+      "stage": 4,
+      "name": "Dwell state machine",
+      "commitMessage": "feat(core): dwell detection state machine",
+      "status": "pending",
+      "reportPath": "docs/stages/stage-04.md",
+      "testResults": null
+    },
+    {
+      "stage": 5,
+      "name": "Object detection (Tier 1)",
+      "commitMessage": "feat(perception): tier-1 object detection",
+      "status": "pending",
+      "reportPath": "docs/stages/stage-05.md",
+      "testResults": null
+    },
+    {
+      "stage": 6,
+      "name": "Tracking + anchor identity",
+      "commitMessage": "feat(perception): anchor tracking and association",
+      "status": "pending",
+      "reportPath": "docs/stages/stage-06.md",
+      "testResults": null
+    },
+    {
+      "stage": 7,
+      "name": "Re-identification (Tier 2)",
+      "commitMessage": "feat(perception): embedding-based re-identification",
+      "status": "pending",
+      "reportPath": "docs/stages/stage-07.md",
+      "testResults": null
+    },
+    {
+      "stage": 8,
+      "name": "Depth + surface estimation (Tier 2)",
+      "commitMessage": "feat(perception): monocular depth and surface anchoring",
+      "status": "pending",
+      "reportPath": "docs/stages/stage-08.md",
+      "testResults": null
+    },
+    {
+      "stage": 9,
+      "name": "WorldModel (Tier 3)",
+      "commitMessage": "feat(core): scriptable world model",
+      "status": "pending",
+      "reportPath": "docs/stages/stage-09.md",
+      "testResults": null
+    },
+    {
+      "stage": 10,
+      "name": "Entity binding",
+      "commitMessage": "feat(core): anchor-to-entity binding",
+      "status": "pending",
+      "reportPath": "docs/stages/stage-10.md",
+      "testResults": null
+    },
+    {
+      "stage": 11,
+      "name": "Trigger policy engine",
+      "commitMessage": "feat(core): warrant-based trigger policy",
+      "status": "pending",
+      "reportPath": "docs/stages/stage-11.md",
+      "testResults": null
+    },
+    {
+      "stage": 12,
+      "name": "Reveal lifecycle + duty cycle",
+      "commitMessage": "feat(core): reveal lifecycle and visibility duty cycle",
+      "status": "pending",
+      "reportPath": "docs/stages/stage-12.md",
+      "testResults": null
+    },
+    {
+      "stage": 13,
+      "name": "Additive renderer",
+      "commitMessage": "feat(render): additive world-anchored overlays",
+      "status": "pending",
+      "reportPath": "docs/stages/stage-13.md",
+      "testResults": null
+    },
+    {
+      "stage": 14,
+      "name": "Subtractive renderer",
+      "commitMessage": "feat(render): electrochromic dimming with resolution tiers",
+      "status": "pending",
+      "reportPath": "docs/stages/stage-14.md",
+      "testResults": null
+    },
+    {
+      "stage": 15,
+      "name": "Selective salience",
+      "commitMessage": "feat: selective salience and noise suppression",
+      "status": "pending",
+      "reportPath": "docs/stages/stage-15.md",
+      "testResults": null
+    },
+    {
+      "stage": 16,
+      "name": "Wayfinding",
+      "commitMessage": "feat: ground-anchored wayfinding with peripheral alerts",
+      "status": "pending",
+      "reportPath": "docs/stages/stage-16.md",
+      "testResults": null
+    },
+    {
+      "stage": 17,
+      "name": "Social anchor + consent",
+      "commitMessage": "feat: consent-gated social memory anchor",
+      "status": "pending",
+      "reportPath": "docs/stages/stage-17.md",
+      "testResults": null
+    },
+    {
+      "stage": 18,
+      "name": "Scenario runner",
+      "commitMessage": "feat: scripted scenario runner",
+      "status": "pending",
+      "reportPath": "docs/stages/stage-18.md",
+      "testResults": null
+    },
+    {
+      "stage": 19,
+      "name": "Ethics panel, accessibility, README",
+      "commitMessage": "feat: ethics panel, accessibility, and documentation",
+      "status": "pending",
+      "reportPath": "docs/stages/stage-19.md",
+      "testResults": null
+    }
+  ],
+  "finalAcceptance": {
+    "status": "pending",
+    "reportPath": "docs/FINAL_ACCEPTANCE.md"
+  },
+  "blockers": [],
+  "lastUpdated": "2026-09-05"
+}
