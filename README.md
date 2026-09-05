@@ -3,7 +3,6 @@ Prototype Build Design; For wearable interfaces
 
 Peripheral is an on-device visual-assistance prototype for smart glasses: world-anchored information appears only when a deliberate action or real-world event warrants it. The defining invariant is **zero emitted interface light at rest**.
 
-**Project lead and primary contributor: Nathan ([@nathanu1](https://github.com/nathanu1)).** Developed with AI engineering assistance.
 
 The application build is scheduled for **September 7–13, 2026**, with three stages per day in New York time. The original 20 stages are followed by a final acceptance run. At setup, implementation has not started.
 
