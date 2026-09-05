@@ -1,15 +1,36 @@
 # Peripheral
-Prototype Build Design; For wearable interfaces
 
-Peripheral is an on-device visual-assistance prototype for smart glasses: world-anchored information appears only when a deliberate action or real-world event warrants it. The defining invariant is **zero emitted interface light at rest**.
+An on-device visual-assistance prototype for smart glasses. Information belongs to the object it describes and appears only when a deliberate action or real-world event warrants it. At rest, the wearer-facing interface emits nothing.
 
+## Run
 
-The application build is scheduled for **September 7–13, 2026**, with three stages per day in New York time. The original 20 stages are followed by a final acceptance run. At setup, implementation has not started.
+Open `index.html` directly in a browser. No installation or build is required.
 
-- [Seven-day build plan](BUILD_PLAN.md)
-- [Complete product brief and stage gates](docs/PERIPHERAL_BRIEF.md)
-- [Machine-readable progress](BUILD_STATE.json)
+Open **Debug console → Run Tests**, or append `#test` to the page address to run the same suite automatically. Developer controls are separate from the wearer’s view.
 
-The target is one self-contained HTML file, on-device perception, no backend or browser storage, deterministic synthetic tests, opt-in consent for social memory, and honest labels for measured, inferred, and scripted information.
+To run the tests without a browser, camera, or model download:
 
-Status and usage instructions will be updated as each stage passes. MIT licensed; see [LICENSE](LICENSE).
+```sh
+node tests/run.mjs
+```
+
+An optional local preview is available with `npm run dev`. It uses Node’s built-in HTTP server and has no dependencies.
+
+## Status
+
+The foundation is implemented: a single-file shell, separate world/additive/subtractive canvas layers, a DOM-free test harness, and keyboard-accessible debug controls. The suite currently has **28 passing assertions**.
+
+Camera input, synthetic scenes, perception, and assistance behaviors are upcoming. The empty view is intentional at this stage. It is a browser prototype, not a validated wearable device.
+
+## Design
+
+- Process perception on device; keep frames off servers.
+- Reveal information only for dwell, explicit summons, safety events, or scheduled requests.
+- Anchor information to the world and let every reveal expire.
+- Label measured, inferred, and scripted information honestly.
+- Keep social memory limited to enrolled contacts, with revocation and bystander veto.
+- Distinguish emitted light from physical dimming capabilities.
+
+## License
+
+[MIT](LICENSE).

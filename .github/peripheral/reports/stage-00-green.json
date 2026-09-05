@@ -1,0 +1,204 @@
+{
+  "runtime": "v24.19.0",
+  "sourceSha256": "7ba8205ac7bb1be5f1867bcce0abe066285a1266f7c515e8b92a920b417130f7",
+  "passed": 28,
+  "failed": 0,
+  "results": [
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "counts passing assertions",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "counts failing assertions",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "retains every assertion",
+      "expected": 2,
+      "actual": 2
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "retains suite name",
+      "expected": "sample",
+      "actual": "sample"
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "retains failure message",
+      "expected": "known mismatch",
+      "actual": "known mismatch"
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "retains expected value",
+      "expected": 2,
+      "actual": 2
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "retains actual value",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "marks the failure explicitly",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "reruns replace rather than accumulate results",
+      "expected": 2,
+      "actual": 2
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "empty harness has zero passes",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "empty harness has zero failures",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Harness: approximate equality",
+      "passed": true,
+      "message": "only finite values within tolerance pass",
+      "expected": 2,
+      "actual": 2
+    },
+    {
+      "suite": "Harness: approximate equality",
+      "passed": true,
+      "message": "invalid and out-of-range comparisons fail",
+      "expected": 5,
+      "actual": 5
+    },
+    {
+      "suite": "Harness: approximate equality",
+      "passed": true,
+      "message": "exact tolerance boundary is accepted",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Harness: approximate equality",
+      "passed": true,
+      "message": "outside tolerance is rejected",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Harness: exceptions and strict assertions",
+      "passed": true,
+      "message": "correct throws and strict true pass",
+      "expected": 3,
+      "actual": 3
+    },
+    {
+      "suite": "Harness: exceptions and strict assertions",
+      "passed": true,
+      "message": "bad assertions and suite errors fail",
+      "expected": 5,
+      "actual": 5
+    },
+    {
+      "suite": "Harness: exceptions and strict assertions",
+      "passed": true,
+      "message": "suite error is not swallowed",
+      "expected": "Error: unexpected suite error",
+      "actual": "Error: unexpected suite error"
+    },
+    {
+      "suite": "Harness: exceptions and strict assertions",
+      "passed": true,
+      "message": "a suite error does not abort later suites",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Harness: exceptions and strict assertions",
+      "passed": true,
+      "message": "out-of-run assertions are rejected",
+      "expected": "exception",
+      "actual": "Error: Assertions must run inside a suite"
+    },
+    {
+      "suite": "Harness: exceptions and strict assertions",
+      "passed": true,
+      "message": "invalid suite callback is rejected",
+      "expected": "exception",
+      "actual": "TypeError: A suite needs a name and a function"
+    },
+    {
+      "suite": "Core: initial state boundaries",
+      "passed": true,
+      "message": "initial state has no reveals",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Core: initial state boundaries",
+      "passed": true,
+      "message": "initial state invents no perception",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Core: initial state boundaries",
+      "passed": true,
+      "message": "no frame source is fabricated",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Core: initial state boundaries",
+      "passed": true,
+      "message": "camera starts inactive",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Core: initial state boundaries",
+      "passed": true,
+      "message": "states are independently created",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Core: initial state boundaries",
+      "passed": true,
+      "message": "reveal collections are not shared",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Core: initial state boundaries",
+      "passed": true,
+      "message": "perception collections are not shared",
+      "expected": true,
+      "actual": true
+    }
+  ]
+}

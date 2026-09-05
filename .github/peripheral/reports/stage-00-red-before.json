@@ -1,0 +1,15 @@
+{
+  "runtime": "v24.19.0",
+  "sourceSha256": "4c26532bf4b621e50364d98576c3836c17bb8474482af94e7f8275fdfeb23c76",
+  "passed": 0,
+  "failed": 1,
+  "results": [
+    {
+      "suite": "Bootstrap",
+      "passed": false,
+      "message": "Inline suite must execute without DOM or network",
+      "expected": "runnable suite",
+      "actual": "ReferenceError: createHarness is not defined"
+    }
+  ]
+}

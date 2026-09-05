@@ -1,6 +1,4 @@
-# Peripheral: seven-day build plan
-
-Project lead and primary contributor: **Nathan (@nathanu1)**.
+# Build workflow
 
 Repository: https://github.com/nathanu1/Peripheral
 Implementation target: one self-contained `index.html`, all CSS in one style element, all JS in one script element. Supporting Markdown, JSON checkpoints, and test evidence may live beside it.
@@ -25,11 +23,11 @@ This is a target schedule, not permission to skip a failed gate. If a stage is i
 
 ## Source of truth and resumption
 
-- Read `docs/PERIPHERAL_BRIEF.md` in full for the original product requirements, tests, gates, commit messages, and output protocol.
-- Read `BUILD_STATE.json`, the current repository tree, and the latest commits on every run.
+- Read `.github/peripheral/brief.md` in full for the original product requirements, tests, gates, commit messages, and output protocol.
+- Read `.github/peripheral/state.json`, the current repository tree, and the latest commits on every run.
 - Start at the earliest incomplete numbered stage. Verify the preceding checkpoint against the actual code and test evidence.
 - Keep the existing repository and license. Never initialize a replacement repository or rewrite history.
-- At each successful stage, commit implementation, new tests, `docs/stages/stage-NN.md`, and updated `BUILD_STATE.json` together. Record stage completion only when all tests and its gate actually pass.
+- At each successful stage, commit implementation, new tests, `.github/peripheral/reports/stage-NN.md`, and updated `.github/peripheral/state.json` together. Record stage completion only when all tests and its gate actually pass.
 - Each stage report contains the brief's eight fields: Stage, Tests (new assertions as code written first), Implementation (precise diff/insertion), Test results (actual counts and full failures), Perception tiers touched, Gate, Commit, Next.
 - Record test commands/runtime, red-phase evidence, green-phase evidence, gate observations, and limitations. The commit containing the report is its checkpoint; do not invent a self-referential commit SHA.
 - On blocked or failed runs, keep the stage incomplete, retain a reproducible failure report, and tell Nathan the exact blocker. Do not substitute a reminder for the authorized build work.
@@ -58,3 +56,7 @@ When using Git locally, set this only for this repository. When using a connecto
 Re-run the entire deterministic suite on the final commit; replay all five scenarios; check JSON round-trips, zero idle emission, zero unwarranted reveals, visibility budget, consent revocation/veto/expiry, contrast refusals, dimming capability modes, and keyboard operation. Inspect exact model dependencies and data handling. Report real-model, camera, and physical-hardware checks separately from synthetic evidence.
 
 Fix reproducible defects and rerun relevant checks plus the full suite. Publish a final acceptance report and README status that distinguish implemented, verified, and blocked requirements. Verify commit attribution. Deliver the complete final HTML as required by Stage 19 and link the exact final repository commit. Do not declare the system done if a required gate remains unmet.
+
+## Repository presentation
+
+Stage reports are delivered in the build conversation. Durable checkpoints, the original brief, and detailed test evidence live here under `.github/peripheral/`. Keep the root README focused on the product and usage. Use the specified conventional feature-oriented commit messages; do not include phrases such as "under Nathan", contributor announcements, or assistant narration in commit titles. Git metadata provides authorship. Preserve existing history. AI engineering assistance is disclosed in internal stage reports.

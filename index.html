@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Peripheral: an on-device visual-assistance prototype that stays out of the way.">
+<title>Peripheral — Development</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { color-scheme: light; font-family: ui-sans-serif, system-ui, sans-serif; color: #202923; background: #f3f3ee; }
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .workspace { width: min(1120px, 100%); margin: auto; padding: 32px clamp(16px, 4vw, 48px) 56px; }
+  header { display: flex; justify-content: space-between; align-items: baseline; gap: 20px; border-bottom: 1px solid #c8cec6; padding-bottom: 20px; }
+  h1 { margin: 0; font-size: 18px; font-weight: 650; letter-spacing: .13em; }
+  .eyebrow, .view-caption, .muted { color: #505c53; font-size: 13px; }
+  .intro { margin: 34px 0 24px; max-width: 640px; }
+  h2 { font-weight: 500; font-size: clamp(25px, 4vw, 36px); letter-spacing: -.03em; margin: 0 0 12px; }
+  p { line-height: 1.6; }
+  .intro p { margin: 0; color: #505c53; }
+  figure { margin: 0; }
+  .view-caption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  #wearer-view { position: relative; aspect-ratio: 16 / 9; background: #000; overflow: hidden; }
+  #wearer-view canvas { position: absolute; inset: 0; width: 100%; height: 100%; background: transparent; pointer-events: none; }
+  .view-note { margin: 10px 0 30px; font-size: 13px; color: #505c53; }
+  details { border-top: 1px solid #c8cec6; border-bottom: 1px solid #c8cec6; }
+  summary { cursor: pointer; padding: 18px 2px; font-weight: 600; }
+  .debug-content { padding: 0 2px 24px; }
+  .debug-readouts { display: flex; flex-wrap: wrap; gap: 16px 40px; margin: 0 0 20px; }
+  .debug-readouts div { min-width: 110px; }
+  dt { color: #505c53; font-size: 12px; margin-bottom: 5px; }
+  dd { margin: 0; font-size: 14px; }
+  button { font: inherit; border: 1px solid #243d2c; border-radius: 4px; background: #243d2c; color: #fff; padding: 11px 18px; min-height: 44px; cursor: pointer; }
+  :focus-visible { outline: 3px solid #2b6bce; outline-offset: 4px; }
+  #test-summary { font-variant-numeric: tabular-nums; }
+  #test-results { padding-left: 24px; }
+  #test-results li { padding: 6px 0; overflow-wrap: anywhere; }
+  #test-results .fail { color: #a32121; }
+  #test-results .pass { color: #245836; }
+  pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0; font-size: 12px; }
+  footer { margin-top: 24px; font-size: 12px; color: #505c53; }
+  @media (max-width: 520px) { header { align-items: flex-start; flex-direction: column; gap: 8px; } .workspace { padding-top: 22px; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body>
+<main class="workspace">
+  <header><h1>PERIPHERAL</h1><span class="eyebrow">Development workspace</span></header>
+  <section class="intro" aria-labelledby="intro-heading">
+    <h2 id="intro-heading">The world comes first.</h2>
+    <p>A visual-assistance prototype built around one constraint: the interface appears only when there is a reason.</p>
+  </section>
+  <figure aria-labelledby="view-label">
+    <figcaption class="view-caption"><span id="view-label">Wearer’s view</span><span>Stage 0 · Foundation</span></figcaption>
+    <div id="wearer-view" role="img" aria-label="Empty wearer view. No camera feed or emitted interface is active.">
+      <canvas id="world-layer" width="960" height="540" aria-hidden="true"></canvas>
+      <canvas id="subtractive-layer" width="960" height="540" aria-hidden="true"></canvas>
+      <canvas id="additive-layer" width="960" height="540" aria-hidden="true"></canvas>
+    </div>
+  </figure>
+  <p class="view-note">No frame source is connected yet. Camera input and the synthetic scene arrive in the next stage.</p>
+  <details id="debug-drawer">
+    <summary>Debug console</summary>
+    <div class="debug-content">
+      <p class="muted">Developer controls stay outside the wearer’s view.</p>
+      <dl class="debug-readouts">
+        <div><dt>Camera</dt><dd>Inactive</dd></div>
+        <div><dt>Perception</dt><dd>Not connected</dd></div>
+        <div><dt>Test input</dt><dd>Deterministic fixtures</dd></div>
+      </dl>
+      <button id="run-tests" type="button" aria-controls="test-summary test-results">Run Tests</button>
+      <p id="test-summary" role="status" aria-live="polite">Tests have not run.</p>
+      <ol id="test-results" aria-label="Test results"></ol>
+    </div>
+  </details>
+  <footer>On-device prototype · No camera or model is started by this foundation.</footer>
+  <noscript><p>JavaScript is required to run the test harness.</p></noscript>
+</main>
+<script>
+(() => {
+"use strict";
+
+// CORE BEGIN: pure values and functions; no browser, clock, network, or DOM access.
+const Core = Object.freeze({
+  createInitialState() {
+    return { reveals: [], perception: [], frameSource: null, cameraActive: false };
+  }
+});
+// CORE END
+
+// HARNESS BEGIN: synchronous deterministic assertions, independent of the DOM.
+function createHarness() {
+  const suites = [];
+  let activeSuite = null;
+  let results = [];
+
+  function record(passed, actual, expected, message) {
+    if (activeSuite === null) throw new Error("Assertions must run inside a suite");
+    results.push({ suite: activeSuite, passed, message: String(message), expected, actual });
+  }
+
+  const harness = {
+    suite(name, fn) {
+      if (typeof name !== "string" || !name.trim() || typeof fn !== "function") {
+        throw new TypeError("A suite needs a name and a function");
+      }
+      if (activeSuite !== null) throw new Error("Register suites before running tests");
+      suites.push({ name, fn });
+    },
+    eq(actual, expected, message = "values are equal") {
+      record(Object.is(actual, expected), actual, expected, message);
+    },
+    approx(actual, expected, tolerance, message = "values are within tolerance") {
+      const valid = [actual, expected, tolerance].every(Number.isFinite) && tolerance >= 0;
+      record(valid && Math.abs(actual - expected) <= tolerance, actual,
+        { value: expected, tolerance }, message);
+    },
+    true(condition, message = "condition is true") {
+      record(condition === true, condition, true, message);
+    },
+    throws(fn, message = "function throws") {
+      if (typeof fn !== "function") {
+        record(false, "not callable", "callable that throws", message);
+        return;
+      }
+      try { fn(); }
+      catch (error) { record(true, String(error), "exception", message); return; }
+      record(false, "no exception", "exception", message);
+    },
+    run() {
+      if (activeSuite !== null) throw new Error("A running harness cannot rerun itself");
+      results = [];
+      for (const { name, fn } of suites) {
+        activeSuite = name;
+        try {
+          const returned = fn();
+          if (returned && typeof returned.then === "function") {
+            // Reject async suites explicitly rather than claiming success before completion.
+            Promise.resolve(returned).catch(() => {});
+            record(false, "Promise", "synchronous suite", "Async suite is unsupported");
+          }
+        } catch (error) {
+          record(false, String(error), "no unexpected exception", "Suite threw unexpectedly");
+        } finally { activeSuite = null; }
+      }
+      const passed = results.filter(result => result.passed).length;
+      return { passed, failed: results.length - passed, results: results.map(result => ({ ...result })) };
+    }
+  };
+  return Object.freeze(harness);
+}
+// HARNESS END
+
+// Stage 0 tests are written before the harness, core, or shell implementation.
+function registerStage0Tests(T, createHarness, Core) {
+  T.suite("Harness: result contract", () => {
+    const probe = createHarness();
+    probe.suite("sample", () => {
+      probe.eq(1, 2, "known mismatch");
+      probe.eq("after", "after", "continues after failed assertion");
+    });
+    const result = probe.run();
+    T.eq(result.passed, 1, "counts passing assertions");
+    T.eq(result.failed, 1, "counts failing assertions");
+    T.eq(result.results.length, 2, "retains every assertion");
+    T.eq(result.results[0].suite, "sample", "retains suite name");
+    T.eq(result.results[0].message, "known mismatch", "retains failure message");
+    T.eq(result.results[0].expected, 2, "retains expected value");
+    T.eq(result.results[0].actual, 1, "retains actual value");
+    T.eq(result.results[0].passed, false, "marks the failure explicitly");
+    T.eq(probe.run().results.length, 2, "reruns replace rather than accumulate results");
+    const empty = createHarness().run();
+    T.eq(empty.passed, 0, "empty harness has zero passes");
+    T.eq(empty.failed, 0, "empty harness has zero failures");
+  });
+
+  T.suite("Harness: approximate equality", () => {
+    const probe = createHarness();
+    probe.suite("tolerance", () => {
+      probe.approx(1.125, 1, 0.125, "inclusive boundary");
+      probe.approx(1.25, 1, 0.125, "outside tolerance");
+      probe.approx(4, 4, 0, "zero tolerance");
+      probe.approx(NaN, 1, 1, "NaN must fail");
+      probe.approx(Infinity, Infinity, 1, "infinity must fail");
+      probe.approx(1, 1, -1, "negative tolerance must fail");
+      probe.approx(1, 1, Infinity, "infinite tolerance must fail");
+    });
+    const result = probe.run();
+    T.eq(result.passed, 2, "only finite values within tolerance pass");
+    T.eq(result.failed, 5, "invalid and out-of-range comparisons fail");
+    T.eq(result.results[0].passed, true, "exact tolerance boundary is accepted");
+    T.eq(result.results[1].passed, false, "outside tolerance is rejected");
+  });
+
+  T.suite("Harness: exceptions and strict assertions", () => {
+    const probe = createHarness();
+    probe.suite("assertions", () => {
+      probe.throws(() => { throw new Error("expected"); }, "catches exception");
+      probe.throws(() => {}, "requires exception");
+      probe.throws(null, "requires callable");
+      probe.true(true, "boolean true");
+      probe.true(1, "truthy is not true");
+      probe.eq(1, "1", "equality does not coerce");
+    });
+    probe.suite("crash", () => { throw new Error("unexpected suite error"); });
+    probe.suite("after crash", () => probe.true(true, "later suite still runs"));
+    const result = probe.run();
+    T.eq(result.passed, 3, "correct throws and strict true pass");
+    T.eq(result.failed, 5, "bad assertions and suite errors fail");
+    T.eq(result.results[6].actual, "Error: unexpected suite error", "suite error is not swallowed");
+    T.eq(result.results[7].passed, true, "a suite error does not abort later suites");
+    T.throws(() => probe.eq(1, 1, "outside suite"), "out-of-run assertions are rejected");
+    T.throws(() => probe.suite("invalid", null), "invalid suite callback is rejected");
+  });
+
+  T.suite("Core: initial state boundaries", () => {
+    const first = Core.createInitialState();
+    const second = Core.createInitialState();
+    T.eq(first.reveals.length, 0, "initial state has no reveals");
+    T.eq(first.perception.length, 0, "initial state invents no perception");
+    T.eq(first.frameSource, null, "no frame source is fabricated");
+    T.eq(first.cameraActive, false, "camera starts inactive");
+    T.true(first !== second, "states are independently created");
+    T.true(first.reveals !== second.reveals, "reveal collections are not shared");
+    T.true(first.perception !== second.perception, "perception collections are not shared");
+  });
+
+  // The Stage 0 deliberate failure was observed in Node and Chrome, then removed.
+}
+
+const T = createHarness();
+registerStage0Tests(T, createHarness, Core);
+// Public, DOM-free test entry point; the Node runner executes this same inline script.
+globalThis.Peripheral = Object.freeze({ T, Core, createHarness });
+
+// SHELL BEGIN: all DOM access and rendering stays in this section.
+function mount(doc, view) {
+  const drawer = doc.getElementById("debug-drawer");
+  const button = doc.getElementById("run-tests");
+  const summary = doc.getElementById("test-summary");
+  const list = doc.getElementById("test-results");
+  // Canvas dimensions are paint-only raster choices, not a hardware FOV claim.
+  // Each channel starts transparent; Stage 0 makes no optical/hardware measurement.
+  for (const id of ["world-layer", "subtractive-layer", "additive-layer"]) {
+    const canvas = doc.getElementById(id);
+    const context = canvas.getContext("2d");
+    if (context) context.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  function printable(value) {
+    if (value === undefined) return "undefined";
+    if (typeof value === "number" && !Number.isFinite(value)) return String(value);
+    try { return JSON.stringify(value, null, 2); }
+    catch { return String(value); }
+  }
+
+  function runTests() {
+    const report = T.run();
+    const items = doc.createDocumentFragment();
+    for (const result of report.results) {
+      const item = doc.createElement("li");
+      item.className = result.passed ? "pass" : "fail";
+      item.textContent = `${result.passed ? "PASS" : "FAIL"} · ${result.suite} · ${result.message}`;
+      if (!result.passed) {
+        const detail = doc.createElement("pre");
+        detail.textContent = `Expected: ${printable(result.expected)}\nActual: ${printable(result.actual)}`;
+        item.append(detail);
+      }
+      items.append(item);
+    }
+    list.replaceChildren(items);
+    summary.textContent = `${report.passed} passed / ${report.failed} failed`;
+    summary.dataset.passed = String(report.passed);
+    summary.dataset.failed = String(report.failed);
+    return report;
+  }
+
+  function runFromHash() {
+    if (view.location.hash === "#test") { drawer.open = true; runTests(); }
+  }
+  button.addEventListener("click", runTests);
+  view.addEventListener("hashchange", runFromHash);
+  runFromHash();
+}
+if (typeof document !== "undefined") mount(document, window);
+// SHELL END
+})();
+</script>
+</body>
+</html>

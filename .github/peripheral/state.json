@@ -23,22 +23,50 @@
     "status": "active",
     "taskTitle": "Build Peripheral"
   },
-  "nextStage": 0,
+  "nextStage": 1,
   "stages": [
     {
       "stage": 0,
       "name": "Skeleton, harness, module boundaries",
       "commitMessage": "chore: skeleton and inline test harness",
-      "status": "pending",
-      "reportPath": "docs/stages/stage-00.md",
-      "testResults": null
+      "status": "completed",
+      "reportPath": ".github/peripheral/reports/stage-00.md",
+      "testResults": {
+        "passed": 28,
+        "failed": 0,
+        "runtime": "Node v24.19.0 and Chrome",
+        "evidencePath": ".github/peripheral/reports/stage-00-green.json",
+        "redPhases": [
+          {
+            "passed": 0,
+            "failed": 1,
+            "reason": "Harness implementation absent"
+          },
+          {
+            "passed": 28,
+            "failed": 1,
+            "reason": "Required deliberate failure"
+          }
+        ]
+      },
+      "gate": {
+        "status": "passed",
+        "checks": [
+          "Page loads",
+          "Native debug drawer opens with Enter",
+          "Run Tests is reachable with Tab and executes with Enter",
+          "#test opens drawer and runs suite",
+          "Deliberate failure rendered with expected and actual, then removed",
+          "Repeated runs retain 28 results without duplication"
+        ]
+      }
     },
     {
       "stage": 1,
       "name": "Camera pipeline + synthetic fallback",
       "commitMessage": "feat: frame pipeline with synthetic fallback",
       "status": "pending",
-      "reportPath": "docs/stages/stage-01.md",
+      "reportPath": ".github/peripheral/reports/stage-01.md",
       "testResults": null
     },
     {
@@ -46,7 +74,7 @@
       "name": "Geometry core",
       "commitMessage": "feat(core): angular geometry and FOV model",
       "status": "pending",
-      "reportPath": "docs/stages/stage-02.md",
+      "reportPath": ".github/peripheral/reports/stage-02.md",
       "testResults": null
     },
     {
@@ -54,7 +82,7 @@
       "name": "GazeSource + head gaze",
       "commitMessage": "feat(core): gaze source abstraction",
       "status": "pending",
-      "reportPath": "docs/stages/stage-03.md",
+      "reportPath": ".github/peripheral/reports/stage-03.md",
       "testResults": null
     },
     {
@@ -62,7 +90,7 @@
       "name": "Dwell state machine",
       "commitMessage": "feat(core): dwell detection state machine",
       "status": "pending",
-      "reportPath": "docs/stages/stage-04.md",
+      "reportPath": ".github/peripheral/reports/stage-04.md",
       "testResults": null
     },
     {
@@ -70,7 +98,7 @@
       "name": "Object detection (Tier 1)",
       "commitMessage": "feat(perception): tier-1 object detection",
       "status": "pending",
-      "reportPath": "docs/stages/stage-05.md",
+      "reportPath": ".github/peripheral/reports/stage-05.md",
       "testResults": null
     },
     {
@@ -78,7 +106,7 @@
       "name": "Tracking + anchor identity",
       "commitMessage": "feat(perception): anchor tracking and association",
       "status": "pending",
-      "reportPath": "docs/stages/stage-06.md",
+      "reportPath": ".github/peripheral/reports/stage-06.md",
       "testResults": null
     },
     {
@@ -86,7 +114,7 @@
       "name": "Re-identification (Tier 2)",
       "commitMessage": "feat(perception): embedding-based re-identification",
       "status": "pending",
-      "reportPath": "docs/stages/stage-07.md",
+      "reportPath": ".github/peripheral/reports/stage-07.md",
       "testResults": null
     },
     {
@@ -94,7 +122,7 @@
       "name": "Depth + surface estimation (Tier 2)",
       "commitMessage": "feat(perception): monocular depth and surface anchoring",
       "status": "pending",
-      "reportPath": "docs/stages/stage-08.md",
+      "reportPath": ".github/peripheral/reports/stage-08.md",
       "testResults": null
     },
     {
@@ -102,7 +130,7 @@
       "name": "WorldModel (Tier 3)",
       "commitMessage": "feat(core): scriptable world model",
       "status": "pending",
-      "reportPath": "docs/stages/stage-09.md",
+      "reportPath": ".github/peripheral/reports/stage-09.md",
       "testResults": null
     },
     {
@@ -110,7 +138,7 @@
       "name": "Entity binding",
       "commitMessage": "feat(core): anchor-to-entity binding",
       "status": "pending",
-      "reportPath": "docs/stages/stage-10.md",
+      "reportPath": ".github/peripheral/reports/stage-10.md",
       "testResults": null
     },
     {
@@ -118,7 +146,7 @@
       "name": "Trigger policy engine",
       "commitMessage": "feat(core): warrant-based trigger policy",
       "status": "pending",
-      "reportPath": "docs/stages/stage-11.md",
+      "reportPath": ".github/peripheral/reports/stage-11.md",
       "testResults": null
     },
     {
@@ -126,7 +154,7 @@
       "name": "Reveal lifecycle + duty cycle",
       "commitMessage": "feat(core): reveal lifecycle and visibility duty cycle",
       "status": "pending",
-      "reportPath": "docs/stages/stage-12.md",
+      "reportPath": ".github/peripheral/reports/stage-12.md",
       "testResults": null
     },
     {
@@ -134,7 +162,7 @@
       "name": "Additive renderer",
       "commitMessage": "feat(render): additive world-anchored overlays",
       "status": "pending",
-      "reportPath": "docs/stages/stage-13.md",
+      "reportPath": ".github/peripheral/reports/stage-13.md",
       "testResults": null
     },
     {
@@ -142,7 +170,7 @@
       "name": "Subtractive renderer",
       "commitMessage": "feat(render): electrochromic dimming with resolution tiers",
       "status": "pending",
-      "reportPath": "docs/stages/stage-14.md",
+      "reportPath": ".github/peripheral/reports/stage-14.md",
       "testResults": null
     },
     {
@@ -150,7 +178,7 @@
       "name": "Selective salience",
       "commitMessage": "feat: selective salience and noise suppression",
       "status": "pending",
-      "reportPath": "docs/stages/stage-15.md",
+      "reportPath": ".github/peripheral/reports/stage-15.md",
       "testResults": null
     },
     {
@@ -158,7 +186,7 @@
       "name": "Wayfinding",
       "commitMessage": "feat: ground-anchored wayfinding with peripheral alerts",
       "status": "pending",
-      "reportPath": "docs/stages/stage-16.md",
+      "reportPath": ".github/peripheral/reports/stage-16.md",
       "testResults": null
     },
     {
@@ -166,7 +194,7 @@
       "name": "Social anchor + consent",
       "commitMessage": "feat: consent-gated social memory anchor",
       "status": "pending",
-      "reportPath": "docs/stages/stage-17.md",
+      "reportPath": ".github/peripheral/reports/stage-17.md",
       "testResults": null
     },
     {
@@ -174,7 +202,7 @@
       "name": "Scenario runner",
       "commitMessage": "feat: scripted scenario runner",
       "status": "pending",
-      "reportPath": "docs/stages/stage-18.md",
+      "reportPath": ".github/peripheral/reports/stage-18.md",
       "testResults": null
     },
     {
@@ -182,13 +210,13 @@
       "name": "Ethics panel, accessibility, README",
       "commitMessage": "feat: ethics panel, accessibility, and documentation",
       "status": "pending",
-      "reportPath": "docs/stages/stage-19.md",
+      "reportPath": ".github/peripheral/reports/stage-19.md",
       "testResults": null
     }
   ],
   "finalAcceptance": {
     "status": "pending",
-    "reportPath": "docs/FINAL_ACCEPTANCE.md"
+    "reportPath": ".github/peripheral/reports/final-acceptance.md"
   },
   "blockers": [],
   "lastUpdated": "2026-09-05"

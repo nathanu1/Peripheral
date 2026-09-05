@@ -1,0 +1,9 @@
+{
+  "name": "peripheral",
+  "private": true,
+  "description": "Development commands only; index.html runs without installation or a build.",
+  "scripts": {
+    "test": "node tests/run.mjs",
+    "dev": "node tests/serve.mjs"
+  }
+}
