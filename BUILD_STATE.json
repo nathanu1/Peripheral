@@ -20,8 +20,8 @@
     ],
     "timingMode": "flexible_schedule",
     "plannedRuns": 21,
-    "automationId": null,
-    "status": "pending_activation"
+    "status": "active",
+    "taskTitle": "Build Peripheral"
   },
   "nextStage": 0,
   "stages": [
