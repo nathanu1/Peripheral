@@ -1,0 +1,1073 @@
+{
+  "runtime": "v24.19.0",
+  "sourceSha256": "0af85b4821b55b7baec41d29986a562642bc95accdb6e59dd139103da3098358",
+  "passed": 145,
+  "failed": 0,
+  "results": [
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "counts passing assertions",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "counts failing assertions",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "retains every assertion",
+      "expected": 2,
+      "actual": 2
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "retains suite name",
+      "expected": "sample",
+      "actual": "sample"
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "retains failure message",
+      "expected": "known mismatch",
+      "actual": "known mismatch"
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "retains expected value",
+      "expected": 2,
+      "actual": 2
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "retains actual value",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "marks the failure explicitly",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "reruns replace rather than accumulate results",
+      "expected": 2,
+      "actual": 2
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "empty harness has zero passes",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "empty harness has zero failures",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Harness: approximate equality",
+      "passed": true,
+      "message": "only finite values within tolerance pass",
+      "expected": 2,
+      "actual": 2
+    },
+    {
+      "suite": "Harness: approximate equality",
+      "passed": true,
+      "message": "invalid and out-of-range comparisons fail",
+      "expected": 5,
+      "actual": 5
+    },
+    {
+      "suite": "Harness: approximate equality",
+      "passed": true,
+      "message": "exact tolerance boundary is accepted",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Harness: approximate equality",
+      "passed": true,
+      "message": "outside tolerance is rejected",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Harness: exceptions and strict assertions",
+      "passed": true,
+      "message": "correct throws and strict true pass",
+      "expected": 3,
+      "actual": 3
+    },
+    {
+      "suite": "Harness: exceptions and strict assertions",
+      "passed": true,
+      "message": "bad assertions and suite errors fail",
+      "expected": 5,
+      "actual": 5
+    },
+    {
+      "suite": "Harness: exceptions and strict assertions",
+      "passed": true,
+      "message": "suite error is not swallowed",
+      "expected": "Error: unexpected suite error",
+      "actual": "Error: unexpected suite error"
+    },
+    {
+      "suite": "Harness: exceptions and strict assertions",
+      "passed": true,
+      "message": "a suite error does not abort later suites",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Harness: exceptions and strict assertions",
+      "passed": true,
+      "message": "out-of-run assertions are rejected",
+      "expected": "exception",
+      "actual": "Error: Assertions must run inside a suite"
+    },
+    {
+      "suite": "Harness: exceptions and strict assertions",
+      "passed": true,
+      "message": "invalid suite callback is rejected",
+      "expected": "exception",
+      "actual": "TypeError: A suite needs a name and a function"
+    },
+    {
+      "suite": "Core: initial state boundaries",
+      "passed": true,
+      "message": "initial state has no reveals",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Core: initial state boundaries",
+      "passed": true,
+      "message": "initial state invents no perception",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Core: initial state boundaries",
+      "passed": true,
+      "message": "no frame source is fabricated",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Core: initial state boundaries",
+      "passed": true,
+      "message": "camera starts inactive",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Core: initial state boundaries",
+      "passed": true,
+      "message": "states are independently created",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Core: initial state boundaries",
+      "passed": true,
+      "message": "reveal collections are not shared",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Core: initial state boundaries",
+      "passed": true,
+      "message": "perception collections are not shared",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Frames: deterministic synthetic input",
+      "passed": true,
+      "message": "same seed and frame produce identical pixels",
+      "expected": "40,50,58,255,37,47,55,255,42,52,60,255,43,53,61,255,36,46,54,255,45,55,63,255,225,225,210,255,43,53,61,255,36,46,54,255,45,55,63,255,38,48,56,255,39,49,57,255,44,54,62,255,41,51,59,255,34,44,52,255,43,53,61,255,38,48,56,255,47,57,65,255,40,50,58,255,41,51,59,255,46,56,64,255,43,53,61,255,225,225,210,255,41,51,59,255,46,56,64,255,43,53,61,255,48,58,66,255,37,47,55,255,42,52,60,255,39,49,57,255,44,54,62,255,41,51,59,255,49,59,67,255,46,56,64,255,51,61,69,255,52,62,70,255,45,55,63,255,42,52,60,255,225,225,210,255,52,62,70,255,45,55,63,255,42,52,60,255,47,57,65,255,48,58,66,255,41,51,59,255,50,60,68,255,43,53,61,255,52,62,70,255,47,57,65,255,44,54,62,255,49,59,67,255,50,60,68,255,55,65,73,255,52,62,70,255,225,225,210,255,212,190,130,255,212,190,130,255,52,62,70,255,45,55,63,255,46,56,64,255,51,61,69,255,48,58,66,255,53,63,71,255,50,60,68,255,53,63,71,255,50,60,68,255,55,65,73,255,56,66,74,255,49,59,67,255,58,68,76,255,225,225,210,255,212,190,130,255,212,190,130,255,58,68,76,255,51,61,69,255,52,62,70,255,57,67,75,255,54,64,72,255,47,57,65,255,56,66,74,255,52,62,70,255,61,71,79,255,54,64,72,255,55,65,73,255,60,70,78,255,57,67,75,255,225,225,210,255,212,190,130,255,212,190,130,255,57,67,75,255,62,72,80,255,51,61,69,255,56,66,74,255,53,63,71,255,58,68,76,255,55,65,73,255,62,72,80,255,59,69,77,255,64,74,82,255,65,75,83,255,58,68,76,255,55,65,73,255,225,225,210,255,65,75,83,255,58,68,76,255,55,65,73,255,60,70,78,255,61,71,79,255,54,64,72,255,63,73,81,255,56,66,74,255,65,75,83,255,60,70,78,255,57,67,75,255,62,72,80,255,63,73,81,255,68,78,86,255,65,75,83,255,225,225,210,255,63,73,81,255,68,78,86,255,65,75,83,255,58,68,76,255,59,69,77,255,64,74,82,255,61,71,79,255,66,76,84,255,63,73,81,255,67,77,85,255,64,74,82,255,69,79,87,255,70,80,88,255,63,73,81,255,72,82,90,255,225,225,210,255,70,80,88,255,63,73,81,255,72,82,90,255,65,75,83,255,66,76,84,255,71,81,89,255,68,78,86,255,61,71,79,255,70,80,88,255",
+      "actual": "40,50,58,255,37,47,55,255,42,52,60,255,43,53,61,255,36,46,54,255,45,55,63,255,225,225,210,255,43,53,61,255,36,46,54,255,45,55,63,255,38,48,56,255,39,49,57,255,44,54,62,255,41,51,59,255,34,44,52,255,43,53,61,255,38,48,56,255,47,57,65,255,40,50,58,255,41,51,59,255,46,56,64,255,43,53,61,255,225,225,210,255,41,51,59,255,46,56,64,255,43,53,61,255,48,58,66,255,37,47,55,255,42,52,60,255,39,49,57,255,44,54,62,255,41,51,59,255,49,59,67,255,46,56,64,255,51,61,69,255,52,62,70,255,45,55,63,255,42,52,60,255,225,225,210,255,52,62,70,255,45,55,63,255,42,52,60,255,47,57,65,255,48,58,66,255,41,51,59,255,50,60,68,255,43,53,61,255,52,62,70,255,47,57,65,255,44,54,62,255,49,59,67,255,50,60,68,255,55,65,73,255,52,62,70,255,225,225,210,255,212,190,130,255,212,190,130,255,52,62,70,255,45,55,63,255,46,56,64,255,51,61,69,255,48,58,66,255,53,63,71,255,50,60,68,255,53,63,71,255,50,60,68,255,55,65,73,255,56,66,74,255,49,59,67,255,58,68,76,255,225,225,210,255,212,190,130,255,212,190,130,255,58,68,76,255,51,61,69,255,52,62,70,255,57,67,75,255,54,64,72,255,47,57,65,255,56,66,74,255,52,62,70,255,61,71,79,255,54,64,72,255,55,65,73,255,60,70,78,255,57,67,75,255,225,225,210,255,212,190,130,255,212,190,130,255,57,67,75,255,62,72,80,255,51,61,69,255,56,66,74,255,53,63,71,255,58,68,76,255,55,65,73,255,62,72,80,255,59,69,77,255,64,74,82,255,65,75,83,255,58,68,76,255,55,65,73,255,225,225,210,255,65,75,83,255,58,68,76,255,55,65,73,255,60,70,78,255,61,71,79,255,54,64,72,255,63,73,81,255,56,66,74,255,65,75,83,255,60,70,78,255,57,67,75,255,62,72,80,255,63,73,81,255,68,78,86,255,65,75,83,255,225,225,210,255,63,73,81,255,68,78,86,255,65,75,83,255,58,68,76,255,59,69,77,255,64,74,82,255,61,71,79,255,66,76,84,255,63,73,81,255,67,77,85,255,64,74,82,255,69,79,87,255,70,80,88,255,63,73,81,255,72,82,90,255,225,225,210,255,70,80,88,255,63,73,81,255,72,82,90,255,65,75,83,255,66,76,84,255,71,81,89,255,68,78,86,255,61,71,79,255,70,80,88,255"
+    },
+    {
+      "suite": "Frames: deterministic synthetic input",
+      "passed": true,
+      "message": "different seed changes pixels",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Frames: deterministic synthetic input",
+      "passed": true,
+      "message": "frame index advances scene",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Frames: deterministic synthetic input",
+      "passed": true,
+      "message": "frame is complete RGBA",
+      "expected": 576,
+      "actual": 576
+    },
+    {
+      "suite": "Frames: deterministic synthetic input",
+      "passed": true,
+      "message": "synthetic provenance survives transport",
+      "expected": "synthetic",
+      "actual": "synthetic"
+    },
+    {
+      "suite": "Frames: deterministic synthetic input",
+      "passed": true,
+      "message": "synthetic pixels never become measured Tier 1",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Frames: deterministic synthetic input",
+      "passed": true,
+      "message": "frames do not share writable buffers",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Frames: deterministic synthetic input",
+      "passed": true,
+      "message": "zero seed is valid and alpha is opaque",
+      "expected": 255,
+      "actual": 255
+    },
+    {
+      "suite": "Frames: deterministic synthetic input",
+      "passed": true,
+      "message": "negative frame index is rejected",
+      "expected": "exception",
+      "actual": "RangeError: Seed must be uint32; frame index must be a nonnegative integer"
+    },
+    {
+      "suite": "Frames: deterministic synthetic input",
+      "passed": true,
+      "message": "zero dimension is rejected",
+      "expected": "exception",
+      "actual": "RangeError: Frame dimensions must be positive integers, at most 2073600 pixels"
+    },
+    {
+      "suite": "Frames: cadence and skipped slots",
+      "passed": true,
+      "message": "120 Hz callbacks emit 30 frames in one second",
+      "expected": 30,
+      "actual": 30
+    },
+    {
+      "suite": "Frames: cadence and skipped slots",
+      "passed": true,
+      "message": "missed slots are counted",
+      "expected": 30,
+      "actual": 30
+    },
+    {
+      "suite": "Frames: cadence and skipped slots",
+      "passed": true,
+      "message": "late callback emits one current frame",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Frames: cadence and skipped slots",
+      "passed": true,
+      "message": "same timestamp cannot create a catch-up burst",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Frames: cadence and skipped slots",
+      "passed": true,
+      "message": "backward timestamps do not emit",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Frames: cadence and skipped slots",
+      "passed": true,
+      "message": "invalid target rate is rejected",
+      "expected": "exception",
+      "actual": "RangeError: Invalid frame-clock configuration"
+    },
+    {
+      "suite": "Frames: cadence and skipped slots",
+      "passed": true,
+      "message": "invalid clock sample is rejected",
+      "expected": "exception",
+      "actual": "RangeError: Invalid frame timestamp"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "NotAllowedError falls back to synthetic",
+      "expected": "synthetic",
+      "actual": "synthetic"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "NotAllowedError leaves no active camera",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "NotAllowedError remains visible",
+      "expected": "NotAllowedError",
+      "actual": "NotAllowedError"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "NotAllowedError keeps synthetic running while requesting",
+      "expected": "requesting",
+      "actual": "requesting"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "NotFoundError falls back to synthetic",
+      "expected": "synthetic",
+      "actual": "synthetic"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "NotFoundError leaves no active camera",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "NotFoundError remains visible",
+      "expected": "NotFoundError",
+      "actual": "NotFoundError"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "NotFoundError keeps synthetic running while requesting",
+      "expected": "requesting",
+      "actual": "requesting"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "Unavailable falls back to synthetic",
+      "expected": "synthetic",
+      "actual": "synthetic"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "Unavailable leaves no active camera",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "Unavailable remains visible",
+      "expected": "Unavailable",
+      "actual": "Unavailable"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "Unavailable keeps synthetic running while requesting",
+      "expected": "requesting",
+      "actual": "requesting"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "Timeout falls back to synthetic",
+      "expected": "synthetic",
+      "actual": "synthetic"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "Timeout leaves no active camera",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "Timeout remains visible",
+      "expected": "Timeout",
+      "actual": "Timeout"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "Timeout keeps synthetic running while requesting",
+      "expected": "requesting",
+      "actual": "requesting"
+    },
+    {
+      "suite": "Frames: resource lifetime and cancellation",
+      "passed": true,
+      "message": "late camera grant is released after cancellation",
+      "expected": {
+        "id": "stale"
+      },
+      "actual": {
+        "id": "stale"
+      }
+    },
+    {
+      "suite": "Frames: resource lifetime and cancellation",
+      "passed": true,
+      "message": "late grant cannot resurrect camera",
+      "expected": "synthetic",
+      "actual": "synthetic"
+    },
+    {
+      "suite": "Frames: resource lifetime and cancellation",
+      "passed": true,
+      "message": "indicator reflects acquired stream before playback",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Frames: resource lifetime and cancellation",
+      "passed": true,
+      "message": "synthetic continues until camera has pixels",
+      "expected": "synthetic",
+      "actual": "synthetic"
+    },
+    {
+      "suite": "Frames: resource lifetime and cancellation",
+      "passed": true,
+      "message": "stale readiness is ignored",
+      "expected": "synthetic",
+      "actual": "synthetic"
+    },
+    {
+      "suite": "Frames: resource lifetime and cancellation",
+      "passed": true,
+      "message": "camera becomes source only after readiness",
+      "expected": "camera",
+      "actual": "camera"
+    },
+    {
+      "suite": "Frames: resource lifetime and cancellation",
+      "passed": true,
+      "message": "ended stream is released",
+      "expected": {
+        "id": "live"
+      },
+      "actual": {
+        "id": "live"
+      }
+    },
+    {
+      "suite": "Frames: resource lifetime and cancellation",
+      "passed": true,
+      "message": "lost camera falls back",
+      "expected": "synthetic",
+      "actual": "synthetic"
+    },
+    {
+      "suite": "Frames: resource lifetime and cancellation",
+      "passed": true,
+      "message": "late outcomes cannot restart a stopped source",
+      "expected": "stopped",
+      "actual": "stopped"
+    },
+    {
+      "suite": "Frames: resource lifetime and cancellation",
+      "passed": true,
+      "message": "stop turns off camera state",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Frames: diagnostics and tier labels",
+      "passed": true,
+      "message": "black code values have zero brightness proxy",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Frames: diagnostics and tier labels",
+      "passed": true,
+      "message": "white code values have unit brightness proxy",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Frames: diagnostics and tier labels",
+      "passed": true,
+      "message": "synthetic diagnostics carry no live tier",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Frames: diagnostics and tier labels",
+      "passed": true,
+      "message": "camera pixel diagnostics carry Tier 1 provenance",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Frames: diagnostics and tier labels",
+      "passed": true,
+      "message": "uniform frame has no neighboring contrast",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Frames: diagnostics and tier labels",
+      "passed": true,
+      "message": "black-white transition reaches unit contrast",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Frames: diagnostics and tier labels",
+      "passed": true,
+      "message": "unknown provenance is rejected",
+      "expected": "exception",
+      "actual": "TypeError: Frame needs complete pixels and known provenance"
+    },
+    {
+      "suite": "Frames: diagnostics and tier labels",
+      "passed": true,
+      "message": "incomplete pixel buffer is rejected",
+      "expected": "exception",
+      "actual": "TypeError: Frame needs complete pixels and known provenance"
+    },
+    {
+      "suite": "Frames: rolling performance measurements",
+      "passed": true,
+      "message": "FPS is computed from observed intervals",
+      "expected": {
+        "value": 30,
+        "tolerance": 1e-8
+      },
+      "actual": 30
+    },
+    {
+      "suite": "Frames: rolling performance measurements",
+      "passed": true,
+      "message": "capture CPU time is measured separately",
+      "expected": 2,
+      "actual": 2
+    },
+    {
+      "suite": "Frames: rolling performance measurements",
+      "passed": true,
+      "message": "analysis CPU time is measured separately",
+      "expected": 3,
+      "actual": 3
+    },
+    {
+      "suite": "Frames: rolling performance measurements",
+      "passed": true,
+      "message": "paint submission CPU time is measured separately",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Frames: rolling performance measurements",
+      "passed": true,
+      "message": "processing time sums actual stage durations",
+      "expected": 6,
+      "actual": 6
+    },
+    {
+      "suite": "Frames: rolling performance measurements",
+      "passed": true,
+      "message": "stale samples do not display a live FPS",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Frames: rolling performance measurements",
+      "passed": true,
+      "message": "absent measurements are not fabricated as zero latency",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "one degree maps to 42 nominal display pixels",
+      "expected": 42,
+      "actual": 42
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "fractional degrees retain precision",
+      "expected": 0.5,
+      "actual": 0.5
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "signed degree round-trip: -180",
+      "expected": {
+        "value": -180,
+        "tolerance": 1e-12
+      },
+      "actual": -180
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "signed degree round-trip: -7.125",
+      "expected": {
+        "value": -7.125,
+        "tolerance": 1e-12
+      },
+      "actual": -7.125
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "signed degree round-trip: 0",
+      "expected": {
+        "value": 0,
+        "tolerance": 1e-12
+      },
+      "actual": 0
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "signed degree round-trip: 0.4",
+      "expected": {
+        "value": 0.4,
+        "tolerance": 1e-12
+      },
+      "actual": 0.4
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "signed degree round-trip: 14.285714285714286",
+      "expected": {
+        "value": 14.285714285714286,
+        "tolerance": 1e-12
+      },
+      "actual": 14.285714285714286
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "signed degree round-trip: 180",
+      "expected": {
+        "value": 180,
+        "tolerance": 1e-12
+      },
+      "actual": 180
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "cap-height conversion does not round early",
+      "expected": 16.8,
+      "actual": 16.8
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "conversion accepts another explicit density",
+      "expected": 120,
+      "actual": 120
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "zero pixel density is rejected",
+      "expected": "exception",
+      "actual": "RangeError: pixelsPerDegree must be positive"
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "negative pixel density is rejected",
+      "expected": "exception",
+      "actual": "RangeError: pixelsPerDegree must be positive"
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "nonfinite angle is rejected",
+      "expected": "exception",
+      "actual": "RangeError: deg must be a finite number"
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "nonfinite pixel offset is rejected",
+      "expected": "exception",
+      "actual": "RangeError: px must be a finite number"
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "unit conversion never coerces strings",
+      "expected": "exception",
+      "actual": "RangeError: pixelsPerDegree must be a finite number"
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "overflow is rejected",
+      "expected": "exception",
+      "actual": "RangeError: pixel offset must be a finite number"
+    },
+    {
+      "suite": "Geometry: visual angle",
+      "passed": true,
+      "message": "one metre at three metres subtends about 18.9 degrees",
+      "expected": {
+        "value": 18.924644416051233,
+        "tolerance": 1e-12
+      },
+      "actual": 18.924644416051233
+    },
+    {
+      "suite": "Geometry: visual angle",
+      "passed": true,
+      "message": "near objects use exact trigonometry",
+      "expected": {
+        "value": 90,
+        "tolerance": 1e-12
+      },
+      "actual": 90
+    },
+    {
+      "suite": "Geometry: visual angle",
+      "passed": true,
+      "message": "zero extent subtends zero angle",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Geometry: visual angle",
+      "passed": true,
+      "message": "equal physical ratios subtend equal angles",
+      "expected": {
+        "value": 18.924644416051233,
+        "tolerance": 1e-12
+      },
+      "actual": 18.924644416051233
+    },
+    {
+      "suite": "Geometry: visual angle",
+      "passed": true,
+      "message": "negative physical extent is rejected",
+      "expected": "exception",
+      "actual": "RangeError: sizeM must not be negative"
+    },
+    {
+      "suite": "Geometry: visual angle",
+      "passed": true,
+      "message": "zero distance is rejected",
+      "expected": "exception",
+      "actual": "RangeError: distanceM must be positive"
+    },
+    {
+      "suite": "Geometry: visual angle",
+      "passed": true,
+      "message": "behind-eye distance is rejected",
+      "expected": "exception",
+      "actual": "RangeError: distanceM must be positive"
+    },
+    {
+      "suite": "Geometry: visual angle",
+      "passed": true,
+      "message": "nonfinite physical extent is rejected",
+      "expected": "exception",
+      "actual": "RangeError: sizeM must be a finite number"
+    },
+    {
+      "suite": "Geometry: explicit FOV",
+      "passed": true,
+      "message": "horizontal extent derives from pixel density",
+      "expected": {
+        "value": 14.285714285714286,
+        "tolerance": 1e-12
+      },
+      "actual": 14.285714285714286
+    },
+    {
+      "suite": "Geometry: explicit FOV",
+      "passed": true,
+      "message": "vertical extent derives from pixel density",
+      "expected": {
+        "value": 14.285714285714286,
+        "tolerance": 1e-12
+      },
+      "actual": 14.285714285714286
+    },
+    {
+      "suite": "Geometry: explicit FOV",
+      "passed": true,
+      "message": "diagonal derives from both angular extents",
+      "expected": {
+        "value": 20.203050891044217,
+        "tolerance": 1e-12
+      },
+      "actual": 20.203050891044217
+    },
+    {
+      "suite": "Geometry: explicit FOV",
+      "passed": true,
+      "message": "FOV is an explicit triple",
+      "expected": "diagonalDeg,horizontalDeg,verticalDeg",
+      "actual": "diagonalDeg,horizontalDeg,verticalDeg"
+    },
+    {
+      "suite": "Geometry: explicit FOV",
+      "passed": true,
+      "message": "derived diagonal cannot become stale through mutation",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Geometry: explicit FOV",
+      "passed": true,
+      "message": "FOV mutation is rejected",
+      "expected": "exception",
+      "actual": "TypeError: Cannot assign to read only property 'horizontalDeg' of object '#<Object>'"
+    },
+    {
+      "suite": "Geometry: explicit FOV",
+      "passed": true,
+      "message": "nonsquare FOV uses both axes",
+      "expected": {
+        "value": 13,
+        "tolerance": 1e-12
+      },
+      "actual": 13
+    },
+    {
+      "suite": "Geometry: explicit FOV",
+      "passed": true,
+      "message": "empty FOV is rejected",
+      "expected": "exception",
+      "actual": "RangeError: horizontalDeg must be positive"
+    },
+    {
+      "suite": "Geometry: explicit FOV",
+      "passed": true,
+      "message": "unsupported wide display FOV is rejected",
+      "expected": "exception",
+      "actual": "RangeError: Display axes must be below 180 degrees"
+    },
+    {
+      "suite": "Geometry: explicit FOV",
+      "passed": true,
+      "message": "nonfinite FOV is rejected",
+      "expected": "exception",
+      "actual": "RangeError: verticalDeg must be a finite number"
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "nominal display uses reported width",
+      "expected": 600,
+      "actual": 600
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "nominal display uses reported height",
+      "expected": 600,
+      "actual": 600
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "nominal display uses reported density",
+      "expected": 42,
+      "actual": 42
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "derived geometry is not a hardware measurement",
+      "expected": "model",
+      "actual": "model"
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "projection assumption is explicit",
+      "expected": "uniform-angular",
+      "actual": "uniform-angular"
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "display profile is immutable",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "positive horizontal angle paints right of centre",
+      "expected": 342,
+      "actual": 342
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "positive vertical angle paints above centre",
+      "expected": 216,
+      "actual": 216
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "paint boundary restores horizontal degrees",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "paint boundary restores vertical degrees",
+      "expected": 2,
+      "actual": 2
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "model point retains degrees only",
+      "expected": "xDeg,yDeg",
+      "actual": "xDeg,yDeg"
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "custom raster derives horizontal FOV",
+      "expected": 20,
+      "actual": 20
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "custom raster derives vertical FOV",
+      "expected": 10,
+      "actual": 10
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "custom paint centre follows display width",
+      "expected": 420,
+      "actual": 420
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "invalid display raster is rejected",
+      "expected": "exception",
+      "actual": "RangeError: Display dimensions must be positive safe integers"
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "invalid point cannot reach paint",
+      "expected": "exception",
+      "actual": "RangeError: deg must be a finite number"
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "reported density has source classification",
+      "expected": "established",
+      "actual": "established"
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "reported density names its primary source",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Geometry: display bounds",
+      "passed": true,
+      "message": "view centre is inside the display",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Geometry: display bounds",
+      "passed": true,
+      "message": "display edge is inclusive",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Geometry: display bounds",
+      "passed": true,
+      "message": "horizontal overflow is outside",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Geometry: display bounds",
+      "passed": true,
+      "message": "vertical overflow is outside",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Geometry: display bounds",
+      "passed": true,
+      "message": "off-screen anchor is never silently clamped",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Geometry: display bounds",
+      "passed": true,
+      "message": "bare scalar FOV is rejected",
+      "expected": "exception",
+      "actual": "TypeError: FOV must be an explicit degree triple"
+    },
+    {
+      "suite": "Geometry: display bounds",
+      "passed": true,
+      "message": "inconsistent imported FOV is rejected",
+      "expected": "exception",
+      "actual": "RangeError: FOV diagonal is inconsistent with its angular extents"
+    }
+  ]
+}

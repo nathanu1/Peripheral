@@ -23,7 +23,7 @@
     "status": "active",
     "taskTitle": "Build Peripheral"
   },
-  "nextStage": 2,
+  "nextStage": 3,
   "stages": [
     {
       "stage": 0,
@@ -104,9 +104,42 @@
       "stage": 2,
       "name": "Geometry core",
       "commitMessage": "feat(core): angular geometry and FOV model",
-      "status": "pending",
+      "status": "completed",
       "reportPath": ".github/peripheral/reports/stage-02.md",
-      "testResults": null
+      "testResults": {
+        "passed": 145,
+        "failed": 0,
+        "runtime": "Node v24.19.0 (deterministic synthetic suite)",
+        "evidencePath": ".github/peripheral/reports/stage-02-green.json",
+        "sourceSha256": "0af85b4821b55b7baec41d29986a562642bc95accdb6e59dd139103da3098358",
+        "newAssertions": 59,
+        "redPhases": [
+          {
+            "passed": 86,
+            "failed": 5,
+            "reason": "Geometry methods absent before implementation",
+            "evidencePath": ".github/peripheral/reports/stage-02-red.json"
+          }
+        ]
+      },
+      "gate": {
+        "status": "passed",
+        "passed": 5,
+        "failed": 0,
+        "evidencePath": ".github/peripheral/reports/stage-02-gate.json",
+        "checks": [
+          "Reference scan distinguishes text from executable browser identifiers",
+          "Core boundaries are explicit and present",
+          "Core contains zero browser, DOM, network, or storage references",
+          "Core contains no ambient time or random source",
+          "Standalone core executes with frozen inputs and repeatable output"
+        ],
+        "limitations": [
+          "Uniform-angular display profile and diagonal are modeling assumptions, not camera or optical calibration",
+          "Manufacturer-reported display dimensions and PPD are sourced; advertised FOV axis was not established",
+          "Browser, camera, real-model and physical-hardware validation not performed in this stage; prior runtime limitations remain"
+        ]
+      }
     },
     {
       "stage": 3,

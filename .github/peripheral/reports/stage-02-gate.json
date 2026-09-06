@@ -1,0 +1,28 @@
+{
+  "runtime": "v24.19.0",
+  "sourceSha256": "0af85b4821b55b7baec41d29986a562642bc95accdb6e59dd139103da3098358",
+  "passed": 5,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "Reference scan distinguishes text from executable browser identifiers",
+      "passed": true
+    },
+    {
+      "name": "Core boundaries are explicit and present",
+      "passed": true
+    },
+    {
+      "name": "Core contains zero browser, DOM, network, or storage references",
+      "passed": true
+    },
+    {
+      "name": "Core contains no ambient time or random source",
+      "passed": true
+    },
+    {
+      "name": "Standalone core executes with frozen inputs and repeatable output",
+      "passed": true
+    }
+  ]
+}

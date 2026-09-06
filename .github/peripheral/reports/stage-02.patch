@@ -1,0 +1,277 @@
+--- a/index.html
++++ b/index.html
+@@ -105,8 +105,13 @@
+ "use strict";
+ 
+ // CORE BEGIN: pure values and functions; no browser, clock, network, or DOM access.
+-// All values below are [model] engineering choices, not device measurements.
++// Each value distinguishes a sourced manufacturer specification from a [model] choice.
++// Manufacturer specifications are reported values, not measurements made by this application.
+ const CONSTANTS = Object.freeze({
++  // [established] Manufacturer-listed nominal values, checked 2026-09-06.
++  displayWidthPx: Object.freeze({ value: 600, kind: "established", source: "https://www.meta.com/ai-glasses/meta-ray-ban-display-glasses-and-neural-band/" }),
++  displayHeightPx: Object.freeze({ value: 600, kind: "established", source: "https://www.meta.com/ai-glasses/meta-ray-ban-display-glasses-and-neural-band/" }),
++  displayPixelsPerDegree: Object.freeze({ value: 42, kind: "established", source: "https://www.meta.com/ai-glasses/meta-ray-ban-display-glasses-and-neural-band/" }),
+   renderHz: Object.freeze({ value: 30, kind: "model", source: "Peripheral frame-budget target" }),
+   frameWidth: Object.freeze({ value: 320, kind: "model", source: "Stage 1 processing raster" }),
+   frameHeight: Object.freeze({ value: 180, kind: "model", source: "Stage 1 processing raster" }),
+@@ -120,7 +125,94 @@
+   }
+ }
+ 
++// Geometry convention: xDeg is rightward, yDeg is upward, origin is display centre.
++// Conversion to raster coordinates happens only at the explicit paint boundary.
++function finiteNumber(value, name) {
++  if (!Number.isFinite(value)) throw new RangeError(`${name} must be a finite number`);
++  return value;
++}
++function positiveNumber(value, name) {
++  finiteNumber(value, name);
++  if (value <= 0) throw new RangeError(`${name} must be positive`);
++  return value;
++}
++function validateFov(fov) {
++  if (!fov || typeof fov !== "object") throw new TypeError("FOV must be an explicit degree triple");
++  const expected = Core.makeFov(fov.horizontalDeg, fov.verticalDeg);
++  finiteNumber(fov.diagonalDeg, "diagonalDeg");
++  // Floating-point tolerance only; this is not an optical accuracy claim.
++  if (Math.abs(fov.diagonalDeg - expected.diagonalDeg) > Number.EPSILON * 8 * expected.diagonalDeg) {
++    throw new RangeError("FOV diagonal is inconsistent with its angular extents");
++  }
++}
++function validateDisplayGeometry(display) {
++  if (!display || display.projection !== "uniform-angular" || display.kind !== "model") {
++    throw new TypeError("Expected an explicitly modeled uniform-angular display");
++  }
++  const expected = Core.displayGeometry(display);
++  validateFov(display.fov);
++  if (display.fov.horizontalDeg !== expected.fov.horizontalDeg || display.fov.verticalDeg !== expected.fov.verticalDeg) {
++    throw new RangeError("Display FOV disagrees with its raster and pixel density");
++  }
++}
++
+ const Core = Object.freeze({
++  degToPx(deg, pixelsPerDegree) {
++    finiteNumber(deg, "deg");
++    positiveNumber(pixelsPerDegree, "pixelsPerDegree");
++    return finiteNumber(deg * pixelsPerDegree, "pixel offset");
++  },
++  pxToDeg(px, pixelsPerDegree) {
++    finiteNumber(px, "px");
++    positiveNumber(pixelsPerDegree, "pixelsPerDegree");
++    return finiteNumber(px / pixelsPerDegree, "angular offset");
++  },
++  angularSizeDeg(sizeM, distanceM) {
++    finiteNumber(sizeM, "sizeM");
++    positiveNumber(distanceM, "distanceM");
++    if (sizeM < 0) throw new RangeError("sizeM must not be negative");
++    // Centred, frontoparallel extent: two right triangles, not size/distance in degrees.
++    return 2 * Math.atan2(sizeM / 2, distanceM) * 180 / Math.PI;
++  },
++  makeFov(horizontalDeg, verticalDeg) {
++    positiveNumber(horizontalDeg, "horizontalDeg");
++    positiveNumber(verticalDeg, "verticalDeg");
++    if (horizontalDeg >= 180 || verticalDeg >= 180) throw new RangeError("Display axes must be below 180 degrees");
++    // [model] Uniform angular chart from the brief: hypot(h, v) is its small-angle
++    // diagonal approximation, not an exact spherical/pinhole frustum or lens calibration.
++    // No separate advertised scalar FOV is used to compute geometry.
++    return Object.freeze({ horizontalDeg, verticalDeg, diagonalDeg: Math.hypot(horizontalDeg, verticalDeg) });
++  },
++  displayGeometry(spec = {
++    widthPx: CONSTANTS.displayWidthPx.value, heightPx: CONSTANTS.displayHeightPx.value,
++    pixelsPerDegree: CONSTANTS.displayPixelsPerDegree.value
++  }) {
++    const { widthPx, heightPx, pixelsPerDegree } = spec;
++    if (![widthPx, heightPx].every(value => Number.isSafeInteger(value) && value > 0)) {
++      throw new RangeError("Display dimensions must be positive safe integers");
++    }
++    const fov = Core.makeFov(Core.pxToDeg(widthPx, pixelsPerDegree), Core.pxToDeg(heightPx, pixelsPerDegree));
++    // [model] Nominal density assumed uniform on both axes. This does not calibrate
++    // the world-facing camera, whose intrinsics and distortion remain unknown.
++    return Object.freeze({ widthPx, heightPx, pixelsPerDegree, fov, projection: "uniform-angular", kind: "model" });
++  },
++  pointDegToPx(point, display) {
++    validateDisplayGeometry(display);
++    return { xPx: finiteNumber(display.widthPx / 2 + Core.degToPx(point.xDeg, display.pixelsPerDegree), "xPx"),
++      yPx: finiteNumber(display.heightPx / 2 - Core.degToPx(point.yDeg, display.pixelsPerDegree), "yPx") };
++  },
++  pointPxToDeg(point, display) {
++    validateDisplayGeometry(display);
++    return { xDeg: Core.pxToDeg(finiteNumber(point.xPx, "xPx") - display.widthPx / 2, display.pixelsPerDegree),
++      yDeg: Core.pxToDeg(display.heightPx / 2 - finiteNumber(point.yPx, "yPx"), display.pixelsPerDegree) };
++  },
++  containsDeg(point, fov) {
++    validateFov(fov);
++    finiteNumber(point.xDeg, "xDeg");
++    finiteNumber(point.yDeg, "yDeg");
++    // Refuse out-of-view placement at the caller; never drag an anchor onto the edge.
++    return Math.abs(point.xDeg) <= fov.horizontalDeg / 2 && Math.abs(point.yDeg) <= fov.verticalDeg / 2;
++  },
+   createInitialState() {
+     return { reveals: [], perception: [], frameSource: null, cameraActive: false };
+   },
+@@ -488,9 +580,88 @@
+   });
+ }
+ 
++// Stage 2 tests: written before the geometry implementation.
++function registerStage2Tests(T) {
++  T.suite("Geometry: angular units", () => {
++    T.eq(Core.degToPx(1, 42), 42, "one degree maps to 42 nominal display pixels");
++    T.eq(Core.pxToDeg(21, 42), 0.5, "fractional degrees retain precision");
++    for (const deg of [-180, -7.125, 0, 0.4, 14.285714285714286, 180]) {
++      T.approx(Core.pxToDeg(Core.degToPx(deg, 42), 42), deg, 1e-12, `signed degree round-trip: ${deg}`);
++    }
++    T.eq(Core.degToPx(0.4, 42), 16.8, "cap-height conversion does not round early");
++    T.eq(Core.degToPx(2, 60), 120, "conversion accepts another explicit density");
++    T.throws(() => Core.degToPx(1, 0), "zero pixel density is rejected");
++    T.throws(() => Core.pxToDeg(1, -42), "negative pixel density is rejected");
++    T.throws(() => Core.degToPx(NaN, 42), "nonfinite angle is rejected");
++    T.throws(() => Core.pxToDeg(Infinity, 42), "nonfinite pixel offset is rejected");
++    T.throws(() => Core.degToPx(1, "42"), "unit conversion never coerces strings");
++    T.throws(() => Core.degToPx(Number.MAX_VALUE, 42), "overflow is rejected");
++  });
++  T.suite("Geometry: visual angle", () => {
++    T.approx(Core.angularSizeDeg(1, 3), 18.924644416051233, 1e-12, "one metre at three metres subtends about 18.9 degrees");
++    T.approx(Core.angularSizeDeg(2, 1), 90, 1e-12, "near objects use exact trigonometry");
++    T.eq(Core.angularSizeDeg(0, 3), 0, "zero extent subtends zero angle");
++    T.approx(Core.angularSizeDeg(10, 30), Core.angularSizeDeg(1, 3), 1e-12, "equal physical ratios subtend equal angles");
++    T.throws(() => Core.angularSizeDeg(-1, 3), "negative physical extent is rejected");
++    T.throws(() => Core.angularSizeDeg(1, 0), "zero distance is rejected");
++    T.throws(() => Core.angularSizeDeg(1, -3), "behind-eye distance is rejected");
++    T.throws(() => Core.angularSizeDeg(Infinity, 3), "nonfinite physical extent is rejected");
++  });
++  T.suite("Geometry: explicit FOV", () => {
++    const fov = Core.makeFov(600 / 42, 600 / 42);
++    T.approx(fov.horizontalDeg, 14.285714285714286, 1e-12, "horizontal extent derives from pixel density");
++    T.approx(fov.verticalDeg, 14.285714285714286, 1e-12, "vertical extent derives from pixel density");
++    T.approx(fov.diagonalDeg, 20.203050891044217, 1e-12, "diagonal derives from both angular extents");
++    T.eq(Object.keys(fov).sort().join(), "diagonalDeg,horizontalDeg,verticalDeg", "FOV is an explicit triple");
++    T.true(Object.isFrozen(fov), "derived diagonal cannot become stale through mutation");
++    T.throws(() => { fov.horizontalDeg = 20; }, "FOV mutation is rejected");
++    T.approx(Core.makeFov(12, 5).diagonalDeg, 13, 1e-12, "nonsquare FOV uses both axes");
++    T.throws(() => Core.makeFov(0, 10), "empty FOV is rejected");
++    T.throws(() => Core.makeFov(180, 10), "unsupported wide display FOV is rejected");
++    T.throws(() => Core.makeFov(10, NaN), "nonfinite FOV is rejected");
++  });
++  T.suite("Geometry: display profile and paint boundary", () => {
++    const display = Core.displayGeometry();
++    T.eq(display.widthPx, 600, "nominal display uses reported width");
++    T.eq(display.heightPx, 600, "nominal display uses reported height");
++    T.eq(display.pixelsPerDegree, 42, "nominal display uses reported density");
++    T.eq(display.kind, "model", "derived geometry is not a hardware measurement");
++    T.eq(display.projection, "uniform-angular", "projection assumption is explicit");
++    T.true(Object.isFrozen(display) && Object.isFrozen(display.fov), "display profile is immutable");
++    const point = Object.freeze({ xDeg: 1, yDeg: 2 });
++    const painted = Core.pointDegToPx(point, display);
++    T.eq(painted.xPx, 342, "positive horizontal angle paints right of centre");
++    T.eq(painted.yPx, 216, "positive vertical angle paints above centre");
++    const restored = Core.pointPxToDeg(painted, display);
++    T.eq(restored.xDeg, 1, "paint boundary restores horizontal degrees");
++    T.eq(restored.yDeg, 2, "paint boundary restores vertical degrees");
++    T.eq(Object.keys(restored).sort().join(), "xDeg,yDeg", "model point retains degrees only");
++    const wide = Core.displayGeometry({ widthPx: 840, heightPx: 420, pixelsPerDegree: 42 });
++    T.eq(wide.fov.horizontalDeg, 20, "custom raster derives horizontal FOV");
++    T.eq(wide.fov.verticalDeg, 10, "custom raster derives vertical FOV");
++    T.eq(Core.pointDegToPx({ xDeg: 0, yDeg: 0 }, wide).xPx, 420, "custom paint centre follows display width");
++    T.throws(() => Core.displayGeometry({ widthPx: 0, heightPx: 600, pixelsPerDegree: 42 }), "invalid display raster is rejected");
++    T.throws(() => Core.pointDegToPx({ xDeg: NaN, yDeg: 0 }, display), "invalid point cannot reach paint");
++    T.eq(CONSTANTS.displayPixelsPerDegree.kind, "established", "reported density has source classification");
++    T.true(CONSTANTS.displayPixelsPerDegree.source.startsWith("https://www.meta.com/"), "reported density names its primary source");
++  });
++  T.suite("Geometry: display bounds", () => {
++    const display = Core.displayGeometry();
++    const half = 300 / 42;
++    T.eq(Core.containsDeg({ xDeg: 0, yDeg: 0 }, display.fov), true, "view centre is inside the display");
++    T.eq(Core.containsDeg({ xDeg: half, yDeg: -half }, display.fov), true, "display edge is inclusive");
++    T.eq(Core.containsDeg({ xDeg: half + 0.01, yDeg: 0 }, display.fov), false, "horizontal overflow is outside");
++    T.eq(Core.containsDeg({ xDeg: 0, yDeg: -half - 0.01 }, display.fov), false, "vertical overflow is outside");
++    T.true(Core.pointDegToPx({ xDeg: half + 1, yDeg: 0 }, display).xPx > 600, "off-screen anchor is never silently clamped");
++    T.throws(() => Core.containsDeg({ xDeg: 0, yDeg: 0 }, 20), "bare scalar FOV is rejected");
++    T.throws(() => Core.containsDeg({ xDeg: 0, yDeg: 0 }, { horizontalDeg: 10, verticalDeg: 10, diagonalDeg: 20 }), "inconsistent imported FOV is rejected");
++  });
++}
++
+ const T = createHarness();
+ registerStage0Tests(T, createHarness, Core);
+ registerStage1Tests(T);
++registerStage2Tests(T);
+ // Public, DOM-free test entry point; the Node runner executes this same inline script.
+ globalThis.Peripheral = Object.freeze({ T, Core, CONSTANTS, createHarness, createSourceController });
+ 
+--- a/README.md
++++ b/README.md
+@@ -22,7 +22,9 @@
+ 
+ ## Status
+ 
+-Implemented: a single-file shell, separate world/additive/subtractive canvas layers, optional camera capture with synthetic fallback, deterministic frame scheduling, pixel brightness and neighboring-contrast proxies, and keyboard-accessible debug controls. The suite currently has **86 passing assertions**.
++Implemented: a single-file shell, separate world/additive/subtractive canvas layers, optional camera capture with synthetic fallback, deterministic frame scheduling, pixel brightness and neighboring-contrast proxies, angular geometry, and keyboard-accessible debug controls. The suite currently has **145 passing assertions**.
++
++Geometry uses degrees for model positions and converts to pixels at an explicit paint boundary. It includes visual-angle calculations, display bounds, and an immutable horizontal/vertical/diagonal FOV triple. The nominal 600×600 / 42 PPD display fixture uses a uniform-angular approximation; it does not calibrate the camera or validate wearable optics. Its independent core check runs with `node tests/geometry-gate.mjs`.
+ 
+ The debug console reports actual processed FPS, missed frame slots, and capture, analysis, and paint-submission CPU time. These timings exclude sensor and display latency. Brightness and clutter are uncalibrated pixel proxies; synthetic input never carries a live-perception tier.
+ 
+--- /dev/null
++++ b/tests/geometry-gate.mjs
+@@ -0,0 +1,60 @@
++// Stage 2 gate: inspect and execute the core independently of the HTML shell.
++import { readFileSync, writeFileSync } from 'node:fs';
++import { Script, createContext } from 'node:vm';
++import { createHash } from 'node:crypto';
++
++const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
++const checks = [];
++function check(name, fn) {
++  try { fn(); checks.push({ name, passed: true }); }
++  catch (error) { checks.push({ name, passed: false, actual: String(error) }); }
++}
++const start = html.indexOf('// CORE BEGIN:');
++const end = html.indexOf('// CORE END');
++const core = html.slice(start, end);
++// Ignore ordinary strings and comments; retain template interpolations for inspection.
++// This is a conservative source check, backed by standalone execution and source review.
++function executableText(source) {
++  return source.replace(/\/\/[^\n]*|\/\*[\s\S]*?\*\/|"(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'/g, ' ');
++}
++function browserReferences(source) {
++  return [...executableText(source).matchAll(/\b(document|window|globalThis|navigator|HTMLElement|HTMLCanvasElement|OffscreenCanvas|ImageData|fetch|XMLHttpRequest|WebSocket|localStorage|sessionStorage|indexedDB)\b/g)].map(match => match[0]);
++}
++check('Reference scan distinguishes text from executable browser identifiers', () => {
++  if (browserReferences('const label = "Rolling diagnostic window"; // document').length) throw Error('Text false positive');
++  if (browserReferences('window.location; document.body; fetch("/")').join() !== 'window,document,fetch') throw Error('Browser reference missed');
++  if (browserReferences('`value ${window.location}`').join() !== 'window') throw Error('Template expression missed');
++});
++check('Core boundaries are explicit and present', () => {
++  if (start < 0 || end <= start) throw new Error('Missing core boundary');
++});
++check('Core contains zero browser, DOM, network, or storage references', () => {
++  const found = browserReferences(core);
++  if (found.length) throw new Error(`Forbidden references: ${found.join(', ')}`);
++});
++check('Core contains no ambient time or random source', () => {
++  if (/\b(Date|performance|setTimeout|setInterval|requestAnimationFrame)\b|Math\.random\s*\(/.test(executableText(core))) {
++    throw new Error('Core depends on ambient time or randomness');
++  }
++});
++check('Standalone core executes with frozen inputs and repeatable output', () => {
++  const context = createContext({});
++  new Script(`${core}\nconst geometry = Core.displayGeometry();
++    const point = Object.freeze({ xDeg: -2.5, yDeg: 1.75 });
++    const before = JSON.stringify({geometry, point});
++    const first = Core.pointDegToPx(point, geometry);
++    const second = Core.pointDegToPx(point, geometry);
++    if (JSON.stringify(first) !== JSON.stringify(second)) throw Error('Nonrepeatable result');
++    if (first === second) throw Error('Shared mutable output');
++    first.xPx = 0;
++    if (second.xPx === 0) throw Error('Outputs share state');
++    if (JSON.stringify({geometry, point}) !== before) throw Error('Input mutation');
++  `).runInContext(context, { timeout: 3000 });
++});
++const result = { runtime: process.version,
++  sourceSha256: createHash('sha256').update(html).digest('hex'),
++  passed: checks.filter(check => check.passed).length,
++  failed: checks.filter(check => !check.passed).length, checks };
++console.log(JSON.stringify(result, null, 2));
++if (process.argv[2]) writeFileSync(process.argv[2], JSON.stringify(result, null, 2) + '\n');
++process.exitCode = result.failed ? 1 : 0;
