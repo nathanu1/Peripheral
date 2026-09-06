@@ -145,9 +145,47 @@
       "stage": 3,
       "name": "GazeSource + head gaze",
       "commitMessage": "feat(core): gaze source abstraction",
-      "status": "pending",
+      "status": "blocked",
       "reportPath": ".github/peripheral/reports/stage-03.md",
-      "testResults": null
+      "testResults": {
+        "scope": "Unmerged candidate retained as a patch; main application remains Stage 2",
+        "passed": 207,
+        "failed": 0,
+        "newAssertions": 62,
+        "runtime": "Node v24.19.0 and Chrome (synthetic suite)",
+        "evidencePath": ".github/peripheral/reports/stage-03-green.json",
+        "candidateSourceSha256": "a812d1fe7cc73f6803d581ef97f6797bb7343fffd3946f3c83ad6fab1dbaf2be",
+        "redPhases": [
+          {
+            "passed": 145,
+            "failed": 5,
+            "evidencePath": ".github/peripheral/reports/stage-03-red.json"
+          },
+          {
+            "passed": 194,
+            "failed": 1,
+            "evidencePath": ".github/peripheral/reports/stage-03-resource-red.json"
+          },
+          {
+            "passed": 206,
+            "failed": 1,
+            "evidencePath": ".github/peripheral/reports/stage-03-gap-red.json"
+          }
+        ]
+      },
+      "candidatePatchPath": ".github/peripheral/reports/stage-03-candidate.patch",
+      "candidateBaseCommit": "76e7bb7994ab298d1f1eddb2aed69184e749a90b",
+      "gate": {
+        "status": "blocked",
+        "required": "Reticle-free view center tracks head motion",
+        "evidencePath": ".github/peripheral/reports/stage-03-browser.json",
+        "reason": "HTTP preview lacks secure-origin model integrity API and reports user camera unavailable. No real face/hand inference or head-motion gate passed.",
+        "coreChecks": {
+          "passed": 5,
+          "failed": 0,
+          "evidencePath": ".github/peripheral/reports/stage-03-core-gate.json"
+        }
+      }
     },
     {
       "stage": 4,
@@ -282,6 +320,14 @@
     "status": "pending",
     "reportPath": ".github/peripheral/reports/final-acceptance.md"
   },
-  "blockers": [],
+  "blockers": [
+    {
+      "stage": 3,
+      "status": "open",
+      "reason": "HTTP preview lacks secure-origin model integrity API and reports user camera unavailable. No real face/hand inference or head-motion gate passed.",
+      "reportPath": ".github/peripheral/reports/stage-03.md",
+      "scheduleImpact": "Next run resumes Stage 3. Stages 4\u201319 and final acceptance cannot advance until the gate passes."
+    }
+  ],
   "lastUpdated": "2026-09-06"
 }
