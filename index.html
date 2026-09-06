@@ -31,6 +31,13 @@
   dt { color: #505c53; font-size: 12px; margin-bottom: 5px; }
   dd { margin: 0; font-size: 14px; }
   button { font: inherit; border: 1px solid #243d2c; border-radius: 4px; background: #243d2c; color: #fff; padding: 11px 18px; min-height: 44px; cursor: pointer; }
+  button.secondary { color: #243d2c; background: transparent; }
+  button:disabled { opacity: .55; cursor: default; }
+  .feed-controls { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0; align-items: center; }
+  .feed-controls input { font: inherit; width: 130px; min-height: 44px; padding: 8px; border: 1px solid #77837a; border-radius: 4px; }
+  .motion-control { display: block; margin: 14px 0; font-size: 14px; }
+  #source-status { min-height: 1.6em; }
+  #camera-indicator[data-active="true"] { font-weight: 700; color: #9d2424; }
   :focus-visible { outline: 3px solid #2b6bce; outline-offset: 4px; }
   #test-summary { font-variant-numeric: tabular-nums; }
   #test-results { padding-left: 24px; }
@@ -51,29 +58,46 @@
     <p>A visual-assistance prototype built around one constraint: the interface appears only when there is a reason.</p>
   </section>
   <figure aria-labelledby="view-label">
-    <figcaption class="view-caption"><span id="view-label">Wearer’s view</span><span>Stage 0 · Foundation</span></figcaption>
-    <div id="wearer-view" role="img" aria-label="Empty wearer view. No camera feed or emitted interface is active.">
+    <figcaption class="view-caption"><span id="view-label">Wearer’s view</span><span id="source-label">Synthetic test pattern · no live perception</span></figcaption>
+    <div id="wearer-view" role="img" aria-label="Synthetic raster test scene. No emitted interface overlay is active.">
       <canvas id="world-layer" width="960" height="540" aria-hidden="true"></canvas>
       <canvas id="subtractive-layer" width="960" height="540" aria-hidden="true"></canvas>
       <canvas id="additive-layer" width="960" height="540" aria-hidden="true"></canvas>
     </div>
   </figure>
-  <p class="view-note">No frame source is connected yet. Camera input and the synthetic scene arrive in the next stage.</p>
+  <p class="view-note">The feed represents the world behind the glass. Assistance and dimming layers remain empty.</p>
   <details id="debug-drawer">
     <summary>Debug console</summary>
     <div class="debug-content">
       <p class="muted">Developer controls stay outside the wearer’s view.</p>
+      <div class="feed-controls">
+        <button id="use-camera" type="button">Use camera</button>
+        <button id="use-synthetic" class="secondary" type="button">Use synthetic</button>
+        <button id="stop-feed" class="secondary" type="button">Stop feed</button>
+        <label for="scene-seed">Scene seed</label><input id="scene-seed" type="number" min="0" max="4294967295" step="1" value="42">
+        <button id="reset-scene" class="secondary" type="button">Reset scene</button>
+      </div>
+      <label class="motion-control"><input id="freeze-scene" type="checkbox"> Freeze synthetic motion</label>
+      <p id="source-status" role="status" aria-live="polite">Synthetic input selected</p>
       <dl class="debug-readouts">
-        <div><dt>Camera</dt><dd>Inactive</dd></div>
-        <div><dt>Perception</dt><dd>Not connected</dd></div>
-        <div><dt>Test input</dt><dd>Deterministic fixtures</dd></div>
+        <div><dt>Camera indicator</dt><dd id="camera-indicator" data-active="false">Inactive</dd></div>
+        <div><dt>Frame provenance</dt><dd id="frame-provenance">Synthetic · no tier</dd></div>
+        <div><dt>Processed FPS / target</dt><dd id="frame-fps">— / 30</dd></div>
+        <div><dt>Frames / missed slots</dt><dd id="frame-count">0 / 0</dd></div>
+        <div><dt>Capture / generate CPU</dt><dd id="capture-ms">—</dd></div>
+        <div><dt>Pixel analysis CPU</dt><dd id="analysis-ms">—</dd></div>
+        <div><dt>Paint submission CPU</dt><dd id="paint-ms">—</dd></div>
+        <div><dt>Total processing CPU</dt><dd id="work-ms">—</dd></div>
+        <div><dt>Brightness proxy (0–1)</dt><dd id="brightness">—</dd></div>
+        <div><dt>Clutter proxy (0–1)</dt><dd id="clutter">—</dd></div>
       </dl>
+      <p class="muted">CPU timings exclude sensor and display latency. Brightness and clutter are uncalibrated pixel proxies. This indicator demonstrates camera state; a physical outward-facing signal needs hardware verification.</p>
       <button id="run-tests" type="button" aria-controls="test-summary test-results">Run Tests</button>
       <p id="test-summary" role="status" aria-live="polite">Tests have not run.</p>
       <ol id="test-results" aria-label="Test results"></ol>
     </div>
   </details>
-  <footer>On-device prototype · No camera or model is started by this foundation.</footer>
+  <footer>On-device prototype · Camera access is optional. No models or frame uploads.</footer>
   <noscript><p>JavaScript is required to run the test harness.</p></noscript>
 </main>
 <script>
@@ -81,12 +105,142 @@
 "use strict";
 
 // CORE BEGIN: pure values and functions; no browser, clock, network, or DOM access.
+// All values below are [model] engineering choices, not device measurements.
+const CONSTANTS = Object.freeze({
+  renderHz: Object.freeze({ value: 30, kind: "model", source: "Peripheral frame-budget target" }),
+  frameWidth: Object.freeze({ value: 320, kind: "model", source: "Stage 1 processing raster" }),
+  frameHeight: Object.freeze({ value: 180, kind: "model", source: "Stage 1 processing raster" }),
+  cameraTimeoutMs: Object.freeze({ value: 10000, kind: "model", source: "Bound unanswered permission requests" }),
+  metricsWindowMs: Object.freeze({ value: 2000, kind: "model", source: "Rolling diagnostic window" })
+});
+
+function validateRaster(width, height) {
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width * height > 2073600) {
+    throw new RangeError("Frame dimensions must be positive integers, at most 2073600 pixels");
+  }
+}
+
 const Core = Object.freeze({
   createInitialState() {
     return { reveals: [], perception: [], frameSource: null, cameraActive: false };
+  },
+  syntheticFrame(seed, frameIndex, width = CONSTANTS.frameWidth.value, height = CONSTANTS.frameHeight.value) {
+    validateRaster(width, height);
+    if (!Number.isInteger(seed) || seed < 0 || seed > 4294967295 || !Number.isInteger(frameIndex) || frameIndex < 0) {
+      throw new RangeError("Seed must be uint32; frame index must be a nonnegative integer");
+    }
+    // Raster test pattern only: these pixels are not semantic object detections or world anchors.
+    const data = new Uint8ClampedArray(width * height * 4);
+    const sweep = (frameIndex + seed % width) % width;
+    const boxWidth = Math.max(1, Math.floor(width / 5));
+    const boxHeight = Math.max(1, Math.floor(height / 3));
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = (y * width + x) * 4;
+        const noise = (Math.imul((x + 1) ^ seed, 1664525) + Math.imul(y + 1, 1013904223)) >>> 0;
+        const base = 34 + noise % 12 + 30 * y / height;
+        const moving = (x - sweep + width) % width < boxWidth && y >= height / 3 && y < height / 3 + boxHeight;
+        const stripe = x === sweep;
+        data[i] = stripe ? 225 : moving ? 170 + seed % 50 : base;
+        data[i + 1] = stripe ? 225 : moving ? 190 : base + 10;
+        data[i + 2] = stripe ? 210 : moving ? 130 : base + 18;
+        data[i + 3] = 255;
+      }
+    }
+    return { width, height, data, source: "synthetic", tier: null, seed, frameIndex };
+  },
+  createFrameClock(rateHz, startMs) {
+    if (!Number.isFinite(rateHz) || rateHz <= 0 || rateHz > 240 || !Number.isFinite(startMs)) {
+      throw new RangeError("Invalid frame-clock configuration");
+    }
+    return { rateHz, startMs, lastSlot: -1 };
+  },
+  stepFrameClock(clock, nowMs) {
+    if (!Number.isFinite(nowMs)) throw new RangeError("Invalid frame timestamp");
+    // Anchor to elapsed slots instead of adding rounded intervals: no cumulative drift.
+    const slot = Math.floor((nowMs - clock.startMs) * clock.rateHz / 1000 + 1e-7);
+    if (slot < 0 || slot <= clock.lastSlot) return { clock, emit: false, missed: 0 };
+    return { clock: { ...clock, lastSlot: slot }, emit: true, missed: Math.max(0, slot - clock.lastSlot - 1) };
+  },
+  analyzeFrame(frame) {
+    const { width, height, data, source } = frame;
+    validateRaster(width, height);
+    if (!["synthetic", "camera"].includes(source) || data.length !== width * height * 4) {
+      throw new TypeError("Frame needs complete pixels and known provenance");
+    }
+    // [model] Mean RGB code value and neighboring contrast are proxies, not lux or scene understanding.
+    let sum = 0, edges = 0, pairs = 0;
+    const intensity = i => (data[i] + data[i + 1] + data[i + 2]) / 765;
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = (y * width + x) * 4, value = intensity(i);
+        sum += value;
+        if (x > 0) { edges += Math.abs(value - intensity(i - 4)); pairs++; }
+        if (y > 0) { edges += Math.abs(value - intensity(i - width * 4)); pairs++; }
+      }
+    }
+    return { brightness01: sum / (width * height), edgeContrast01: pairs ? edges / pairs : 0,
+      source, tier: source === "camera" ? 1 : null, interpretation: "uncalibrated pixel proxies" };
+  },
+  frameMetrics(samples, nowMs) {
+    const recent = samples.filter(sample => sample.timeMs <= nowMs && sample.timeMs >= nowMs - CONSTANTS.metricsWindowMs.value);
+    const mean = key => recent.length ? recent.reduce((sum, sample) => sum + sample[key], 0) / recent.length : null;
+    const span = recent.length > 1 ? recent.at(-1).timeMs - recent[0].timeMs : 0;
+    const live = recent.length && nowMs - recent.at(-1).timeMs <= 500;
+    return { fps: live && span > 0 ? (recent.length - 1) * 1000 / span : 0,
+      captureMs: mean("captureMs"), analysisMs: mean("analysisMs"), paintMs: mean("paintMs"),
+      workMs: recent.length ? mean("captureMs") + mean("analysisMs") + mean("paintMs") : null };
   }
 });
 // CORE END
+
+// RESOURCE ADAPTER: callback-based transport keeps camera lifecycle tests synchronous and DOM-free.
+// Only the shell supplies getUserMedia, track.stop(), timers, and video playback.
+function createSourceController({ requestCamera, releaseStream, onChange }) {
+  let stream = null;
+  let state = { kind: "synthetic", status: "running", cameraActive: false, requestId: 0, reason: "Synthetic input selected" };
+  const notify = () => onChange({ ...state }, stream);
+  function release() {
+    const old = stream;
+    stream = null;
+    if (old) releaseStream(old);
+  }
+  function select(kind, reason) {
+    state = { kind, status: kind === "stopped" ? "stopped" : "running", cameraActive: false, requestId: state.requestId + 1, reason };
+    release();
+    notify();
+  }
+  const controller = {
+    snapshot: () => ({ ...state }),
+    synthetic: (reason = "Synthetic input selected") => select("synthetic", reason),
+    stop: () => select("stopped", "Feed stopped"),
+    camera() {
+      state = { kind: "synthetic", status: "requesting", cameraActive: false, requestId: state.requestId + 1, reason: "Waiting for camera permission" };
+      release();
+      const id = state.requestId;
+      notify();
+      try {
+        requestCamera(acquired => {
+          if (id !== state.requestId || state.status !== "requesting") { releaseStream(acquired); return; }
+          stream = acquired;
+          state = { ...state, status: "starting", cameraActive: true, reason: "Camera acquired; waiting for frames" };
+          notify();
+        }, error => controller.fail(id, error?.name || "CameraError"));
+      } catch (error) { controller.fail(id, error?.name || "CameraError"); }
+      return id;
+    },
+    ready(id) {
+      if (id !== state.requestId || !stream || state.status !== "starting") return;
+      state = { ...state, kind: "camera", status: "running", reason: "Live camera input" };
+      notify();
+    },
+    fail(id, reason) {
+      if (id !== state.requestId || state.kind === "stopped") return;
+      select("synthetic", reason);
+    }
+  };
+  return Object.freeze(controller);
+}
 
 // HARNESS BEGIN: synchronous deterministic assertions, independent of the DOM.
 function createHarness() {
@@ -228,10 +382,117 @@ function registerStage0Tests(T, createHarness, Core) {
   // The Stage 0 deliberate failure was observed in Node and Chrome, then removed.
 }
 
+// Stage 1 tests: authored and executed before the frame pipeline implementation.
+function registerStage1Tests(T) {
+  T.suite("Frames: deterministic synthetic input", () => {
+    const a = Core.syntheticFrame(42, 12, 16, 9);
+    const b = Core.syntheticFrame(42, 12, 16, 9);
+    const c = Core.syntheticFrame(43, 12, 16, 9);
+    T.eq(a.data.join(), b.data.join(), "same seed and frame produce identical pixels");
+    T.true(a.data.join() !== c.data.join(), "different seed changes pixels");
+    T.true(a.data.join() !== Core.syntheticFrame(42, 13, 16, 9).data.join(), "frame index advances scene");
+    T.eq(a.data.length, 16 * 9 * 4, "frame is complete RGBA");
+    T.eq(a.source, "synthetic", "synthetic provenance survives transport");
+    T.eq(a.tier, null, "synthetic pixels never become measured Tier 1");
+    T.true(a.data !== b.data, "frames do not share writable buffers");
+    T.eq(Core.syntheticFrame(0, 0, 1, 1).data[3], 255, "zero seed is valid and alpha is opaque");
+    T.throws(() => Core.syntheticFrame(1, -1), "negative frame index is rejected");
+    T.throws(() => Core.syntheticFrame(1, 0, 0, 4), "zero dimension is rejected");
+  });
+  T.suite("Frames: cadence and skipped slots", () => {
+    let clock = Core.createFrameClock(30, 0);
+    let count = 0;
+    for (let i = 0; i < 120; i++) {
+      const step = Core.stepFrameClock(clock, i * 1000 / 120);
+      clock = step.clock;
+      count += Number(step.emit);
+    }
+    T.eq(count, 30, "120 Hz callbacks emit 30 frames in one second");
+    const slow = Core.stepFrameClock(clock, 2000);
+    T.eq(slow.missed, 30, "missed slots are counted");
+    T.eq(slow.emit, true, "late callback emits one current frame");
+    T.eq(Core.stepFrameClock(slow.clock, 2000).emit, false, "same timestamp cannot create a catch-up burst");
+    T.eq(Core.stepFrameClock(slow.clock, 1500).emit, false, "backward timestamps do not emit");
+    T.throws(() => Core.createFrameClock(0, 0), "invalid target rate is rejected");
+    T.throws(() => Core.stepFrameClock(clock, NaN), "invalid clock sample is rejected");
+  });
+  T.suite("Frames: camera denial and unavailable API", () => {
+    for (const reason of ["NotAllowedError", "NotFoundError", "Unavailable", "Timeout"]) {
+      const events = [];
+      const controller = createSourceController({
+        requestCamera: (_ready, reject) => reject({ name: reason }),
+        releaseStream: () => {}, onChange: state => events.push(state)
+      });
+      controller.camera();
+      T.eq(controller.snapshot().kind, "synthetic", `${reason} falls back to synthetic`);
+      T.eq(controller.snapshot().cameraActive, false, `${reason} leaves no active camera`);
+      T.eq(controller.snapshot().reason, reason, `${reason} remains visible`);
+      T.eq(events[0].status, "requesting", `${reason} keeps synthetic running while requesting`);
+    }
+  });
+  T.suite("Frames: resource lifetime and cancellation", () => {
+    const requests = [], released = [];
+    const controller = createSourceController({
+      requestCamera: (accept, reject) => requests.push({ accept, reject }),
+      releaseStream: stream => released.push(stream), onChange: () => {}
+    });
+    controller.camera();
+    const canceled = controller.snapshot().requestId;
+    controller.synthetic();
+    const stale = { id: "stale" };
+    requests[0].accept(stale);
+    T.eq(released[0], stale, "late camera grant is released after cancellation");
+    T.eq(controller.snapshot().kind, "synthetic", "late grant cannot resurrect camera");
+    controller.camera();
+    const live = { id: "live" };
+    requests[1].accept(live);
+    T.eq(controller.snapshot().cameraActive, true, "indicator reflects acquired stream before playback");
+    T.eq(controller.snapshot().kind, "synthetic", "synthetic continues until camera has pixels");
+    controller.ready(canceled);
+    T.eq(controller.snapshot().kind, "synthetic", "stale readiness is ignored");
+    controller.ready(controller.snapshot().requestId);
+    T.eq(controller.snapshot().kind, "camera", "camera becomes source only after readiness");
+    controller.fail(controller.snapshot().requestId, "TrackEnded");
+    T.eq(released[1], live, "ended stream is released");
+    T.eq(controller.snapshot().kind, "synthetic", "lost camera falls back");
+    controller.camera();
+    const pending = controller.snapshot().requestId;
+    controller.stop();
+    requests[2].reject({ name: "NotAllowedError" });
+    controller.ready(pending);
+    T.eq(controller.snapshot().kind, "stopped", "late outcomes cannot restart a stopped source");
+    T.eq(controller.snapshot().cameraActive, false, "stop turns off camera state");
+  });
+  T.suite("Frames: diagnostics and tier labels", () => {
+    const black = { width: 2, height: 1, source: "synthetic", data: new Uint8ClampedArray([0,0,0,255,0,0,0,255]) };
+    const white = { ...black, source: "camera", data: new Uint8ClampedArray([255,255,255,255,255,255,255,255]) };
+    T.eq(Core.analyzeFrame(black).brightness01, 0, "black code values have zero brightness proxy");
+    T.eq(Core.analyzeFrame(white).brightness01, 1, "white code values have unit brightness proxy");
+    T.eq(Core.analyzeFrame(black).tier, null, "synthetic diagnostics carry no live tier");
+    T.eq(Core.analyzeFrame(white).tier, 1, "camera pixel diagnostics carry Tier 1 provenance");
+    T.eq(Core.analyzeFrame(white).edgeContrast01, 0, "uniform frame has no neighboring contrast");
+    T.eq(Core.analyzeFrame({ ...black, data: new Uint8ClampedArray([0,0,0,255,255,255,255,255]) }).edgeContrast01, 1, "black-white transition reaches unit contrast");
+    T.throws(() => Core.analyzeFrame({ ...black, source: "guessed" }), "unknown provenance is rejected");
+    T.throws(() => Core.analyzeFrame({ ...black, data: [] }), "incomplete pixel buffer is rejected");
+  });
+  T.suite("Frames: rolling performance measurements", () => {
+    const samples = Array.from({ length: 31 }, (_, i) => ({ timeMs: i * 1000 / 30, captureMs: 2, analysisMs: 3, paintMs: 1 }));
+    const result = Core.frameMetrics(samples, 1000);
+    T.approx(result.fps, 30, 1e-8, "FPS is computed from observed intervals");
+    T.eq(result.captureMs, 2, "capture CPU time is measured separately");
+    T.eq(result.analysisMs, 3, "analysis CPU time is measured separately");
+    T.eq(result.paintMs, 1, "paint submission CPU time is measured separately");
+    T.eq(result.workMs, 6, "processing time sums actual stage durations");
+    T.eq(Core.frameMetrics(samples, 4000).fps, 0, "stale samples do not display a live FPS");
+    T.eq(Core.frameMetrics([], 0).workMs, null, "absent measurements are not fabricated as zero latency");
+  });
+}
+
 const T = createHarness();
 registerStage0Tests(T, createHarness, Core);
+registerStage1Tests(T);
 // Public, DOM-free test entry point; the Node runner executes this same inline script.
-globalThis.Peripheral = Object.freeze({ T, Core, createHarness });
+globalThis.Peripheral = Object.freeze({ T, Core, CONSTANTS, createHarness, createSourceController });
 
 // SHELL BEGIN: all DOM access and rendering stays in this section.
 function mount(doc, view) {
@@ -281,6 +542,162 @@ function mount(doc, view) {
   button.addEventListener("click", runTests);
   view.addEventListener("hashchange", runFromHash);
   runFromHash();
+  mountFramePipeline(doc, view);
+}
+
+function mountFramePipeline(doc, view) {
+  const get = id => doc.getElementById(id);
+  const world = get("world-layer");
+  const worldContext = world.getContext("2d");
+  if (!worldContext) { get("source-status").textContent = "Canvas is unavailable; the frame feed cannot start."; return; }
+  // W3C Media Capture and Streams: https://www.w3.org/TR/mediacapture-streams/
+  // WHATWG video playback: https://html.spec.whatwg.org/multipage/media.html
+  const video = doc.createElement("video");
+  video.muted = true;
+  video.playsInline = true;
+  const capture = doc.createElement("canvas");
+  capture.width = CONSTANTS.frameWidth.value;
+  capture.height = CONSTANTS.frameHeight.value;
+  const captureContext = capture.getContext("2d", { willReadFrequently: true });
+  if (!captureContext) { get("source-status").textContent = "Pixel capture is unavailable; the frame feed cannot start."; return; }
+  world.width = capture.width;
+  world.height = capture.height;
+  const motionPreference = view.matchMedia("(prefers-reduced-motion: reduce)");
+  get("freeze-scene").checked = motionPreference.matches;
+  let seed = 42, frameIndex = 0, count = 0, missed = 0;
+  let samples = [], lastStats = null, rafId = null, timeoutId = null;
+  let clock = Core.createFrameClock(CONSTANTS.renderHz.value, view.performance.now());
+  let lastDebugMs = -Infinity, lastVideoTime = -1, lastCameraPixelMs = null;
+
+  function releaseStream(stream) {
+    for (const track of stream.getTracks()) track.stop();
+    if (video.srcObject === stream) { video.pause(); video.srcObject = null; }
+  }
+  function resetMetrics() {
+    samples = []; count = 0; missed = 0; lastStats = null;
+    lastVideoTime = -1; lastCameraPixelMs = null;
+    lastDebugMs = -Infinity;
+    clock = Core.createFrameClock(CONSTANTS.renderHz.value, view.performance.now());
+  }
+  function requestCamera(accept, reject) {
+    const devices = view.navigator.mediaDevices;
+    if (!view.isSecureContext || !devices?.getUserMedia) { reject({ name: "Unavailable" }); return; }
+    devices.getUserMedia({ audio: false, video: { facingMode: { ideal: "environment" },
+      width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: CONSTANTS.renderHz.value } } }).then(accept, reject);
+  }
+  const controller = createSourceController({ requestCamera, releaseStream, onChange(state, stream) {
+    resetMetrics();
+    get("source-status").textContent = state.reason;
+    get("camera-indicator").dataset.active = String(state.cameraActive);
+    get("camera-indicator").textContent = state.cameraActive ? "Camera active" : "Inactive";
+    get("source-label").textContent = state.kind === "camera" ? "Live camera · on-device pixels" : state.kind === "stopped" ? "Feed stopped" : "Synthetic test pattern · no live perception";
+    get("frame-provenance").textContent = state.kind === "camera" ? "Camera pixels · Tier 1" : state.kind === "stopped" ? "No active source" : "Synthetic · no tier";
+    get("wearer-view").setAttribute("aria-label", state.kind === "camera" ? "Live camera view. Assistance overlays are empty." : state.kind === "stopped" ? "Feed stopped. Empty wearer view." : "Synthetic raster test scene. Assistance overlays are empty.");
+    get("use-camera").disabled = state.status === "requesting" || state.status === "starting" || state.kind === "camera";
+    get("stop-feed").disabled = state.kind === "stopped";
+    if (state.status === "running" || state.status === "stopped") { view.clearTimeout(timeoutId); timeoutId = null; }
+    if (stream && video.srcObject !== stream) {
+      video.srcObject = stream;
+      const id = state.requestId;
+      for (const track of stream.getVideoTracks()) {
+        track.addEventListener("ended", () => controller.fail(id, "TrackEnded"), { once: true });
+      }
+      video.play().then(() => {
+        if (video.readyState >= 2 && video.videoWidth > 0) controller.ready(id);
+        else controller.fail(id, "NoCameraPixels");
+      }, () => controller.fail(id, "PlaybackError"));
+    }
+    if (state.kind === "stopped") {
+      if (rafId !== null) view.cancelAnimationFrame(rafId);
+      rafId = null;
+      worldContext.clearRect(0, 0, world.width, world.height);
+      updateDiagnostics(view.performance.now());
+    } else if (rafId === null) rafId = view.requestAnimationFrame(render);
+  }});
+
+  function updateDiagnostics(now) {
+    const metrics = Core.frameMetrics(samples, now);
+    const duration = value => value === null ? "—" : `${value.toFixed(2)} ms`;
+    get("frame-fps").textContent = `${metrics.fps.toFixed(1)} / ${CONSTANTS.renderHz.value}`;
+    get("frame-count").textContent = `${count} / ${missed}`;
+    get("capture-ms").textContent = duration(metrics.captureMs);
+    get("analysis-ms").textContent = duration(metrics.analysisMs);
+    get("paint-ms").textContent = duration(metrics.paintMs);
+    get("work-ms").textContent = duration(metrics.workMs);
+    get("brightness").textContent = lastStats ? lastStats.brightness01.toFixed(3) : "—";
+    get("clutter").textContent = lastStats ? lastStats.edgeContrast01.toFixed(3) : "—";
+    lastDebugMs = now;
+  }
+
+  function render(now) {
+    rafId = null;
+    const state = controller.snapshot();
+    if (state.kind === "stopped") return;
+    const step = Core.stepFrameClock(clock, now);
+    clock = step.clock;
+    missed += step.missed;
+    if (step.emit) {
+      try {
+        const begin = view.performance.now();
+        let frame = null;
+        if (state.kind === "camera") {
+          if (lastCameraPixelMs === null) lastCameraPixelMs = now;
+          if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
+            // Fit the full camera frame; never silently crop its field of view.
+            const scale = Math.min(capture.width / video.videoWidth, capture.height / video.videoHeight);
+            const width = video.videoWidth * scale, height = video.videoHeight * scale;
+            captureContext.fillStyle = "black";
+            captureContext.fillRect(0, 0, capture.width, capture.height);
+            captureContext.drawImage(video, (capture.width - width) / 2, (capture.height - height) / 2, width, height);
+            frame = { width: capture.width, height: capture.height, data: captureContext.getImageData(0, 0, capture.width, capture.height).data, source: "camera", tier: 1 };
+            lastVideoTime = video.currentTime;
+            lastCameraPixelMs = now;
+          } else if (now - lastCameraPixelMs > 2000) controller.fail(state.requestId, "CameraStalled");
+        } else {
+          frame = Core.syntheticFrame(seed, get("freeze-scene").checked ? 0 : frameIndex);
+          frameIndex++;
+        }
+        if (frame) {
+          const captured = view.performance.now();
+          lastStats = Core.analyzeFrame(frame);
+          const analyzed = view.performance.now();
+          worldContext.putImageData(new view.ImageData(frame.data, frame.width, frame.height), 0, 0);
+          const painted = view.performance.now();
+          samples.push({ timeMs: now, captureMs: captured - begin, analysisMs: analyzed - captured, paintMs: painted - analyzed });
+          samples = samples.filter(sample => sample.timeMs >= now - CONSTANTS.metricsWindowMs.value).slice(-121);
+          count++;
+        }
+      } catch (error) {
+        if (state.kind === "camera") controller.fail(state.requestId, error?.name || "CaptureError");
+        else { controller.stop(); get("source-status").textContent = `Synthetic feed failed: ${error.message}`; }
+      }
+    }
+    if (now - lastDebugMs >= 250) updateDiagnostics(now);
+    if (controller.snapshot().kind !== "stopped" && rafId === null) rafId = view.requestAnimationFrame(render);
+  }
+
+  get("use-camera").addEventListener("click", () => {
+    const id = controller.camera();
+    if (controller.snapshot().requestId === id && controller.snapshot().status !== "running") {
+      view.clearTimeout(timeoutId);
+      timeoutId = view.setTimeout(() => controller.fail(id, "Timeout"), CONSTANTS.cameraTimeoutMs.value);
+    }
+  });
+  get("use-synthetic").addEventListener("click", () => controller.synthetic());
+  get("stop-feed").addEventListener("click", () => controller.stop());
+  get("reset-scene").addEventListener("click", () => {
+    const input = get("scene-seed");
+    const candidate = input.valueAsNumber;
+    if (!input.checkValidity() || !Number.isInteger(candidate)) { input.reportValidity(); return; }
+    seed = candidate; frameIndex = 0; controller.synthetic();
+  });
+  get("freeze-scene").addEventListener("change", () => { frameIndex = 0; });
+  motionPreference.addEventListener("change", event => { get("freeze-scene").checked = event.matches; frameIndex = 0; });
+  doc.addEventListener("visibilitychange", () => {
+    if (doc.hidden) { controller.stop(); get("source-status").textContent = "Feed stopped while page is hidden. Select a source to resume."; }
+  });
+  view.addEventListener("pagehide", () => controller.stop());
+  controller.synthetic();
 }
 if (typeof document !== "undefined") mount(document, window);
 // SHELL END

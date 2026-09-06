@@ -23,7 +23,7 @@
     "status": "active",
     "taskTitle": "Build Peripheral"
   },
-  "nextStage": 1,
+  "nextStage": 2,
   "stages": [
     {
       "stage": 0,
@@ -65,9 +65,40 @@
       "stage": 1,
       "name": "Camera pipeline + synthetic fallback",
       "commitMessage": "feat: frame pipeline with synthetic fallback",
-      "status": "pending",
+      "status": "completed",
       "reportPath": ".github/peripheral/reports/stage-01.md",
-      "testResults": null
+      "testResults": {
+        "passed": 86,
+        "failed": 0,
+        "runtime": "Node v24.19.0 and Chrome (deterministic synthetic suite)",
+        "evidencePath": ".github/peripheral/reports/stage-01-green.json",
+        "sourceSha256": "f94f4883b4dab934930deda2890f78050c4f72c50f60c3da78249c10c87c4984",
+        "redPhases": [
+          {
+            "passed": 28,
+            "failed": 6,
+            "reason": "New frame functions and source controller absent",
+            "evidencePath": ".github/peripheral/reports/stage-01-red.json"
+          }
+        ]
+      },
+      "gate": {
+        "status": "passed",
+        "mode": "synthetic feed alternative",
+        "checks": [
+          "Synthetic raster feed visibly renders",
+          "Actual FPS and processing-latency readouts visible outside wearer view",
+          "Unavailable camera returns to synthetic with inactive indicator",
+          "Stop/restart and seed reset operate via keyboard",
+          "Full deterministic suite passes in Node and Chrome"
+        ],
+        "limitations": [
+          "Observed browser throughput approximately 1 FPS; sustained 30 FPS not verified despite passing deterministic cadence tests",
+          "Real camera capture and device permission denial not validated; denial, timeout, cancellation and track lifetime tested with injected outcomes",
+          "CPU timings exclude sensor/display latency; physical outward indicator not validated",
+          "No model downloaded or executed; synthetic feed is not Tier 1"
+        ]
+      }
     },
     {
       "stage": 2,
@@ -219,5 +250,5 @@
     "reportPath": ".github/peripheral/reports/final-acceptance.md"
   },
   "blockers": [],
-  "lastUpdated": "2026-09-05"
+  "lastUpdated": "2026-09-06"
 }
