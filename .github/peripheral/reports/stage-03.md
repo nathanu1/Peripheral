@@ -143,10 +143,10 @@ function registerStage3Tests(T) {
 
 ## Implementation — precise diff
 
-[Complete candidate patch](stage-03-candidate.patch), against `index.html` at parent `7de69526ebd0543986c216b17b53df8fb552de0c`. Applying the patch reproduces the tested file byte for byte (verified using `patch --batch -p1` in an isolated temporary directory).
+[Complete candidate patch](stage-03-candidate.patch), against `index.html` at parent `10ad27aaaaed462b24f038d21008577e966e4a9d`. Applying the patch reproduces the tested file byte for byte (verified using `patch --batch -p1` in an isolated temporary directory).
 
 - Parent HTML: 878 lines; SHA-256 `0af85b4821b55b7baec41d29986a562642bc95accdb6e59dd139103da3098358`.
-- Candidate HTML: 1,471 lines; SHA-256 `6400db222d1a61d917ba64e30b0c3d2f671809690fc95fa20ff90f8ca4d9f240`.
+- Candidate HTML: 1,476 lines; SHA-256 `78e30fd768623d719ac935d26514374cec2c3e1060e5c8fbca73e6aa3ed708dc`.
 - Main application, README, license and existing history remain at the last passed product checkpoint. This checkpoint only adds internal reports, the candidate patch and blocked progress metadata.
 
 The candidate adds a pure, swappable `gazeSource(mode).sample(input, nowMs)` contract, column-major pose extraction and neutral-relative rotation, W3C device orientation, iris features with blink rejection and affine calibration, and pinch hysteresis/debounce/rearming. Synthetic world sampling changes with pose without adding a reticle. Confidence values and all thresholds are model choices, never detector probabilities or calibrated gaze accuracy.
@@ -242,10 +242,36 @@ If current main changes, reconcile the patch against a fresh parent rather than 
 
 ## Commit
 
-This incomplete-stage evidence checkpoint uses **`docs: update gaze validation blocker`**. The commit containing this report is the checkpoint; its actual GitHub link and verified author are returned in the build conversation. The completed-stage message **`feat(core): gaze source abstraction`** remains reserved until the full gate passes.
+This incomplete-stage evidence checkpoint uses **`docs: preserve gaze cancellation repair`**. The commit containing this report is the checkpoint; its actual GitHub link and verified author are returned in the build conversation. The completed-stage message **`feat(core): gaze source abstraction`** remains reserved until the full gate passes.
 
 Nathan (@nathanu1) remains project lead and primary contributor through verified repository authorship. AI engineering assistance produced this candidate, tests and report at Nathan's direction. Preserve MIT and all existing attribution; MediaPipe code/model attribution remains with its authors. GitHub account resolution is distinct from a cryptographic signed-commit badge.
 
 ## Next
 
 Resume **Stage 3** at the next run using fresh GitHub state and the preserved patch. Secure-origin positive-frame validation is required before completion. Stage 4 and all successors remain pending. The next build slot repairs/verifies Stage 3; the target schedule must not advance past this blocker.
+
+
+## Stage 3 retry — cancellation repair
+
+The main-thread adapter could finish constructing face/hand tasks after termination without closing them. Before editing the adapter, the deterministic dependency-injected test in [stage-03-lifecycle.mjs](stage-03-lifecycle.mjs) reproduced this: 1 passed / 1 failed. Complete failure: `cancelled load closes every task created after termination`, expected true, actual false. The second check, no ready event after cancellation, passed.
+
+The candidate now checks the session generation before processing queued jobs, after resolving model files, and after each task construction. A task constructed after cancellation is closed immediately; queued stale frames are released. This change concerns resource lifetime, not perception accuracy.
+
+New checks written before implementation:
+```js
+const checks = [
+  { name: 'cancelled load closes every task created after termination', passed: closed >= 1 },
+  { name: 'cancelled load emits no ready event', passed: messages.length === 0 }
+];
+```
+
+Reproduce from the repository root after applying the candidate patch:
+```sh
+node .github/peripheral/reports/stage-03-lifecycle.mjs
+node tests/run.mjs
+node tests/geometry-gate.mjs
+```
+
+Final results: adapter checks 2/0, full inline suite 210/0, core gate 5/0. All deterministic final failures: none. The adapter test replaces only the external module import with a controlled task factory and downloads nothing. It does not execute MediaPipe.
+
+Fresh Chrome verification: `#test` 210/0; pinned face and hand tasks constructed; synthetic model smoke failed with `TypeError: Cannot read properties of undefined (reading 'activeTexture')`; user-facing camera reported `Unavailable`. The exception establishes a graphics initialization failure, but does not by itself prove the browser fundamentally lacks WebGL support. Root cause and positive-frame inference remain unverified. The candidate remains unmerged. The recurring build is paused; state metadata now reflects that actual status. Resume Stage 3, not Stage 4. AI assistance and attribution above remain applicable.

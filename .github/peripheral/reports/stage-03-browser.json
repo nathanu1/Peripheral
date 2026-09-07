@@ -1,20 +1,24 @@
 {
   "date": "2026-09-07",
   "browser": "Chrome via supervised HTTP preview",
-  "candidateSourceSha256": "6400db222d1a61d917ba64e30b0c3d2f671809690fc95fa20ff90f8ca4d9f240",
-  "syntheticSuite": { "passed": 210, "failed": 0, "displayedSummary": "210 passed / 0 failed" },
+  "candidateSourceSha256": "78e30fd768623d719ac935d26514374cec2c3e1060e5c8fbca73e6aa3ed708dc",
+  "syntheticSuite": {
+    "passed": 210,
+    "failed": 0,
+    "displayedSummary": "210 passed / 0 failed"
+  },
   "runtimeRepair": {
     "integrityFallback": "FIPS 180-4 SHA-256 implementation used when SubtleCrypto is absent; exact model hashes still enforced",
     "mediaPipeExecutionPlacement": "scheduled, single-flight main-thread CPU/WASM adapter because @mediapipe/tasks-vision 0.10.21 requires page graphics state during inference",
     "modelLoad": "passed",
-    "actual": "Face and hand models ready · scheduled CPU/WASM · positive-frame validation still required",
+    "actual": "Face and hand models ready \u00b7 scheduled CPU/WASM \u00b7 positive-frame validation still required",
     "meaning": "Pinned package imported, model bytes downloaded and hash-verified, and both task instances constructed"
   },
   "runtimeFailure": {
     "operation": "Run synthetic model smoke check",
     "status": "failed",
     "actual": "Models unavailable: TypeError: Cannot read properties of undefined (reading 'activeTexture')",
-    "meaning": "MediaPipe image preprocessing attempted unavailable WebGL state before either model returned inference output"
+    "meaning": "Graphics initialization failed before either task returned inference output; exact WebGL root cause is unverified."
   },
   "camera": {
     "status": "blocked",
@@ -40,5 +44,6 @@
     "Pinch debounce, loss and rearming",
     "Reticle-free scene panning",
     "Resource generation and single-flight scheduling"
-  ]
+  ],
+  "retry": "Fresh retry after cancellation repair: 210/0 browser harness; tasks constructed; activeTexture failure reproduced; user camera unavailable."
 }

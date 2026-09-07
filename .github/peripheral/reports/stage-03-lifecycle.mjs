@@ -1,0 +1,24 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import crypto from 'node:crypto';
+const source=fs.readFileSync('index.html','utf8');
+const start=source.indexOf('function createVisionAdapter(');
+const end=source.indexOf('\nfunction createHarness()',start);
+let closed=0, release;
+const pending=new Promise(resolve=>release=resolve);
+const face={close(){closed++;}};
+const vision={FilesetResolver:{forVisionTasks:async()=>({})},FaceLandmarker:{createFromOptions:async()=>{await pending;return face;}},HandLandmarker:{createFromOptions:async()=>({close(){closed++;}})}};
+// Replace only the external module import with a deterministic dependency.
+const adapterCode=source.slice(start,end).replace('await import(m.assets.library)','await Promise.resolve(injectedVision)');
+const context={injectedVision:vision,Uint8Array,Promise,sha256Hex:()=> 'hash'};
+vm.createContext(context);
+vm.runInContext(adapterCode,context);
+const adapter=context.createVisionAdapter({fetch:async()=>({ok:true,arrayBuffer:async()=>new ArrayBuffer(0)})});
+const messages=[];adapter.onmessage=e=>messages.push(e.data);
+adapter.postMessage({type:'load',assets:{faceSha256:'hash',handSha256:'hash'}});
+await new Promise(resolve=>setImmediate(resolve));
+adapter.terminate();release();
+await new Promise(resolve=>setImmediate(resolve));
+const checks=[{name:'cancelled load closes every task created after termination',passed:closed>=1},{name:'cancelled load emits no ready event',passed:messages.length===0}];
+const result={sourceSha256:crypto.createHash('sha256').update(source).digest('hex'),passed:checks.filter(x=>x.passed).length,failed:checks.filter(x=>!x.passed).length,checks};
+console.log(JSON.stringify(result,null,2));process.exitCode=result.failed?1:0;
