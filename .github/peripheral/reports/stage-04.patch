@@ -1,0 +1,292 @@
+diff --git a/.github/peripheral/plan.md b/.github/peripheral/plan.md
+index b868285..b79f7c6 100644
+--- a/.github/peripheral/plan.md
++++ b/.github/peripheral/plan.md
+@@ -80,33 +80,27 @@ These are model choices, not implemented features or proven runtime compatibilit
+ ### Stage assignments
+ 
+ - **Stage 4:** finish pure dwell and cancellation. No VLM dependency in deterministic tests.
+-- **Stage 5:** retain real EfficientDet object detection and OCR preparation. Add the SmolVLM on-device adapter with explicit load/unload, runtime capability checks and developer-only crop/question smoke testing. Unsupported VLM runtime is a reported block, not a fake response. Do not replace detection or OCR with language-model guesses.
+-- **Stages 6–8:** retain optical flow, tracking, embeddings and depth. Crops for interpretation reference stable anchor IDs and observation timestamps. Reject responses for departed or rebound objects.
++- **Stage 5:** retain real EfficientDet object detection and OCR preparation. Keep identity grounded in detector boxes and labels; do not replace detection or OCR with language-model guesses.
++- **Stages 6–8:** use OpenCV.js where its single-file packaging and measured performance pass the gate for grayscale transforms, scene-change signals, contours, Lucas–Kanade optical flow and geometric stabilization. Retain tracking, embeddings and depth. Crops for interpretation reference stable anchor IDs and observation timestamps. Reject responses for departed or rebound objects.
+ - **Stage 9:** keep Tier 3 scripted facts separate from image-derived interpretations; preserve spatial recall provenance and expiry.
+-- **Stage 10:** implement `interpret(region, question, recentObservations)` and validated evidence-bound results: request ID, anchor ID, observation time, model revision, tier 2, answer, supporting observations and abstention reason. Confidence is an evaluated estimate, never an invented percentage. Add dwell-triggered OCR, semantic entity binding, ambiguity refusal and activity proposals. Evaluate SmolVLM2 on actual temporal inputs before claiming video understanding.
++- **Stage 10:** implement `interpret(region, question, recentObservations)` and validated evidence-bound results: request ID, anchor ID, observation time, model revision, tier 2, answer, supporting observations and abstention reason. Confidence is an evaluated estimate, never an invented percentage. Add dwell-triggered OCR, semantic entity binding, ambiguity refusal and activity proposals. Evaluate SmolVLM on actual on-device inputs before claiming visual understanding.
+ - **Stages 11–12:** only valid dwell/summon/safety/scheduled policy can admit a result. Treat observed text and model output as untrusted data. Enforce freshness, consent, output bounds and expiry. A VLM alone cannot create a safety warrant or override policy. Unknown/ambiguous outputs remain silent or show a requested uncertainty response under a valid warrant.
+ - **Stages 18–19 and final acceptance:** retain all five deterministic scenarios and add a consented/licensed held-out evaluation set for image questions, unreadable labels, ambiguous objects and false completion claims. Report answer correctness, unsupported claims, abstention, tail latency, dropped render frames, memory and sustained device performance. Mocked outputs validate policy only; real model quality requires actual inference.
+ 
+ ### Scheduling and scale
+ 
+-Use an independently scheduled, single-flight inference adapter. Run visual interpretation on a warranted request or selected task event, never every render frame. Drop obsolete work, cap crop size/context/output tokens, and invalidate results on camera/session/anchor changes. Keep output memory-only with explicit JSON textarea export/import. No arbitrary URL fetching, tool execution or telemetry from model answers. Select model tiers by measured device capability and task quality; no automatic network escalation.
++Use independently scheduled, single-flight perception and interpretation adapters. Run interpretation after a valid dwell, summon, scheduled request, or selected task event rather than every render frame. Drop obsolete work, cap crop size, context and output tokens, and invalidate results on camera, session or anchor changes. Keep outputs memory-only with explicit JSON textarea export/import.
+ 
+-## LocateAnything-3B grounding direction — 2026-09-07
++## OpenCV and contextual awareness direction — 2026-09-07
+ 
+-Nathan requests NVIDIA LocateAnything-3B and Parallel Box Decoding as the grounding foundation. This supersedes the generic VLM preference for localization; broader interpretation still needs separate evaluation. This is a research candidate, not an implemented or commercially cleared dependency.
++LocateAnything is removed from the planned dependency set at Nathan's direction because its released weights restrict use to research and evaluation. No weights or runtime were added.
+ 
+-Primary sources checked: [NVIDIA project](https://research.nvidia.com/labs/lpr/locate-anything/), [model card](https://huggingface.co/nvidia/LocateAnything-3B), and [license](https://huggingface.co/nvidia/LocateAnything-3B/blob/c32291ca5e996f5a7a485845b4f57a233936bba0/LICENSE). Upstream model revision: `c32291ca5e996f5a7a485845b4f57a233936bba0`.
++[OpenCV 4.13.0](https://docs.opencv.org/4.13.0/d0/d84/tutorial_js_usage.html) is the preferred classical-vision candidate. OpenCV 4.5.0 and later use Apache-2.0 according to the [official license page](https://opencv.org/license/). OpenCV supports the image operations Peripheral needs, but it does not by itself provide open-world semantic understanding. Use it for frame transforms, motion masks, optical flow, contour geometry, stabilization and crop preparation. Use the pinned detector for labels and an evaluated on-device VLM only for requested interpretation.
+ 
+-Two unresolved adoption gates:
+-- The NVIDIA license section 3.3 limits use and intended use to non-commercial research/evaluation. The card additionally describes academic/nonprofit research and lists Qwen Research and MIT component licenses. Do not label this release permissively open source, bundle it under Peripheral's MIT license, or adopt it as a commercial scaling dependency without appropriate rights.
+-- Official instructions use custom Python/Transformers/PyTorch generation and GPU-oriented execution. No compatible browser implementation preserving PBD has been verified. A normal autoregressive ONNX export is not proof of PBD support. Preserve the single-HTML/no-backend/no-frame-upload requirements; do not silently introduce a Python server.
++The official OpenCV.js browser build normally loads a separate `opencv.js`/WASM artifact. Peripheral's one-inline-script, self-contained-file rule means Stage 6 must first verify a minimal custom build or an integrity-checked in-memory loader that still satisfies the repository constraints. Do not add an unpinned CDN script or claim OpenCV execution from equivalent handwritten math. Record download size, initialization time, heap lifetime and frame cost; every `cv.Mat` must be deleted deterministically. If packaging or performance fails, retain the pure-JavaScript optical-flow path and report OpenCV as unavailable.
+ 
+-Stage 5 must investigate a browser-compatible research adapter before runtime adoption. Verify preprocessing, tokenizer, coordinate scaling, multi-token box generation and Hybrid fallback parity with a pinned upstream reference. Until licensing and runtime gates are resolved, record LocateAnything unavailable; retain the required browser detector and never substitute synthetic outputs as live evidence. Do not automatically download restricted weights.
++Contextual awareness combines current detector labels, stable anchor identity, dwell-scoped OCR, recent motion/activity observations and Tier 3 facts. The interpreter must cite the observations that support each result and abstain on ambiguity. It cannot infer ownership, identity, danger, task completion or metric depth from a class label alone.
+ 
+-Proposed adapter contract: ground(frame, query, frameId, capturedAt) returns labeled boxes or an explicit unavailable/abstain result, with model revision, source provenance, coordinate space, decoding mode and completion time. PBD predicts coordinates within each geometric unit together; it does not imply every object in a scene is decoded in one pass. Prefer Hybrid after validating its fast-path fallback.
++Optional web context is a separate text-only adapter planned for Stages 10–12. A user enables it for the current session and sees the exact query and source. Once enabled, a valid `dwell`, `summon`, or `scheduled` warrant may trigger a lookup automatically. Send only a minimized generic query derived from allowed object labels; never send frames, crops, faces, enrolled-contact data, raw OCR strings, precise location or persistent identifiers. Use an allowlisted, attribution-capable public knowledge source with no API key, cancel stale requests, keep results in memory, and treat returned text as untrusted external context. Network failure leaves local perception working and silent.
+ 
+-Stages 6–7 associate these observations with stable tracks. Stage 10 binds a request such as “the red mug beside the laptop” to current evidence and an anchor; detection does not establish ownership, contact identity, metric depth or user intent. Stages 11–12 retain sole control over warrants and expiry. Schedule grounding on explicit requests and meaningful scene changes with one in-flight job; drop obsolete results. It must not drive the display loop or bypass bystander veto.
+-
+-Acceptance requires actual positive/negative images, ambiguous and crowded scenes, box-coordinate and crop transforms, no-match behavior, stale cancellation, decoding-mode parity, peak memory and measured latency on target hardware. Synthetic tests verify adapter policy only. No live LocateAnything inference or browser performance claim has passed.
+-
+-AI assistance: source review and this integration decision were prepared at Nathan's direction. No application code or numbered-stage progress changes in this follow-up.
++Acceptance adds deterministic query-minimization and redaction tests, explicit opt-in/disable behavior, stale-request cancellation, source attribution, no-network-at-rest checks and browser CORS validation. Live model and network quality are separate from synthetic policy tests.
+diff --git a/.github/peripheral/state.json b/.github/peripheral/state.json
+index d562242..bd8d2f2 100644
+--- a/.github/peripheral/state.json
++++ b/.github/peripheral/state.json
+@@ -24,7 +24,7 @@
+     "taskTitle": "Build Peripheral",
+     "nextRunVerified": false
+   },
+-  "nextStage": 4,
++  "nextStage": 5,
+   "stages": [
+     {
+       "stage": 0,
+@@ -215,9 +215,44 @@
+       "stage": 4,
+       "name": "Dwell state machine",
+       "commitMessage": "feat(core): dwell detection state machine",
+-      "status": "pending",
++      "status": "completed",
+       "reportPath": ".github/peripheral/reports/stage-04.md",
+-      "testResults": null
++      "testResults": {
++        "passed": 247,
++        "failed": 0,
++        "newAssertions": 30,
++        "runtime": "Node v24.19.0 (deterministic synthetic suite)",
++        "evidencePath": ".github/peripheral/reports/stage-04-green.json",
++        "sourceSha256": "43580075beeff1fac0ff68c130c6826ffed07d7363939705d013b33bd0be9874",
++        "redPhases": [
++          {
++            "passed": 217,
++            "failed": 5,
++            "reason": "Dwell constants and state-machine functions absent before implementation",
++            "evidencePath": ".github/peripheral/reports/stage-04-red.json"
++          }
++        ]
++      },
++      "gate": {
++        "status": "passed",
++        "passed": 5,
++        "failed": 0,
++        "evidencePath": ".github/peripheral/reports/stage-04-gate.json",
++        "checks": [
++          "Exact inline application initializes for synthetic dwell traces",
++          "Dwell constants are explicit model choices",
++          "Pure synthetic 1.5 second trace emits exactly one dwell event",
++          "Dwell implementation has no browser, clock, network, or storage dependency",
++          "Wearer view contains no dwell progress element"
++        ],
++        "limitations": [
++          "Stage 4 uses deterministic synthetic target directions; live object anchors begin in Stage 5",
++          "Threshold, tolerance, decay, saccade and refractory constants are model choices without user-study validation",
++          "No wearer-facing answer renders yet; the state machine emits only a dwell warrant event"
++        ]
++      },
++      "implementationDiffPath": ".github/peripheral/reports/stage-04.patch",
++      "implementationBaseCommit": "76648fec5bc043e81100d2acb8d3df7c6658a57b"
+     },
+     {
+       "stage": 5,
+@@ -350,7 +385,7 @@
+       "status": "resolved",
+       "reason": "User reports working face-head behavior with live measurements; agent runtime limitation remains documented.",
+       "reportPath": ".github/peripheral/reports/stage-03.md",
+-      "scheduleImpact": "Stage 4 is now eligible."
++      "scheduleImpact": "Resolved; Stage 4 completed and Stage 5 is eligible."
+     }
+   ],
+   "lastUpdated": "2026-09-07"
+diff --git a/README.md b/README.md
+index a2a32fc..2f6169c 100644
+--- a/README.md
++++ b/README.md
+@@ -22,7 +22,7 @@ An optional local preview is available with `npm run dev`. It uses Node’s buil
+ 
+ ## Status
+ 
+-Implemented: a single-file shell, separate world/additive/subtractive canvas layers, optional camera capture with synthetic fallback, deterministic frame scheduling, pixel brightness and neighboring-contrast proxies, angular geometry, swappable gaze sources, on-device face/hand model adapters, a developer direction gauge, and keyboard-accessible debug controls. The suite currently has **217 passing assertions**.
++Implemented: a single-file shell, separate world/additive/subtractive canvas layers, optional camera capture with synthetic fallback, deterministic frame scheduling, pixel brightness and neighboring-contrast proxies, angular geometry, swappable gaze sources, on-device face/hand model adapters, a developer direction gauge, a pure dwell state machine, and keyboard-accessible debug controls. The suite currently has **247 passing assertions**.
+ 
+ Geometry uses degrees for model positions and converts to pixels at an explicit paint boundary. It includes visual-angle calculations, display bounds, and an immutable horizontal/vertical/diagonal FOV triple. The nominal 600×600 / 42 PPD display fixture uses a uniform-angular approximation; it does not calibrate the camera or validate wearable optics. Its independent core check runs with `node tests/geometry-gate.mjs`.
+ 
+@@ -30,6 +30,8 @@ The debug console reports actual processed FPS, missed frame slots, and capture,
+ 
+ Face-pose tracking has been reported working in a local user-camera test, with one face and a displayed 30 FPS. This is not a controlled performance benchmark or wearable-hardware validation. The cloud test browser cannot create the required WebGL context; the application reports that before model downloads. Live hand/pinch, iris accuracy and device mounting remain unverified. Assistance overlays remain empty; object detection, world anchors, VLM interpretation and warranted reveals are upcoming.
+ 
++Dwell uses a 1.5 second model threshold, a small angular tolerance, gradual decay during brief excursions, immediate saccade cancellation, and a per-anchor refractory period. Its progress is intentionally absent from the wearer view. Object anchors will connect live gaze to this state machine in the next perception stages.
++
+ For head tracking, select **Face pose · user camera**, click **Use camera**, then **Load face and hand models**. Face forward and select **Set neutral pose**. Changing the source stops the feed and unloads models: repeat these steps after a source change. The camera observes the user while the scene stays explicitly synthetic. The developer gauge shows the selected direction; unavailable tracking hides its meters. Synthetic yaw is a test input, not a sensor.
+ 
+ Models load on request from exact-version URLs and execute locally. Initial downloads require network; browser HTTP caching does not guarantee offline availability. No camera frames are uploaded. This is a browser prototype, not a validated wearable device.
+diff --git a/index.html b/index.html
+index d69e0dd..b6852ce 100644
+--- a/index.html
++++ b/index.html
+@@ -173,6 +173,14 @@ const CONSTANTS = Object.freeze({
+   pinchRelease: Object.freeze({ value: 0.45, kind: "model", source: "Release hysteresis" }),
+   pinchHoldMs: Object.freeze({ value: 100, kind: "model", source: "Pinch debounce" }),
+   eyeOpenRatio: Object.freeze({ value: 0.08, kind: "model", source: "Lid separation / eye width" }),
++  // [model] Interaction choices. They require user studies before hardware claims.
++  dwellThresholdMs: Object.freeze({ value: 1500, kind: "model", source: "Peripheral deliberate-look threshold" }),
++  dwellToleranceDeg: Object.freeze({ value: 2, kind: "model", source: "Peripheral head/eye jitter cone" }),
++  dwellDecayRate: Object.freeze({ value: 2, kind: "model", source: "Brief off-target progress decay per elapsed millisecond" }),
++  dwellSaccadeDistanceDeg: Object.freeze({ value: 6, kind: "model", source: "Large-departure cancellation threshold" }),
++  dwellSaccadeSpeedDegPerSec: Object.freeze({ value: 120, kind: "model", source: "Fast-departure cancellation threshold" }),
++  dwellMaxGapMs: Object.freeze({ value: 500, kind: "model", source: "Maximum continuous observation gap" }),
++  dwellRefractoryMs: Object.freeze({ value: 3000, kind: "model", source: "Per-anchor repeat suppression" }),
+   syntheticFovDeg: Object.freeze({ value: 60, kind: "model", source: "Raster panorama sampling; not camera calibration" })
+ });
+ 
+@@ -241,6 +249,43 @@ function sha256Hex(bytes) {
+ }
+ 
+ const Core = Object.freeze({
++  createDwellState() {
++    return Object.freeze({phase:"idle",anchorId:null,progressMs:0,lastTimeMs:null,lastDirectionDeg:null,refractory:Object.freeze([])});
++  },
++  stepDwell(state, observation) {
++    if (!state || !["idle","tracking","refractory"].includes(state.phase) || !Array.isArray(state.refractory)) throw new TypeError("Invalid dwell state");
++    const timeMs=finiteNumber(observation?.timeMs,"dwell time");
++    if (state.lastTimeMs!==null && timeMs<=state.lastTimeMs) throw new RangeError("Dwell samples must advance in time");
++    const refractory=state.refractory.filter(item=>item&&typeof item.anchorId==="string"&&Number.isFinite(item.untilMs)&&item.untilMs>timeMs);
++    const freeze=values=>Object.freeze({...values,refractory:Object.freeze(refractory.map(item=>Object.freeze({...item})))});
++    const reset=(direction=null,phase="idle",anchorId=null)=>freeze({phase,anchorId,progressMs:0,lastTimeMs:timeMs,lastDirectionDeg:direction?Object.freeze({...direction}):null});
++    const direction=observation?.directionDeg,target=observation?.targetDirectionDeg,anchorId=observation?.anchorId;
++    const valid=observation?.available===true&&typeof anchorId==="string"&&anchorId.length>0&&
++      Number.isFinite(direction?.xDeg)&&Number.isFinite(direction?.yDeg)&&Number.isFinite(target?.xDeg)&&Number.isFinite(target?.yDeg);
++    if (!valid) return {state:reset(),event:null};
++    const dt=state.lastTimeMs===null?0:timeMs-state.lastTimeMs;
++    const distance=(a,b)=>Math.hypot(a.xDeg-b.xDeg,a.yDeg-b.yDeg);
++    if (state.lastDirectionDeg && dt>0) {
++      const departure=distance(direction,state.lastDirectionDeg);
++      if (departure>=CONSTANTS.dwellSaccadeDistanceDeg.value && departure*1000/dt>=CONSTANTS.dwellSaccadeSpeedDegPerSec.value) {
++        return {state:reset(direction),event:null};
++      }
++    }
++    if (refractory.some(item=>item.anchorId===anchorId)) return {state:reset(direction,"refractory",anchorId),event:null};
++    const inside=distance(direction,target)<=CONSTANTS.dwellToleranceDeg.value;
++    if (dt>CONSTANTS.dwellMaxGapMs.value) return {state:inside?reset(direction,"tracking",anchorId):reset(direction),event:null};
++    if (!inside) {
++      const same=state.phase==="tracking"&&state.anchorId===anchorId;
++      const progress=same?Math.max(0,state.progressMs-dt*CONSTANTS.dwellDecayRate.value):0;
++      return {state:freeze({phase:progress>0?"tracking":"idle",anchorId:progress>0?anchorId:null,progressMs:progress,lastTimeMs:timeMs,lastDirectionDeg:Object.freeze({...direction})}),event:null};
++    }
++    const progress=state.phase==="tracking"&&state.anchorId===anchorId?state.progressMs+dt:0;
++    if (progress>=CONSTANTS.dwellThresholdMs.value) {
++      refractory.push(Object.freeze({anchorId,untilMs:timeMs+CONSTANTS.dwellRefractoryMs.value}));
++      return {state:reset(direction,"refractory",anchorId),event:Object.freeze({warrant:"dwell",anchorId,timeMs})};
++    }
++    return {state:freeze({phase:"tracking",anchorId,progressMs:progress,lastTimeMs:timeMs,lastDirectionDeg:Object.freeze({...direction})}),event:null};
++  },
+   gazeGauge(sample) {
+     if(!sample?.available || !Number.isFinite(sample.directionDeg?.xDeg) || !Number.isFinite(sample.directionDeg?.yDeg)) return null;
+     const {xDeg,yDeg}=sample.directionDeg;
+@@ -1138,12 +1183,87 @@ function registerGaugeTests(T) {
+   });
+ }
+ 
++function registerStage4Tests(T) {
++  const observation=(timeMs,anchorId,xDeg=0,yDeg=0,targetXDeg=0,targetYDeg=0,available=true)=>({
++    timeMs,anchorId,available,directionDeg:{xDeg,yDeg},targetDirectionDeg:{xDeg:targetXDeg,yDeg:targetYDeg}
++  });
++  const run=points=>{
++    let state=Core.createDwellState(),events=[];
++    for(const point of points) {
++      const step=Core.stepDwell(state,point);
++      state=step.state;
++      if(step.event) events.push(step.event);
++    }
++    return {state,events};
++  };
++  T.suite("Dwell: model constants and initial state",()=>{
++    T.eq(CONSTANTS.dwellThresholdMs.value,1500,"threshold is the specified 1.5 seconds");
++    T.eq(CONSTANTS.dwellThresholdMs.kind,"model","threshold is labeled as a design choice");
++    T.true(CONSTANTS.dwellToleranceDeg.value>0,"jitter tolerance is positive");
++    T.true(CONSTANTS.dwellRefractoryMs.value>0,"refractory duration is positive");
++    const first=Core.createDwellState(),second=Core.createDwellState();
++    T.eq(first.phase,"idle","dwell begins idle");
++    T.eq(first.progressMs,0,"dwell begins with no accumulated time");
++    T.true(first.refractory!==second.refractory,"dwell states do not share refractory collections");
++  });
++  T.suite("Dwell: steady and jittery traces",()=>{
++    const steady=run([0,250,500,750,1000,1250,1500,1750].map(t=>observation(t,"mug")));
++    T.eq(steady.events.length,1,"steady 1.5 second trace fires once");
++    T.eq(steady.events[0].warrant,"dwell","event carries the dwell warrant");
++    T.eq(steady.events[0].anchorId,"mug","event remains bound to its anchor");
++    T.eq(steady.events[0].timeMs,1500,"event fires at the threshold");
++    const jitter=[[0,0],[250,.7],[500,-.8],[750,1.2],[1000,-1.1],[1250,.4],[1500,0]].map(([t,x])=>observation(t,"book",x,.3));
++    const jittered=run(jitter);
++    T.eq(jittered.events.length,1,"jitter inside the cone does not reset dwell");
++    T.eq(jittered.events[0].anchorId,"book","jitter cannot change anchor identity");
++  });
++  T.suite("Dwell: excursion decay and interruption",()=>{
++    let state=Core.createDwellState();
++    for(const point of [observation(0,"mug"),observation(500,"mug"),observation(700,"mug",3)]) state=Core.stepDwell(state,point).state;
++    T.true(state.progressMs>0,"brief excursion decays instead of zeroing progress");
++    T.true(state.progressMs<500,"excursion removes accumulated progress");
++    const resumed=Core.stepDwell(state,observation(800,"mug",.5));
++    T.true(resumed.state.progressMs>state.progressMs,"returning inside the cone resumes progress");
++    const lost=Core.stepDwell(resumed.state,observation(900,"mug",0,0,0,0,false));
++    T.eq(lost.state.phase,"idle","lost gaze cancels dwell");
++    T.eq(lost.state.progressMs,0,"lost gaze clears progress");
++    const gap=run([observation(0,"mug"),observation(500,"mug"),observation(1100,"mug")]);
++    T.eq(gap.state.progressMs,0,"an observation gap starts a fresh dwell");
++    T.eq(gap.events.length,0,"a gap cannot complete dwell");
++  });
++  T.suite("Dwell: saccade and anchor changes",()=>{
++    const saccade=run([observation(0,"mug"),observation(500,"mug"),observation(550,"mug",10)]);
++    T.eq(saccade.state.phase,"idle","large fast departure cancels immediately");
++    T.eq(saccade.state.progressMs,0,"saccade does not decay gradually");
++    const changed=run([observation(0,"mug"),observation(500,"mug"),observation(600,"book"),observation(1100,"book")]);
++    T.eq(changed.events.length,0,"progress cannot transfer between anchors");
++    T.eq(changed.state.anchorId,"book","new target begins its own dwell");
++    T.eq(changed.state.progressMs,500,"new target accumulates only its own time");
++  });
++  T.suite("Dwell: refractory and time integrity",()=>{
++    let state=Core.createDwellState(),events=[];
++    for(const t of [0,500,1000,1500,2000,2500]) {
++      const step=Core.stepDwell(state,observation(t,"mug"));state=step.state;if(step.event) events.push(step.event);
++    }
++    T.eq(events.length,1,"same anchor cannot refire during refractory period");
++    const other=Core.stepDwell(state,observation(2750,"book"));
++    T.eq(other.state.phase,"tracking","another anchor may begin during the first anchor refractory period");
++    T.throws(()=>Core.stepDwell(other.state,observation(2700,"book")),"backward time is rejected");
++    const before=other.state;
++    Core.stepDwell(before,observation(3000,"book"));
++    T.eq(before.progressMs,0,"step does not mutate its input state");
++    const after=run([0,500,1000,1500,4500,5000,5500,6000].map(t=>observation(t,"mug")));
++    T.eq(after.events.length,2,"same anchor may fire after refractory expires and a new dwell completes");
++  });
++}
++
+ const T = createHarness();
+ registerStage0Tests(T, createHarness, Core);
+ registerStage1Tests(T);
+ registerStage2Tests(T);
+ registerStage3Tests(T);
+ registerGaugeTests(T);
++registerStage4Tests(T);
+ // Public, DOM-free test entry point; the Node runner executes this same inline script.
+ globalThis.Peripheral = Object.freeze({ T, Core, CONSTANTS, createHarness, createSourceController });
+ 
+

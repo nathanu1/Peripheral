@@ -173,6 +173,14 @@ const CONSTANTS = Object.freeze({
   pinchRelease: Object.freeze({ value: 0.45, kind: "model", source: "Release hysteresis" }),
   pinchHoldMs: Object.freeze({ value: 100, kind: "model", source: "Pinch debounce" }),
   eyeOpenRatio: Object.freeze({ value: 0.08, kind: "model", source: "Lid separation / eye width" }),
+  // [model] Interaction choices. They require user studies before hardware claims.
+  dwellThresholdMs: Object.freeze({ value: 1500, kind: "model", source: "Peripheral deliberate-look threshold" }),
+  dwellToleranceDeg: Object.freeze({ value: 2, kind: "model", source: "Peripheral head/eye jitter cone" }),
+  dwellDecayRate: Object.freeze({ value: 2, kind: "model", source: "Brief off-target progress decay per elapsed millisecond" }),
+  dwellSaccadeDistanceDeg: Object.freeze({ value: 6, kind: "model", source: "Large-departure cancellation threshold" }),
+  dwellSaccadeSpeedDegPerSec: Object.freeze({ value: 120, kind: "model", source: "Fast-departure cancellation threshold" }),
+  dwellMaxGapMs: Object.freeze({ value: 500, kind: "model", source: "Maximum continuous observation gap" }),
+  dwellRefractoryMs: Object.freeze({ value: 3000, kind: "model", source: "Per-anchor repeat suppression" }),
   syntheticFovDeg: Object.freeze({ value: 60, kind: "model", source: "Raster panorama sampling; not camera calibration" })
 });
 
@@ -241,6 +249,43 @@ function sha256Hex(bytes) {
 }
 
 const Core = Object.freeze({
+  createDwellState() {
+    return Object.freeze({phase:"idle",anchorId:null,progressMs:0,lastTimeMs:null,lastDirectionDeg:null,refractory:Object.freeze([])});
+  },
+  stepDwell(state, observation) {
+    if (!state || !["idle","tracking","refractory"].includes(state.phase) || !Array.isArray(state.refractory)) throw new TypeError("Invalid dwell state");
+    const timeMs=finiteNumber(observation?.timeMs,"dwell time");
+    if (state.lastTimeMs!==null && timeMs<=state.lastTimeMs) throw new RangeError("Dwell samples must advance in time");
+    const refractory=state.refractory.filter(item=>item&&typeof item.anchorId==="string"&&Number.isFinite(item.untilMs)&&item.untilMs>timeMs);
+    const freeze=values=>Object.freeze({...values,refractory:Object.freeze(refractory.map(item=>Object.freeze({...item})))});
+    const reset=(direction=null,phase="idle",anchorId=null)=>freeze({phase,anchorId,progressMs:0,lastTimeMs:timeMs,lastDirectionDeg:direction?Object.freeze({...direction}):null});
+    const direction=observation?.directionDeg,target=observation?.targetDirectionDeg,anchorId=observation?.anchorId;
+    const valid=observation?.available===true&&typeof anchorId==="string"&&anchorId.length>0&&
+      Number.isFinite(direction?.xDeg)&&Number.isFinite(direction?.yDeg)&&Number.isFinite(target?.xDeg)&&Number.isFinite(target?.yDeg);
+    if (!valid) return {state:reset(),event:null};
+    const dt=state.lastTimeMs===null?0:timeMs-state.lastTimeMs;
+    const distance=(a,b)=>Math.hypot(a.xDeg-b.xDeg,a.yDeg-b.yDeg);
+    if (state.lastDirectionDeg && dt>0) {
+      const departure=distance(direction,state.lastDirectionDeg);
+      if (departure>=CONSTANTS.dwellSaccadeDistanceDeg.value && departure*1000/dt>=CONSTANTS.dwellSaccadeSpeedDegPerSec.value) {
+        return {state:reset(direction),event:null};
+      }
+    }
+    if (refractory.some(item=>item.anchorId===anchorId)) return {state:reset(direction,"refractory",anchorId),event:null};
+    const inside=distance(direction,target)<=CONSTANTS.dwellToleranceDeg.value;
+    if (dt>CONSTANTS.dwellMaxGapMs.value) return {state:inside?reset(direction,"tracking",anchorId):reset(direction),event:null};
+    if (!inside) {
+      const same=state.phase==="tracking"&&state.anchorId===anchorId;
+      const progress=same?Math.max(0,state.progressMs-dt*CONSTANTS.dwellDecayRate.value):0;
+      return {state:freeze({phase:progress>0?"tracking":"idle",anchorId:progress>0?anchorId:null,progressMs:progress,lastTimeMs:timeMs,lastDirectionDeg:Object.freeze({...direction})}),event:null};
+    }
+    const progress=state.phase==="tracking"&&state.anchorId===anchorId?state.progressMs+dt:0;
+    if (progress>=CONSTANTS.dwellThresholdMs.value) {
+      refractory.push(Object.freeze({anchorId,untilMs:timeMs+CONSTANTS.dwellRefractoryMs.value}));
+      return {state:reset(direction,"refractory",anchorId),event:Object.freeze({warrant:"dwell",anchorId,timeMs})};
+    }
+    return {state:freeze({phase:"tracking",anchorId,progressMs:progress,lastTimeMs:timeMs,lastDirectionDeg:Object.freeze({...direction})}),event:null};
+  },
   gazeGauge(sample) {
     if(!sample?.available || !Number.isFinite(sample.directionDeg?.xDeg) || !Number.isFinite(sample.directionDeg?.yDeg)) return null;
     const {xDeg,yDeg}=sample.directionDeg;
@@ -1138,12 +1183,87 @@ function registerGaugeTests(T) {
   });
 }
 
+function registerStage4Tests(T) {
+  const observation=(timeMs,anchorId,xDeg=0,yDeg=0,targetXDeg=0,targetYDeg=0,available=true)=>({
+    timeMs,anchorId,available,directionDeg:{xDeg,yDeg},targetDirectionDeg:{xDeg:targetXDeg,yDeg:targetYDeg}
+  });
+  const run=points=>{
+    let state=Core.createDwellState(),events=[];
+    for(const point of points) {
+      const step=Core.stepDwell(state,point);
+      state=step.state;
+      if(step.event) events.push(step.event);
+    }
+    return {state,events};
+  };
+  T.suite("Dwell: model constants and initial state",()=>{
+    T.eq(CONSTANTS.dwellThresholdMs.value,1500,"threshold is the specified 1.5 seconds");
+    T.eq(CONSTANTS.dwellThresholdMs.kind,"model","threshold is labeled as a design choice");
+    T.true(CONSTANTS.dwellToleranceDeg.value>0,"jitter tolerance is positive");
+    T.true(CONSTANTS.dwellRefractoryMs.value>0,"refractory duration is positive");
+    const first=Core.createDwellState(),second=Core.createDwellState();
+    T.eq(first.phase,"idle","dwell begins idle");
+    T.eq(first.progressMs,0,"dwell begins with no accumulated time");
+    T.true(first.refractory!==second.refractory,"dwell states do not share refractory collections");
+  });
+  T.suite("Dwell: steady and jittery traces",()=>{
+    const steady=run([0,250,500,750,1000,1250,1500,1750].map(t=>observation(t,"mug")));
+    T.eq(steady.events.length,1,"steady 1.5 second trace fires once");
+    T.eq(steady.events[0].warrant,"dwell","event carries the dwell warrant");
+    T.eq(steady.events[0].anchorId,"mug","event remains bound to its anchor");
+    T.eq(steady.events[0].timeMs,1500,"event fires at the threshold");
+    const jitter=[[0,0],[250,.7],[500,-.8],[750,1.2],[1000,-1.1],[1250,.4],[1500,0]].map(([t,x])=>observation(t,"book",x,.3));
+    const jittered=run(jitter);
+    T.eq(jittered.events.length,1,"jitter inside the cone does not reset dwell");
+    T.eq(jittered.events[0].anchorId,"book","jitter cannot change anchor identity");
+  });
+  T.suite("Dwell: excursion decay and interruption",()=>{
+    let state=Core.createDwellState();
+    for(const point of [observation(0,"mug"),observation(500,"mug"),observation(700,"mug",3)]) state=Core.stepDwell(state,point).state;
+    T.true(state.progressMs>0,"brief excursion decays instead of zeroing progress");
+    T.true(state.progressMs<500,"excursion removes accumulated progress");
+    const resumed=Core.stepDwell(state,observation(800,"mug",.5));
+    T.true(resumed.state.progressMs>state.progressMs,"returning inside the cone resumes progress");
+    const lost=Core.stepDwell(resumed.state,observation(900,"mug",0,0,0,0,false));
+    T.eq(lost.state.phase,"idle","lost gaze cancels dwell");
+    T.eq(lost.state.progressMs,0,"lost gaze clears progress");
+    const gap=run([observation(0,"mug"),observation(500,"mug"),observation(1100,"mug")]);
+    T.eq(gap.state.progressMs,0,"an observation gap starts a fresh dwell");
+    T.eq(gap.events.length,0,"a gap cannot complete dwell");
+  });
+  T.suite("Dwell: saccade and anchor changes",()=>{
+    const saccade=run([observation(0,"mug"),observation(500,"mug"),observation(550,"mug",10)]);
+    T.eq(saccade.state.phase,"idle","large fast departure cancels immediately");
+    T.eq(saccade.state.progressMs,0,"saccade does not decay gradually");
+    const changed=run([observation(0,"mug"),observation(500,"mug"),observation(600,"book"),observation(1100,"book")]);
+    T.eq(changed.events.length,0,"progress cannot transfer between anchors");
+    T.eq(changed.state.anchorId,"book","new target begins its own dwell");
+    T.eq(changed.state.progressMs,500,"new target accumulates only its own time");
+  });
+  T.suite("Dwell: refractory and time integrity",()=>{
+    let state=Core.createDwellState(),events=[];
+    for(const t of [0,500,1000,1500,2000,2500]) {
+      const step=Core.stepDwell(state,observation(t,"mug"));state=step.state;if(step.event) events.push(step.event);
+    }
+    T.eq(events.length,1,"same anchor cannot refire during refractory period");
+    const other=Core.stepDwell(state,observation(2750,"book"));
+    T.eq(other.state.phase,"tracking","another anchor may begin during the first anchor refractory period");
+    T.throws(()=>Core.stepDwell(other.state,observation(2700,"book")),"backward time is rejected");
+    const before=other.state;
+    Core.stepDwell(before,observation(3000,"book"));
+    T.eq(before.progressMs,0,"step does not mutate its input state");
+    const after=run([0,500,1000,1500,4500,5000,5500,6000].map(t=>observation(t,"mug")));
+    T.eq(after.events.length,2,"same anchor may fire after refractory expires and a new dwell completes");
+  });
+}
+
 const T = createHarness();
 registerStage0Tests(T, createHarness, Core);
 registerStage1Tests(T);
 registerStage2Tests(T);
 registerStage3Tests(T);
 registerGaugeTests(T);
+registerStage4Tests(T);
 // Public, DOM-free test entry point; the Node runner executes this same inline script.
 globalThis.Peripheral = Object.freeze({ T, Core, CONSTANTS, createHarness, createSourceController });
 

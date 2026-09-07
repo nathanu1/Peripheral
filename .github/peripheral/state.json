@@ -24,7 +24,7 @@
     "taskTitle": "Build Peripheral",
     "nextRunVerified": false
   },
-  "nextStage": 4,
+  "nextStage": 5,
   "stages": [
     {
       "stage": 0,
@@ -215,9 +215,44 @@
       "stage": 4,
       "name": "Dwell state machine",
       "commitMessage": "feat(core): dwell detection state machine",
-      "status": "pending",
+      "status": "completed",
       "reportPath": ".github/peripheral/reports/stage-04.md",
-      "testResults": null
+      "testResults": {
+        "passed": 247,
+        "failed": 0,
+        "newAssertions": 30,
+        "runtime": "Node v24.19.0 (deterministic synthetic suite)",
+        "evidencePath": ".github/peripheral/reports/stage-04-green.json",
+        "sourceSha256": "43580075beeff1fac0ff68c130c6826ffed07d7363939705d013b33bd0be9874",
+        "redPhases": [
+          {
+            "passed": 217,
+            "failed": 5,
+            "reason": "Dwell constants and state-machine functions absent before implementation",
+            "evidencePath": ".github/peripheral/reports/stage-04-red.json"
+          }
+        ]
+      },
+      "gate": {
+        "status": "passed",
+        "passed": 5,
+        "failed": 0,
+        "evidencePath": ".github/peripheral/reports/stage-04-gate.json",
+        "checks": [
+          "Exact inline application initializes for synthetic dwell traces",
+          "Dwell constants are explicit model choices",
+          "Pure synthetic 1.5 second trace emits exactly one dwell event",
+          "Dwell implementation has no browser, clock, network, or storage dependency",
+          "Wearer view contains no dwell progress element"
+        ],
+        "limitations": [
+          "Stage 4 uses deterministic synthetic target directions; live object anchors begin in Stage 5",
+          "Threshold, tolerance, decay, saccade and refractory constants are model choices without user-study validation",
+          "No wearer-facing answer renders yet; the state machine emits only a dwell warrant event"
+        ]
+      },
+      "implementationDiffPath": ".github/peripheral/reports/stage-04.patch",
+      "implementationBaseCommit": "76648fec5bc043e81100d2acb8d3df7c6658a57b"
     },
     {
       "stage": 5,
@@ -350,7 +385,7 @@
       "status": "resolved",
       "reason": "User reports working face-head behavior with live measurements; agent runtime limitation remains documented.",
       "reportPath": ".github/peripheral/reports/stage-03.md",
-      "scheduleImpact": "Stage 4 is now eligible."
+      "scheduleImpact": "Resolved; Stage 4 completed and Stage 5 is eligible."
     }
   ],
   "lastUpdated": "2026-09-07"
