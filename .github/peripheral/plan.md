@@ -90,3 +90,23 @@ These are model choices, not implemented features or proven runtime compatibilit
 ### Scheduling and scale
 
 Use an independently scheduled, single-flight inference adapter. Run visual interpretation on a warranted request or selected task event, never every render frame. Drop obsolete work, cap crop size/context/output tokens, and invalidate results on camera/session/anchor changes. Keep output memory-only with explicit JSON textarea export/import. No arbitrary URL fetching, tool execution or telemetry from model answers. Select model tiers by measured device capability and task quality; no automatic network escalation.
+
+## LocateAnything-3B grounding direction — 2026-09-07
+
+Nathan requests NVIDIA LocateAnything-3B and Parallel Box Decoding as the grounding foundation. This supersedes the generic VLM preference for localization; broader interpretation still needs separate evaluation. This is a research candidate, not an implemented or commercially cleared dependency.
+
+Primary sources checked: [NVIDIA project](https://research.nvidia.com/labs/lpr/locate-anything/), [model card](https://huggingface.co/nvidia/LocateAnything-3B), and [license](https://huggingface.co/nvidia/LocateAnything-3B/blob/c32291ca5e996f5a7a485845b4f57a233936bba0/LICENSE). Upstream model revision: `c32291ca5e996f5a7a485845b4f57a233936bba0`.
+
+Two unresolved adoption gates:
+- The NVIDIA license section 3.3 limits use and intended use to non-commercial research/evaluation. The card additionally describes academic/nonprofit research and lists Qwen Research and MIT component licenses. Do not label this release permissively open source, bundle it under Peripheral's MIT license, or adopt it as a commercial scaling dependency without appropriate rights.
+- Official instructions use custom Python/Transformers/PyTorch generation and GPU-oriented execution. No compatible browser implementation preserving PBD has been verified. A normal autoregressive ONNX export is not proof of PBD support. Preserve the single-HTML/no-backend/no-frame-upload requirements; do not silently introduce a Python server.
+
+Stage 5 must investigate a browser-compatible research adapter before runtime adoption. Verify preprocessing, tokenizer, coordinate scaling, multi-token box generation and Hybrid fallback parity with a pinned upstream reference. Until licensing and runtime gates are resolved, record LocateAnything unavailable; retain the required browser detector and never substitute synthetic outputs as live evidence. Do not automatically download restricted weights.
+
+Proposed adapter contract: ground(frame, query, frameId, capturedAt) returns labeled boxes or an explicit unavailable/abstain result, with model revision, source provenance, coordinate space, decoding mode and completion time. PBD predicts coordinates within each geometric unit together; it does not imply every object in a scene is decoded in one pass. Prefer Hybrid after validating its fast-path fallback.
+
+Stages 6–7 associate these observations with stable tracks. Stage 10 binds a request such as “the red mug beside the laptop” to current evidence and an anchor; detection does not establish ownership, contact identity, metric depth or user intent. Stages 11–12 retain sole control over warrants and expiry. Schedule grounding on explicit requests and meaningful scene changes with one in-flight job; drop obsolete results. It must not drive the display loop or bypass bystander veto.
+
+Acceptance requires actual positive/negative images, ambiguous and crowded scenes, box-coordinate and crop transforms, no-match behavior, stale cancellation, decoding-mode parity, peak memory and measured latency on target hardware. Synthetic tests verify adapter policy only. No live LocateAnything inference or browser performance claim has passed.
+
+AI assistance: source review and this integration decision were prepared at Nathan's direction. No application code or numbered-stage progress changes in this follow-up.
