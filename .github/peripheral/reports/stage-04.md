@@ -129,3 +129,128 @@ Passed: the state machine is pure, all required synthetic traces pass, and a sou
 
 Stage 5 — Tier 1 object detection, with real boxes on real frames and measured frame impact. OpenCV packaging is evaluated in Stage 6 for optical flow and stabilization.
 
+
+## Stage 4 — Lifecycle repair
+
+The predecessor audit found two unmet brief requirements: the threshold was not configurable and cooldown expired from request time rather than after reveal decay. This run repairs Stage 4 before advancing to Stage 5.
+
+### Tests
+
+Written and executed before implementation:
+
+```js
+function registerDwellRepairTests(T) {
+  const sample=(timeMs,anchorId="mug")=>({timeMs,anchorId,available:true,directionDeg:{xDeg:0,yDeg:0},targetDirectionDeg:{xDeg:0,yDeg:0}});
+  const advance=(state,times)=>{const events=[];for(const t of times){const r=Core.stepDwell(state,sample(t));state=r.state;if(r.event)events.push(r.event);}return {state,events};};
+  T.suite("Dwell repair: configured threshold",()=>{
+    const result=advance(Core.createDwellState({thresholdMs:1000}),[0,250,500,750,1000]);
+    T.eq(result.events.length,1,"configured threshold fires at 1000 ms");
+    T.eq(advance(Core.createDwellState(),[0,250,500,750,1000]).events.length,0,"default still waits 1500 ms");
+    T.throws(()=>Core.createDwellState({thresholdMs:0}),"zero threshold rejected");
+    T.throws(()=>Core.createDwellState({thresholdMs:NaN}),"nonfinite threshold rejected");
+    T.throws(()=>Core.createDwellState({thresholdMs:"1000"}),"string threshold rejected");
+  });
+  T.suite("Dwell repair: pending reveal suppresses repeats",()=>{
+    const r=advance(Core.createDwellState(),Array.from({length:41},(_,i)=>i*250));
+    T.eq(r.events.length,1,"no repeat before reveal completion even after ten seconds");
+    T.eq(r.state.refractory[0].untilMs,null,"pending lifecycle has no invented expiry");
+    const copy=JSON.parse(JSON.stringify(r.state));
+    T.eq(advance(copy,[10250,10500,10750]).events.length,0,"JSON round trip preserves pending suppression");
+  });
+  T.suite("Dwell repair: cooldown starts at reveal end",()=>{
+    const first=advance(Core.createDwellState(),[0,500,1000,1500]);
+    const ended=Core.finishDwellReveal(first.state,first.events[0],6000);
+    T.eq(ended.refractory[0].untilMs,9000,"three seconds begin at actual reveal end");
+    T.eq(first.state.refractory[0].untilMs,null,"lifecycle completion does not mutate prior state");
+    const wait=advance(ended,[6500,7000,7500,8000,8500]);
+    T.eq(wait.events.length,0,"no trigger while cooling down");
+    const fresh=advance(wait.state,[9000,9500,10000,10500]);
+    T.eq(fresh.events.length,1,"fresh full dwell allowed after cooldown");
+    T.eq(fresh.events[0].timeMs,10500,"cooldown time is never credited toward dwell");
+    T.throws(()=>Core.finishDwellReveal(first.state,first.events[0],1000),"completion before request rejected");
+    T.throws(()=>Core.finishDwellReveal(first.state,{...first.events[0],timeMs:0},6000),"mismatched request cannot release anchor");
+    T.throws(()=>Core.finishDwellReveal(ended,first.events[0],6500),"duplicate completion rejected");
+  });
+}
+
+```
+
+### Implementation
+
+[Precise repair diff](stage-04-repair.patch). Configurable, validated positive threshold persists in immutable serializable state. Pending requests use null expiry. finishDwellReveal matches anchor and originating timestamp, rejects invalid/duplicate completion, and starts cooldown at removal. The older repeat test now explicitly acknowledges immediate removal; it still asserts successful rearming. The gate scanner now accepts the parameterized function signature and retains the same purity check.
+
+### Test results
+
+Red: 248 passed / 7 failed; full failures:
+
+```json
+[
+  {
+    "suite": "Dwell repair: configured threshold",
+    "passed": false,
+    "message": "configured threshold fires at 1000 ms",
+    "expected": 1,
+    "actual": 0
+  },
+  {
+    "suite": "Dwell repair: configured threshold",
+    "passed": false,
+    "message": "zero threshold rejected",
+    "expected": "exception",
+    "actual": "no exception"
+  },
+  {
+    "suite": "Dwell repair: configured threshold",
+    "passed": false,
+    "message": "nonfinite threshold rejected",
+    "expected": "exception",
+    "actual": "no exception"
+  },
+  {
+    "suite": "Dwell repair: configured threshold",
+    "passed": false,
+    "message": "string threshold rejected",
+    "expected": "exception",
+    "actual": "no exception"
+  },
+  {
+    "suite": "Dwell repair: pending reveal suppresses repeats",
+    "passed": false,
+    "message": "no repeat before reveal completion even after ten seconds",
+    "expected": 1,
+    "actual": 2
+  },
+  {
+    "suite": "Dwell repair: pending reveal suppresses repeats",
+    "passed": false,
+    "message": "Suite threw unexpectedly",
+    "expected": "no unexpected exception",
+    "actual": "TypeError: Cannot read properties of undefined (reading 'untilMs')"
+  },
+  {
+    "suite": "Dwell repair: cooldown starts at reveal end",
+    "passed": false,
+    "message": "Suite threw unexpectedly",
+    "expected": "no unexpected exception",
+    "actual": "TypeError: Core.finishDwellReveal is not a function"
+  }
+]
+```
+
+Final inline suite: 263 passed / 0 failed. Pure-core gate 5/0; Stage 4 gate 5/0; existing adapter lifecycle 2/0; graphics checks 4/0. The first gate execution was 4/1: `Error: Dwell source boundary missing` because its source locator expected a parameterless signature; corrected locator, full gate rerun passed. No remaining failures. All checks are synthetic/Node; no new live-model, browser or hardware validation.
+
+### Perception tiers touched
+
+None. Interaction core only.
+
+### Gate
+
+Passed with synthetic steady, jitter, decay, saccade, interruption, configurable timing and reveal-end cooldown checks. Live rendering integration belongs to Stages 11–12.
+
+### Commit
+
+`feat(core): dwell detection state machine` (required Stage 4 title). Nathan remains project lead and primary contributor; AI assistance produced this repair and tests at Nathan's direction.
+
+### Next
+
+Stage 5 object detection; no stage advancement during this prerequisite repair.

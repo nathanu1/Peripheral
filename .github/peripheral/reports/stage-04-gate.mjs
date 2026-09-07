@@ -33,7 +33,7 @@ check('Pure synthetic 1.5 second trace emits exactly one dwell event', () => {
   if (value.length !== 1 || value[0].warrant !== 'dwell' || value[0].anchorId !== 'gate-anchor') throw Error(JSON.stringify(value));
 });
 check('Dwell implementation has no browser, clock, network, or storage dependency', () => {
-  const start=html.indexOf('  createDwellState()');
+  const start=html.indexOf('  createDwellState(');
   const end=html.indexOf('  gazeGauge(',start);
   if(start<0||end<=start) throw Error('Dwell source boundary missing');
   const source=html.slice(start,end).replace(/\/\/[^\n]*|\/\*[\s\S]*?\*\/|"(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'/g,' ');

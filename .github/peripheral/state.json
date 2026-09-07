@@ -218,18 +218,24 @@
       "status": "completed",
       "reportPath": ".github/peripheral/reports/stage-04.md",
       "testResults": {
-        "passed": 247,
+        "passed": 263,
         "failed": 0,
-        "newAssertions": 30,
+        "newAssertions": 46,
         "runtime": "Node v24.19.0 (deterministic synthetic suite)",
-        "evidencePath": ".github/peripheral/reports/stage-04-green.json",
-        "sourceSha256": "43580075beeff1fac0ff68c130c6826ffed07d7363939705d013b33bd0be9874",
+        "evidencePath": ".github/peripheral/reports/stage-04-repair-green.json",
+        "sourceSha256": "f4c8fadabe234e1264cf2c5b52dd53e8b7f133b94af596fc317f9702d37a594c",
         "redPhases": [
           {
             "passed": 217,
             "failed": 5,
             "reason": "Dwell constants and state-machine functions absent before implementation",
             "evidencePath": ".github/peripheral/reports/stage-04-red.json"
+          },
+          {
+            "passed": 248,
+            "failed": 7,
+            "reason": "Missing configurable threshold and reveal-end refractory handling",
+            "evidencePath": ".github/peripheral/reports/stage-04-repair-red.json"
           }
         ]
       },
@@ -237,7 +243,7 @@
         "status": "passed",
         "passed": 5,
         "failed": 0,
-        "evidencePath": ".github/peripheral/reports/stage-04-gate.json",
+        "evidencePath": ".github/peripheral/reports/stage-04-repair-gate.json",
         "checks": [
           "Exact inline application initializes for synthetic dwell traces",
           "Dwell constants are explicit model choices",
@@ -248,11 +254,14 @@
         "limitations": [
           "Stage 4 uses deterministic synthetic target directions; live object anchors begin in Stage 5",
           "Threshold, tolerance, decay, saccade and refractory constants are model choices without user-study validation",
-          "No wearer-facing answer renders yet; the state machine emits only a dwell warrant event"
+          "No wearer-facing answer renders yet; the state machine emits only a dwell warrant event",
+          "Reveal lifecycle must call finishDwellReveal with the originating event after removal/refusal; missing acknowledgment keeps that anchor suppressed."
         ]
       },
       "implementationDiffPath": ".github/peripheral/reports/stage-04.patch",
-      "implementationBaseCommit": "76648fec5bc043e81100d2acb8d3df7c6658a57b"
+      "implementationBaseCommit": "76648fec5bc043e81100d2acb8d3df7c6658a57b",
+      "repairDiffPath": ".github/peripheral/reports/stage-04-repair.patch",
+      "repairBaseCommit": "da61a7c4d3e9c5ca6a9df20a4df032c5c152334f"
     },
     {
       "stage": 5,

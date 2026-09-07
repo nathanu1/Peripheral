@@ -1,0 +1,130 @@
+diff --git a/.github/peripheral/reports/stage-04-gate.mjs b/.github/peripheral/reports/stage-04-gate.mjs
+index 04b7da7..208581b 100644
+--- a/.github/peripheral/reports/stage-04-gate.mjs
++++ b/.github/peripheral/reports/stage-04-gate.mjs
+@@ -33,7 +33,7 @@ check('Pure synthetic 1.5 second trace emits exactly one dwell event', () => {
+   if (value.length !== 1 || value[0].warrant !== 'dwell' || value[0].anchorId !== 'gate-anchor') throw Error(JSON.stringify(value));
+ });
+ check('Dwell implementation has no browser, clock, network, or storage dependency', () => {
+-  const start=html.indexOf('  createDwellState()');
++  const start=html.indexOf('  createDwellState(');
+   const end=html.indexOf('  gazeGauge(',start);
+   if(start<0||end<=start) throw Error('Dwell source boundary missing');
+   const source=html.slice(start,end).replace(/\/\/[^\n]*|\/\*[\s\S]*?\*\/|"(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'/g,' ');
+diff --git a/index.html b/index.html
+index b6852ce..e0276de 100644
+--- a/index.html
++++ b/index.html
+@@ -249,15 +249,27 @@ function sha256Hex(bytes) {
+ }
+ 
+ const Core = Object.freeze({
+-  createDwellState() {
+-    return Object.freeze({phase:"idle",anchorId:null,progressMs:0,lastTimeMs:null,lastDirectionDeg:null,refractory:Object.freeze([])});
++  createDwellState({thresholdMs=CONSTANTS.dwellThresholdMs.value}={}) {
++    positiveNumber(thresholdMs,"dwell threshold");
++    return Object.freeze({thresholdMs,phase:"idle",anchorId:null,progressMs:0,lastTimeMs:null,lastDirectionDeg:null,refractory:Object.freeze([])});
++  },
++  // Called by the reveal lifecycle only after removal, or when a request is refused.
++  // Match the originating event so an old completion cannot release a newer dwell.
++  finishDwellReveal(state, event, timeMs) {
++    finiteNumber(timeMs,"reveal end time");
++    const pending=state.refractory.find(item=>item.anchorId===event?.anchorId && item.requestedAtMs===event?.timeMs && item.untilMs===null);
++    if (!pending || event.warrant!=="dwell" || timeMs<state.lastTimeMs || timeMs<event.timeMs) throw new RangeError("Invalid dwell completion");
++    const untilMs=finiteNumber(timeMs+CONSTANTS.dwellRefractoryMs.value,"refractory end time");
++    return Object.freeze({...state,phase:"idle",anchorId:null,progressMs:0,lastDirectionDeg:null,lastTimeMs:timeMs,
++      refractory:Object.freeze(state.refractory.map(item=>item===pending?Object.freeze({...item,untilMs}):item))});
+   },
+   stepDwell(state, observation) {
+     if (!state || !["idle","tracking","refractory"].includes(state.phase) || !Array.isArray(state.refractory)) throw new TypeError("Invalid dwell state");
+     const timeMs=finiteNumber(observation?.timeMs,"dwell time");
+     if (state.lastTimeMs!==null && timeMs<=state.lastTimeMs) throw new RangeError("Dwell samples must advance in time");
+-    const refractory=state.refractory.filter(item=>item&&typeof item.anchorId==="string"&&Number.isFinite(item.untilMs)&&item.untilMs>timeMs);
+-    const freeze=values=>Object.freeze({...values,refractory:Object.freeze(refractory.map(item=>Object.freeze({...item})))});
++    positiveNumber(state.thresholdMs,"dwell threshold");
++    const refractory=state.refractory.filter(item=>item&&typeof item.anchorId==="string"&&(item.untilMs===null||(Number.isFinite(item.untilMs)&&item.untilMs>timeMs)));
++    const freeze=values=>Object.freeze({thresholdMs:state.thresholdMs,...values,refractory:Object.freeze(refractory.map(item=>Object.freeze({...item})))});
+     const reset=(direction=null,phase="idle",anchorId=null)=>freeze({phase,anchorId,progressMs:0,lastTimeMs:timeMs,lastDirectionDeg:direction?Object.freeze({...direction}):null});
+     const direction=observation?.directionDeg,target=observation?.targetDirectionDeg,anchorId=observation?.anchorId;
+     const valid=observation?.available===true&&typeof anchorId==="string"&&anchorId.length>0&&
+@@ -280,8 +292,8 @@ const Core = Object.freeze({
+       return {state:freeze({phase:progress>0?"tracking":"idle",anchorId:progress>0?anchorId:null,progressMs:progress,lastTimeMs:timeMs,lastDirectionDeg:Object.freeze({...direction})}),event:null};
+     }
+     const progress=state.phase==="tracking"&&state.anchorId===anchorId?state.progressMs+dt:0;
+-    if (progress>=CONSTANTS.dwellThresholdMs.value) {
+-      refractory.push(Object.freeze({anchorId,untilMs:timeMs+CONSTANTS.dwellRefractoryMs.value}));
++    if (progress>=state.thresholdMs) {
++      refractory.push(Object.freeze({anchorId,requestedAtMs:timeMs,untilMs:null}));
+       return {state:reset(direction,"refractory",anchorId),event:Object.freeze({warrant:"dwell",anchorId,timeMs})};
+     }
+     return {state:freeze({phase:"tracking",anchorId,progressMs:progress,lastTimeMs:timeMs,lastDirectionDeg:Object.freeze({...direction})}),event:null};
+@@ -1187,12 +1199,12 @@ function registerStage4Tests(T) {
+   const observation=(timeMs,anchorId,xDeg=0,yDeg=0,targetXDeg=0,targetYDeg=0,available=true)=>({
+     timeMs,anchorId,available,directionDeg:{xDeg,yDeg},targetDirectionDeg:{xDeg:targetXDeg,yDeg:targetYDeg}
+   });
+-  const run=points=>{
++  const run=(points,finishImmediately=false)=>{
+     let state=Core.createDwellState(),events=[];
+     for(const point of points) {
+       const step=Core.stepDwell(state,point);
+       state=step.state;
+-      if(step.event) events.push(step.event);
++      if(step.event) { events.push(step.event); if(finishImmediately) state=Core.finishDwellReveal(state,step.event,point.timeMs); }
+     }
+     return {state,events};
+   };
+@@ -1252,11 +1264,45 @@ function registerStage4Tests(T) {
+     const before=other.state;
+     Core.stepDwell(before,observation(3000,"book"));
+     T.eq(before.progressMs,0,"step does not mutate its input state");
+-    const after=run([0,500,1000,1500,4500,5000,5500,6000].map(t=>observation(t,"mug")));
++    const after=run([0,500,1000,1500,4500,5000,5500,6000].map(t=>observation(t,"mug")),true);
+     T.eq(after.events.length,2,"same anchor may fire after refractory expires and a new dwell completes");
+   });
+ }
+ 
++function registerDwellRepairTests(T) {
++  const sample=(timeMs,anchorId="mug")=>({timeMs,anchorId,available:true,directionDeg:{xDeg:0,yDeg:0},targetDirectionDeg:{xDeg:0,yDeg:0}});
++  const advance=(state,times)=>{const events=[];for(const t of times){const r=Core.stepDwell(state,sample(t));state=r.state;if(r.event)events.push(r.event);}return {state,events};};
++  T.suite("Dwell repair: configured threshold",()=>{
++    const result=advance(Core.createDwellState({thresholdMs:1000}),[0,250,500,750,1000]);
++    T.eq(result.events.length,1,"configured threshold fires at 1000 ms");
++    T.eq(advance(Core.createDwellState(),[0,250,500,750,1000]).events.length,0,"default still waits 1500 ms");
++    T.throws(()=>Core.createDwellState({thresholdMs:0}),"zero threshold rejected");
++    T.throws(()=>Core.createDwellState({thresholdMs:NaN}),"nonfinite threshold rejected");
++    T.throws(()=>Core.createDwellState({thresholdMs:"1000"}),"string threshold rejected");
++  });
++  T.suite("Dwell repair: pending reveal suppresses repeats",()=>{
++    const r=advance(Core.createDwellState(),Array.from({length:41},(_,i)=>i*250));
++    T.eq(r.events.length,1,"no repeat before reveal completion even after ten seconds");
++    T.eq(r.state.refractory[0].untilMs,null,"pending lifecycle has no invented expiry");
++    const copy=JSON.parse(JSON.stringify(r.state));
++    T.eq(advance(copy,[10250,10500,10750]).events.length,0,"JSON round trip preserves pending suppression");
++  });
++  T.suite("Dwell repair: cooldown starts at reveal end",()=>{
++    const first=advance(Core.createDwellState(),[0,500,1000,1500]);
++    const ended=Core.finishDwellReveal(first.state,first.events[0],6000);
++    T.eq(ended.refractory[0].untilMs,9000,"three seconds begin at actual reveal end");
++    T.eq(first.state.refractory[0].untilMs,null,"lifecycle completion does not mutate prior state");
++    const wait=advance(ended,[6500,7000,7500,8000,8500]);
++    T.eq(wait.events.length,0,"no trigger while cooling down");
++    const fresh=advance(wait.state,[9000,9500,10000,10500]);
++    T.eq(fresh.events.length,1,"fresh full dwell allowed after cooldown");
++    T.eq(fresh.events[0].timeMs,10500,"cooldown time is never credited toward dwell");
++    T.throws(()=>Core.finishDwellReveal(first.state,first.events[0],1000),"completion before request rejected");
++    T.throws(()=>Core.finishDwellReveal(first.state,{...first.events[0],timeMs:0},6000),"mismatched request cannot release anchor");
++    T.throws(()=>Core.finishDwellReveal(ended,first.events[0],6500),"duplicate completion rejected");
++  });
++}
++
+ const T = createHarness();
+ registerStage0Tests(T, createHarness, Core);
+ registerStage1Tests(T);
+@@ -1264,6 +1310,7 @@ registerStage2Tests(T);
+ registerStage3Tests(T);
+ registerGaugeTests(T);
+ registerStage4Tests(T);
++registerDwellRepairTests(T);
+ // Public, DOM-free test entry point; the Node runner executes this same inline script.
+ globalThis.Peripheral = Object.freeze({ T, Core, CONSTANTS, createHarness, createSourceController });
+ 
