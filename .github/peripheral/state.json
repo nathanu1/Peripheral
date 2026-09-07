@@ -149,12 +149,12 @@
       "reportPath": ".github/peripheral/reports/stage-03.md",
       "testResults": {
         "scope": "Unmerged candidate retained as a patch; main application remains Stage 2",
-        "passed": 207,
+        "passed": 210,
         "failed": 0,
-        "newAssertions": 62,
+        "newAssertions": 65,
         "runtime": "Node v24.19.0 and Chrome (synthetic suite)",
         "evidencePath": ".github/peripheral/reports/stage-03-green.json",
-        "candidateSourceSha256": "a812d1fe7cc73f6803d581ef97f6797bb7343fffd3946f3c83ad6fab1dbaf2be",
+        "candidateSourceSha256": "6400db222d1a61d917ba64e30b0c3d2f671809690fc95fa20ff90f8ca4d9f240",
         "redPhases": [
           {
             "passed": 145,
@@ -170,16 +170,22 @@
             "passed": 206,
             "failed": 1,
             "evidencePath": ".github/peripheral/reports/stage-03-gap-red.json"
+          },
+          {
+            "passed": 207,
+            "failed": 1,
+            "reason": "Model-integrity fallback absent",
+            "evidencePath": ".github/peripheral/reports/stage-03-integrity-red.json"
           }
         ]
       },
       "candidatePatchPath": ".github/peripheral/reports/stage-03-candidate.patch",
-      "candidateBaseCommit": "76e7bb7994ab298d1f1eddb2aed69184e749a90b",
+      "candidateBaseCommit": "7de69526ebd0543986c216b17b53df8fb552de0c",
       "gate": {
         "status": "blocked",
         "required": "Reticle-free view center tracks head motion",
         "evidencePath": ".github/peripheral/reports/stage-03-browser.json",
-        "reason": "HTTP preview lacks secure-origin model integrity API and reports user camera unavailable. No real face/hand inference or head-motion gate passed.",
+        "reason": "Exact model downloads and task construction pass, but MediaPipe image preprocessing fails because this browser lacks required WebGL state; user camera is also unavailable. No real inference result or head-motion gate passed.",
         "coreChecks": {
           "passed": 5,
           "failed": 0,
@@ -324,10 +330,10 @@
     {
       "stage": 3,
       "status": "open",
-      "reason": "HTTP preview lacks secure-origin model integrity API and reports user camera unavailable. No real face/hand inference or head-motion gate passed.",
+      "reason": "Exact model downloads and task construction pass, but MediaPipe image preprocessing fails because this browser lacks required WebGL state; user camera is also unavailable. No real inference result or head-motion gate passed.",
       "reportPath": ".github/peripheral/reports/stage-03.md",
       "scheduleImpact": "Next run resumes Stage 3. Stages 4\u201319 and final acceptance cannot advance until the gate passes."
     }
   ],
-  "lastUpdated": "2026-09-06"
+  "lastUpdated": "2026-09-07"
 }

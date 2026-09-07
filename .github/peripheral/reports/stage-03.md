@@ -4,7 +4,7 @@ Status: **blocked; Stage 3 remains incomplete**. This checkpoint preserves a tes
 
 ## Tests — new assertions as code
 
-The first five suites below were written before their functions existed and executed red. The resource-lifetime suite was then written before its controller existed and executed red. A subsequent regression test exposed a real pinch-gap defect; it failed before the fix. These tests remain inside the candidate's single inline script and use only deterministic synthetic observations.
+The first five suites below were written before their functions existed and executed red. The resource-lifetime suite was then written before its controller existed and executed red. Subsequent regression tests exposed a pinch-gap defect and the missing integrity fallback; each failed before its fix. These tests remain inside the candidate's single inline script and use only deterministic synthetic observations.
 
 ```js
 function registerStage3Tests(T) {
@@ -132,23 +132,28 @@ function registerStage3Tests(T) {
     T.eq(pipeline.snapshot().phase,"error","current worker failure is reported");
     T.eq(workers[1].terminated,true,"failed worker releases resources");
   });
+  T.suite("Perception: model integrity fallback", () => {
+    T.eq(Core.sha256Hex(new Uint8Array()), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "empty SHA-256 vector matches FIPS 180-4");
+    T.eq(Core.sha256Hex(new Uint8Array([97,98,99])), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", "abc SHA-256 vector matches FIPS 180-4");
+    T.throws(() => Core.sha256Hex([97,98,99]), "integrity input requires bytes");
+  });
 }
 
 ```
 
 ## Implementation — precise diff
 
-[Complete candidate patch](stage-03-candidate.patch), against `index.html` at parent `76e7bb7994ab298d1f1eddb2aed69184e749a90b`. Applying the patch reproduces the tested file byte for byte (verified using `patch --batch -p1` in an isolated temporary directory).
+[Complete candidate patch](stage-03-candidate.patch), against `index.html` at parent `7de69526ebd0543986c216b17b53df8fb552de0c`. Applying the patch reproduces the tested file byte for byte (verified using `patch --batch -p1` in an isolated temporary directory).
 
 - Parent HTML: 878 lines; SHA-256 `0af85b4821b55b7baec41d29986a562642bc95accdb6e59dd139103da3098358`.
-- Candidate HTML: 1,438 lines; SHA-256 `a812d1fe7cc73f6803d581ef97f6797bb7343fffd3946f3c83ad6fab1dbaf2be`.
+- Candidate HTML: 1,471 lines; SHA-256 `6400db222d1a61d917ba64e30b0c3d2f671809690fc95fa20ff90f8ca4d9f240`.
 - Main application, README, license and existing history remain at the last passed product checkpoint. This checkpoint only adds internal reports, the candidate patch and blocked progress metadata.
 
 The candidate adds a pure, swappable `gazeSource(mode).sample(input, nowMs)` contract, column-major pose extraction and neutral-relative rotation, W3C device orientation, iris features with blink rejection and affine calibration, and pinch hysteresis/debounce/rearming. Synthetic world sampling changes with pose without adding a reticle. Confidence values and all thresholds are model choices, never detector probabilities or calibrated gaze accuracy.
 
 The DOM adapter separates camera roles: world pixels can use a view-center proxy; user-facing face/iris processing controls a synthetic world. Missing, stale, future, ambiguous and malformed samples cannot drive interaction. Iris motion changes the estimated gaze inside the head-directed view, rather than panning the scene. Device pose remains labeled as a device measurement with unverified mounting; no head-mounted sensor is invented.
 
-A Blob worker loads the actual pinned Face Landmarker and Hand Landmarker tasks, hashes model bytes before creation, and calls `detectForVideo`. There is one job in flight and no backlog, independent face/hand ceilings, transferred-frame release, source-generation invalidation, worker termination, explicit loading/inference timeouts, and cleanup on stop/hide/page exit. Thresholds 0.5 configure detection/presence/tracking; they are not exposed as measured confidence. Exactly one face/hand is required for interaction, with capacity two used to detect ambiguity.
+A worker-shaped resource adapter loads the actual pinned Face Landmarker and Hand Landmarker tasks, hashes model bytes before creation, and calls `detectForVideo`. MediaPipe Tasks Vision 0.10.21 requires page graphics state in this browser, so the adapter runs scheduled, single-flight CPU/WASM tasks on the main thread. There is one job in flight and no backlog, independent face/hand ceilings, transferred-frame release, source-generation invalidation, task closure, explicit loading/inference timeouts, and cleanup on stop/hide/page exit. Thresholds 0.5 configure detection/presence/tracking; they are not exposed as measured confidence. Exactly one face/hand is required for interaction, with capacity two used to detect ambiguity.
 
 Hand landmarks feed the geometric pinch detector. The debug console also exposes an accessible summon button. Both produce pending summon intents only: Stage 11 owns warrant admission and subsequent stages own reveals. The candidate writes no assistance or dimming pixels. Five calibration targets and synthetic yaw controls exist only in the developer console.
 
@@ -178,9 +183,10 @@ Fresh parent verification: **145 passed / 0 failed**, plus **5 passed / 0 failed
 | First red | `node tests/run.mjs`, Node v24.19.0, exit 1 | 145 | 5 | [Full red results](stage-03-red.json) |
 | Resource red | Same command/runtime, exit 1 | 194 | 1 | [Full resource red results](stage-03-resource-red.json) |
 | Pinch regression red | Same command/runtime, exit 1 | 206 | 1 | [Full gap red results](stage-03-gap-red.json) |
-| Final candidate | Same command/runtime, exit 0 | 207 | 0 | [Full green results](stage-03-green.json) |
+| Integrity fallback red | Same command/runtime, exit 1 | 207 | 1 | [Full integrity red results](stage-03-integrity-red.json) |
+| Final candidate | Same command/runtime, exit 0 | 210 | 0 | [Full green results](stage-03-green.json) |
 | Core isolation | `node tests/geometry-gate.mjs`, Node v24.19.0, exit 0 | 5 | 0 | [Core checks](stage-03-core-gate.json) |
-| Browser synthetic harness | Chrome, `#test` | 207 | 0 | [Browser observations](stage-03-browser.json) |
+| Browser synthetic harness | Chrome, `#test` | 210 | 0 | [Browser observations](stage-03-browser.json) |
 
 Complete first-red failures (all had message `Suite threw unexpectedly`, expected `no unexpected exception`):
 
@@ -194,13 +200,16 @@ Complete resource-red failure: `Perception: scheduling and resource lifetime`, m
 
 Complete gap-red failure: `Hands: pinch intent and rearming`, message `a gap in observations cannot complete a pinch`, expected `null`, actual `{"warrant":"summon","source":"pinch","timeMs":400,"tier":1}`. Fixed by rejecting discontinuous observation timestamps and requiring a fresh release.
 
+Complete integrity-red failure: `Perception: model integrity fallback`, message `Suite threw unexpectedly`, expected `no unexpected exception`, actual `TypeError: Core.sha256Hex is not a function`. Fixed with a FIPS 180-4 byte-oriented SHA-256 fallback verified against the empty and `abc` standard vectors. The fallback preserves exact face and hand model hash enforcement when `SubtleCrypto` is unavailable.
+
 Final deterministic failures: **none**. Browser runtime failures/blockers:
 
 - User-facing camera: application reported `Unavailable`, kept the camera indicator inactive, and returned to synthetic input. Face-head direction was `Unavailable / 0.00`.
 - Initial model attempt: `Models unavailable: TypeError: Cannot read properties of undefined (reading 'digest')`.
-- The final candidate adds an explicit secure-origin preflight. Retest: `Models unavailable: Error: Secure origin required for model integrity checks; use HTTPS or localhost`.
+- Repaired candidate: both model downloads passed exact SHA-256 validation and both MediaPipe task instances constructed. The application reported `Face and hand models ready · scheduled CPU/WASM · positive-frame validation still required`.
+- Actual inference attempt: `Models unavailable: TypeError: Cannot read properties of undefined (reading 'activeTexture')`. The environment lacks the WebGL state required by MediaPipe image preprocessing; neither task returned an inference result.
 
-The permitted preview is HTTP. No security requirement was removed to enable a claimed pass. Real model construction/inference was not reached; the synthetic smoke button stayed disabled. Downloaded artifacts, synthetic suites and browser error handling do not satisfy live validation. The read-only browser inspector did not expose canvas context reads, so no runtime pixel-alpha assertion is claimed. Visual inspection showed no reticle or assistance overlay. Observed throughput remained about **1 FPS**, not the 30 FPS target; representative processing CPU was 4.60 ms, excluding sensor/display latency. Device sensor operation, iris accuracy, live pinch and hardware optics remain unverified.
+No security requirement was removed: the fallback still verifies the exact model hashes. Real model **construction passed**, but real model **inference did not**. Downloaded artifacts, task construction, synthetic suites and browser error handling do not satisfy positive-frame or live validation. Visual inspection still showed no reticle or assistance overlay. Device sensor operation, iris accuracy, live pinch, sustained frame rate and hardware optics remain unverified.
 
 ## Perception tiers touched
 
@@ -213,7 +222,7 @@ The permitted preview is HTTP. No security requirement was removed to enable a c
 
 Required: **Reticle-free view center tracks head motion.**
 
-**BLOCKED.** Synthetic panning and source readouts were observed, but no actual head motion was observed through a working user-facing model pipeline. Camera access and model integrity validation are unavailable in this HTTP preview. The complete Stage 3 gate has not passed. No completed feature commit is made; `nextStage` remains 3.
+**BLOCKED.** Synthetic panning and source readouts were observed, and exact model downloads plus task construction now pass. However, actual inference fails because this browser environment lacks required WebGL state, and its user-facing camera remains unavailable. No real head-motion sequence drove the view center. The complete Stage 3 gate has not passed. No completed feature commit is made; `nextStage` remains 3.
 
 To reproduce and resume from a fresh repository checkout:
 
@@ -227,13 +236,13 @@ node tests/geometry-gate.mjs
 npm run dev
 ```
 
-Use a supported secure browser at localhost or HTTPS with a real user-facing camera. Choose Face pose, Use camera, then Load face and hand models. Verify readiness, exactly one face, actual inference timings and changing head-directed view center, with no reticle. Turn left/right and up/down, set neutral pose, lose/reacquire the face, and switch sources. Exercise the real hand release–pinch–hold–release sequence, ambiguous/lost hands, fresh timestamps and explicit disable. Check iris calibration/blink loss without claiming optical accuracy, and check device input where available. Validate cleanup and actual render/model rates. Capture exact runtime evidence and repair any real defects before applying the candidate to main. A synthetic smoke check can establish model execution on synthetic pixels only.
+Use a browser with WebGL enabled at localhost or HTTPS and a real user-facing camera. Choose Face pose, Use camera, then Load face and hand models. Verify readiness, exactly one face, actual inference timings and changing head-directed view center, with no reticle. Turn left/right and up/down, set neutral pose, lose/reacquire the face, and switch sources. Exercise the real hand release–pinch–hold–release sequence, ambiguous/lost hands, fresh timestamps and explicit disable. Check iris calibration/blink loss without claiming optical accuracy, and check device input where available. Validate cleanup and actual render/model rates. Capture exact runtime evidence and repair any real defects before applying the candidate to main. A synthetic smoke check establishes actual model execution only if both tasks return; this environment failed before that point.
 
 If current main changes, reconcile the patch against a fresh parent rather than forcing it. Re-run all tests and the full gate. Only then use the specified feature commit and mark the stage complete.
 
 ## Commit
 
-This incomplete-stage evidence checkpoint uses **`docs: record gaze validation blocker`**. The commit containing this report is the checkpoint; its actual GitHub link and verified author are returned in the build conversation. The completed-stage message **`feat(core): gaze source abstraction`** remains reserved until the full gate passes.
+This incomplete-stage evidence checkpoint uses **`docs: update gaze validation blocker`**. The commit containing this report is the checkpoint; its actual GitHub link and verified author are returned in the build conversation. The completed-stage message **`feat(core): gaze source abstraction`** remains reserved until the full gate passes.
 
 Nathan (@nathanu1) remains project lead and primary contributor through verified repository authorship. AI engineering assistance produced this candidate, tests and report at Nathan's direction. Preserve MIT and all existing attribution; MediaPipe code/model attribution remains with its authors. GitHub account resolution is distinct from a cryptographic signed-commit badge.
 

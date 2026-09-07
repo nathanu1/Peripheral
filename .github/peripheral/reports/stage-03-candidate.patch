@@ -1,3 +1,5 @@
+diff --git a/index.html b/index.html
+index 0997e9e..f4bf265 100644
 --- a/index.html
 +++ b/index.html
 @@ -36,6 +36,15 @@
@@ -53,7 +55,7 @@
 +          <div><dt>Latest summon intent</dt><dd id="intent-status">None</dd></div>
 +        </dl>
 +        <p class="muted">Point the user camera at yourself; it never supplies the world view. With a world camera, view center is a proxy without measured head pose. Device orientation measures the device, whose mounting and standard screen orientation must be checked. Face/iris confidence is a modeled availability score, not a detector probability. Lost or stale input stops interaction. Summon intents do not yet render assistance.</p>
-+        <p class="muted">Pinned MediaPipe 0.10.21 models run locally in a worker. Initial downloads need network; browser HTTP caching cannot guarantee offline use. No frame leaves this device.</p>
++        <p class="muted">Pinned MediaPipe 0.10.21 models run locally as scheduled, single-flight CPU/WASM tasks. This library revision needs page graphics state, so inference is not placed in a Web Worker. Initial downloads need network; browser HTTP caching cannot guarantee offline use. No frame leaves this device.</p>
 +        <p id="calibration-status" role="status">Iris calibration missing. Keep your head still; look at each target and activate it with a held keyboard focus or pointer. Calibration resets with the camera session. The angular mapping is a prototype model, not a measured eye-tracker accuracy.</p>
 +        <div class="calibration-pad" aria-label="Developer iris calibration targets">
 +          <button type="button" data-point="0" class="secondary">Center</button><button type="button" data-point="1" class="secondary">Left</button><button type="button" data-point="2" class="secondary">Right</button><button type="button" data-point="3" class="secondary">Up</button><button type="button" data-point="4" class="secondary">Down</button>
@@ -69,7 +71,7 @@
    <noscript><p>JavaScript is required to run the test harness.</p></noscript>
  </main>
  <script>
-@@ -116,7 +157,15 @@
+@@ -116,7 +157,15 @@ const CONSTANTS = Object.freeze({
    frameWidth: Object.freeze({ value: 320, kind: "model", source: "Stage 1 processing raster" }),
    frameHeight: Object.freeze({ value: 180, kind: "model", source: "Stage 1 processing raster" }),
    cameraTimeoutMs: Object.freeze({ value: 10000, kind: "model", source: "Bound unanswered permission requests" }),
@@ -86,10 +88,39 @@
  });
  
  function validateRaster(width, height) {
-@@ -157,6 +206,137 @@
+@@ -156,7 +205,166 @@ function validateDisplayGeometry(display) {
+   }
  }
  
++// FIPS 180-4 SHA-256 fallback for origins where SubtleCrypto is unavailable.
++// It verifies fetched model bytes; it is not cryptographic key material.
++function sha256Hex(bytes) {
++  if (!(bytes instanceof Uint8Array)) throw new TypeError("SHA-256 input must be Uint8Array");
++  const k=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
++    0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
++    0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
++    0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
++    0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
++    0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
++    0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
++    0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
++  const bitLength=bytes.length*8,paddedLength=Math.ceil((bytes.length+9)/64)*64,padded=new Uint8Array(paddedLength);
++  padded.set(bytes);padded[bytes.length]=0x80;
++  const view=new DataView(padded.buffer);view.setUint32(paddedLength-8,Math.floor(bitLength/0x100000000));view.setUint32(paddedLength-4,bitLength>>>0);
++  const h=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19],w=new Uint32Array(64);
++  const rotr=(x,n)=>(x>>>n)|(x<<(32-n));
++  for(let offset=0;offset<paddedLength;offset+=64) {
++    for(let i=0;i<16;i++) w[i]=view.getUint32(offset+i*4);
++    for(let i=16;i<64;i++) {const s0=rotr(w[i-15],7)^rotr(w[i-15],18)^(w[i-15]>>>3),s1=rotr(w[i-2],17)^rotr(w[i-2],19)^(w[i-2]>>>10);w[i]=(w[i-16]+s0+w[i-7]+s1)>>>0;}
++    let [a,b,c,d,e,f,g,hh]=h;
++    for(let i=0;i<64;i++) {const s1=rotr(e,6)^rotr(e,11)^rotr(e,25),ch=(e&f)^(~e&g),t1=(hh+s1+ch+k[i]+w[i])>>>0,s0=rotr(a,2)^rotr(a,13)^rotr(a,22),maj=(a&b)^(a&c)^(b&c),t2=(s0+maj)>>>0;hh=g;g=f;f=e;e=(d+t1)>>>0;d=c;c=b;b=a;a=(t1+t2)>>>0;}
++    for(const [i,v] of [a,b,c,d,e,f,g,hh].entries()) h[i]=(h[i]+v)>>>0;
++  }
++  return h.map(v=>v.toString(16).padStart(8,"0")).join("");
++}
++
  const Core = Object.freeze({
++  sha256Hex,
 +  poseDirectionDeg(matrix, neutralMatrix = null) {
 +    const axes = m => {
 +      if (!m || m.length !== 16 || !Array.from(m).every(Number.isFinite)) throw new TypeError("Expected finite column-major 4x4 pose");
@@ -224,7 +255,7 @@
    degToPx(deg, pixelsPerDegree) {
      finiteNumber(deg, "deg");
      positiveNumber(pixelsPerDegree, "pixelsPerDegree");
-@@ -335,6 +515,99 @@
+@@ -335,6 +543,103 @@ function createSourceController({ requestCamera, releaseStream, onChange }) {
  }
  
  // HARNESS BEGIN: synchronous deterministic assertions, independent of the DOM.
@@ -268,23 +299,22 @@
 +  handSha256:"fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1"
 +});
 +
-+// Serialized into an inline Blob worker. MediaPipe uses WASM memory; no persistent application cache.
-+function visionWorkerMain() {
-+  let faceTask=null,handTask=null;
-+  const send=data=>self.postMessage(data);
-+  self.onmessage=async ({data:m})=>{
++// MediaPipe Tasks 0.10.21 requires page graphics state during inference, so this
++// worker-shaped adapter runs scheduled, single-flight inference on the main thread.
++// Models and application state remain in memory; no persistent cache API is used.
++function createVisionAdapter(view) {
++  let faceTask=null,handTask=null,onmessage=()=>{},onerror=()=>{},generation=0;
++  const send=data=>onmessage({data});
++  async function handle(m,id) {
 +    try {
 +      if(m.type==="load") {
-+        if(!self.crypto?.subtle) throw new Error("Secure origin required for model integrity checks; use HTTPS or localhost");
 +        const vision=await import(m.assets.library);
 +        const files=await vision.FilesetResolver.forVisionTasks(m.assets.wasm);
 +        const read=async (url,expected)=>{
-+          const response=await fetch(url,{credentials:"omit",referrerPolicy:"no-referrer"});
++          const response=await view.fetch(url,{credentials:"omit",referrerPolicy:"no-referrer"});
 +          if(!response.ok) throw new Error(`Model HTTP ${response.status}`);
 +          const buffer=await response.arrayBuffer();
-+          // SubtleCrypto requires a secure origin; do not quietly omit model integrity.
-+          const digest=await crypto.subtle.digest("SHA-256",buffer);
-+          const actual=Array.from(new Uint8Array(digest),n=>n.toString(16).padStart(2,"0")).join("");
++          const actual=view.crypto?.subtle ? Array.from(new Uint8Array(await view.crypto.subtle.digest("SHA-256",buffer)),n=>n.toString(16).padStart(2,"0")).join("") : sha256Hex(new Uint8Array(buffer));
 +          if(actual!==expected) throw new Error("Model integrity mismatch");
 +          return new Uint8Array(buffer);
 +        };
@@ -297,34 +327,39 @@
 +          baseOptions:{modelAssetBuffer:await read(m.assets.hand,m.assets.handSha256),delegate:"CPU"},
 +          runningMode:"VIDEO",numHands:2,minHandDetectionConfidence:0.5,minHandPresenceConfidence:0.5,minTrackingConfidence:0.5
 +        });
-+        send({type:"ready"});
++        if(id===generation) send({type:"ready"});
 +      } else if(m.type==="frame") {
 +        const result={type:"result",timeMs:m.timeMs,cameraRole:m.cameraRole,frameSource:m.frameSource,aspect:m.aspect,smoke:!!m.smoke};
 +        try {
 +          if(m.face) {
-+            const start=performance.now(),r=faceTask.detectForVideo(m.frame,m.timeMs);
-+            result.faceMs=performance.now()-start; result.faceCount=r.faceLandmarks.length;
++            const start=view.performance.now(),r=faceTask.detectForVideo(m.frame,m.timeMs);
++            result.faceMs=view.performance.now()-start; result.faceCount=r.faceLandmarks.length;
 +            if(result.faceCount===1) {result.landmarks=r.faceLandmarks[0];result.poseMatrix=r.facialTransformationMatrixes[0]?.data;}
 +          }
 +          if(m.hands) {
-+            const start=performance.now(),r=handTask.detectForVideo(m.frame,m.timeMs);
-+            result.handMs=performance.now()-start; result.handCount=r.landmarks.length;
++            const start=view.performance.now(),r=handTask.detectForVideo(m.frame,m.timeMs);
++            result.handMs=view.performance.now()-start; result.handCount=r.landmarks.length;
 +            if(result.handCount===1) result.handLandmarks=r.landmarks[0];
 +          }
-+          send(result);
++          if(id===generation) send(result);
 +        } finally {m.frame.close();}
 +      }
 +    } catch(error) {
 +      faceTask?.close();handTask?.close();faceTask=handTask=null;
-+      send({type:"error",message:`${error.name}: ${error.message}`});
++      if(id===generation) send({type:"error",message:`${error.name}: ${error.message}`});
 +    }
++  }
++  return {
++    postMessage(message) { const id=generation; Promise.resolve().then(()=>handle(message,id)).catch(error=>onerror({message:error.message})); },
++    terminate() { generation++;faceTask?.close();handTask?.close();faceTask=handTask=null; },
++    set onmessage(handler) {onmessage=handler;},set onerror(handler) {onerror=handler;}
 +  };
 +}
 +
  function createHarness() {
    const suites = [];
    let activeSuite = null;
-@@ -658,10 +931,139 @@
+@@ -658,10 +963,144 @@ function registerStage2Tests(T) {
    });
  }
  
@@ -454,6 +489,11 @@
 +    T.eq(pipeline.snapshot().phase,"error","current worker failure is reported");
 +    T.eq(workers[1].terminated,true,"failed worker releases resources");
 +  });
++  T.suite("Perception: model integrity fallback", () => {
++    T.eq(Core.sha256Hex(new Uint8Array()), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", "empty SHA-256 vector matches FIPS 180-4");
++    T.eq(Core.sha256Hex(new Uint8Array([97,98,99])), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad", "abc SHA-256 vector matches FIPS 180-4");
++    T.throws(() => Core.sha256Hex([97,98,99]), "integrity input requires bytes");
++  });
 +}
 +
  const T = createHarness();
@@ -464,12 +504,10 @@
  // Public, DOM-free test entry point; the Node runner executes this same inline script.
  globalThis.Peripheral = Object.freeze({ T, Core, CONSTANTS, createHarness, createSourceController });
  
-@@ -714,6 +1116,144 @@
-   view.addEventListener("hashchange", runFromHash);
-   runFromHash();
+@@ -716,6 +1155,140 @@ function mount(doc, view) {
    mountFramePipeline(doc, view);
-+}
-+
+ }
+ 
 +function mountGazePipeline(doc,view,video) {
 +  const get=id=>doc.getElementById(id);
 +  let observation={},neutralMatrix=null,calibration=null,calibrationSamples=new Map(),pinch=Core.pinchState();
@@ -484,17 +522,13 @@
 +  function intent(event) {get("intent-status").textContent=`${event.source} · summon intent at ${Math.round(event.timeMs)} ms · no reveal`;}
 +  const pipeline=createPerceptionController({
 +    createWorker() {
-+      const url=view.URL.createObjectURL(new view.Blob([`(${visionWorkerMain.toString()})();`],{type:"text/javascript"}));
-+      let worker;
-+      try {worker=new view.Worker(url);} catch(error) {view.URL.revokeObjectURL(url);throw error;}
-+      return {postMessage:(...args)=>worker.postMessage(...args),terminate:()=>{worker.terminate();view.URL.revokeObjectURL(url);},
-+        set onmessage(fn){worker.onmessage=fn;},set onerror(fn){worker.onerror=fn;}};
++      return createVisionAdapter(view);
 +    },
 +    releaseFrame:frame=>frame.close(),
 +    onStatus(status) {
 +      if(status.phase!=="loading") {view.clearTimeout(loadTimeout);loadTimeout=null;}
 +      if(["stopped","error"].includes(status.phase)) {view.clearTimeout(inferenceTimeout);inferenceTimeout=null;observation={};pinch=Core.pinchState();}
-+      get("vision-status").textContent=status.phase==="error" ? `Models unavailable: ${status.message}` : status.phase==="ready" ? "Face and hand models ready · CPU worker · positive-frame validation still required" : status.phase==="loading" ? "Loading pinned face and hand models…" : "Models unloaded. Downloads begin only on request.";
++      get("vision-status").textContent=status.phase==="error" ? `Models unavailable: ${status.message}` : status.phase==="ready" ? "Face and hand models ready · scheduled CPU/WASM · positive-frame validation still required" : status.phase==="loading" ? "Loading pinned face and hand models…" : "Models unloaded. Downloads begin only on request.";
 +      get("load-vision").disabled=["loading","ready"].includes(status.phase);
 +      get("stop-vision").disabled=status.phase==="stopped";
 +      get("model-smoke").disabled=status.phase!=="ready";
@@ -606,10 +640,12 @@
 +  });
 +  reset();
 +  return {reset,direction,diagnostics,capture};
- }
- 
++}
++
  function mountFramePipeline(doc, view) {
-@@ -739,6 +1279,8 @@
+   const get = id => doc.getElementById(id);
+   const world = get("world-layer");
+@@ -739,6 +1312,8 @@ function mountFramePipeline(doc, view) {
    let samples = [], lastStats = null, rafId = null, timeoutId = null;
    let clock = Core.createFrameClock(CONSTANTS.renderHz.value, view.performance.now());
    let lastDebugMs = -Infinity, lastVideoTime = -1, lastCameraPixelMs = null;
@@ -618,7 +654,7 @@
  
    function releaseStream(stream) {
      for (const track of stream.getTracks()) track.stop();
-@@ -753,10 +1295,11 @@
+@@ -753,10 +1328,11 @@ function mountFramePipeline(doc, view) {
    function requestCamera(accept, reject) {
      const devices = view.navigator.mediaDevices;
      if (!view.isSecureContext || !devices?.getUserMedia) { reject({ name: "Unavailable" }); return; }
@@ -631,7 +667,7 @@
      resetMetrics();
      get("source-status").textContent = state.reason;
      get("camera-indicator").dataset.active = String(state.cameraActive);
-@@ -764,6 +1307,11 @@
+@@ -764,6 +1340,11 @@ function mountFramePipeline(doc, view) {
      get("source-label").textContent = state.kind === "camera" ? "Live camera · on-device pixels" : state.kind === "stopped" ? "Feed stopped" : "Synthetic test pattern · no live perception";
      get("frame-provenance").textContent = state.kind === "camera" ? "Camera pixels · Tier 1" : state.kind === "stopped" ? "No active source" : "Synthetic · no tier";
      get("wearer-view").setAttribute("aria-label", state.kind === "camera" ? "Live camera view. Assistance overlays are empty." : state.kind === "stopped" ? "Feed stopped. Empty wearer view." : "Synthetic raster test scene. Assistance overlays are empty.");
@@ -643,7 +679,7 @@
      get("use-camera").disabled = state.status === "requesting" || state.status === "starting" || state.kind === "camera";
      get("stop-feed").disabled = state.kind === "stopped";
      if (state.status === "running" || state.status === "stopped") { view.clearTimeout(timeoutId); timeoutId = null; }
-@@ -797,6 +1345,7 @@
+@@ -797,6 +1378,7 @@ function mountFramePipeline(doc, view) {
      get("work-ms").textContent = duration(metrics.workMs);
      get("brightness").textContent = lastStats ? lastStats.brightness01.toFixed(3) : "—";
      get("clutter").textContent = lastStats ? lastStats.edgeContrast01.toFixed(3) : "—";
@@ -651,7 +687,7 @@
      lastDebugMs = now;
    }
  
-@@ -811,6 +1360,7 @@
+@@ -811,6 +1393,7 @@ function mountFramePipeline(doc, view) {
        try {
          const begin = view.performance.now();
          let frame = null;
@@ -659,7 +695,7 @@
          if (state.kind === "camera") {
            if (lastCameraPixelMs === null) lastCameraPixelMs = now;
            if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
-@@ -823,9 +1373,13 @@
+@@ -823,9 +1406,13 @@ function mountFramePipeline(doc, view) {
              frame = { width: capture.width, height: capture.height, data: captureContext.getImageData(0, 0, capture.width, capture.height).data, source: "camera", tier: 1 };
              lastVideoTime = video.currentTime;
              lastCameraPixelMs = now;
@@ -674,7 +710,7 @@
            frameIndex++;
          }
          if (frame) {
-@@ -855,6 +1409,12 @@
+@@ -855,6 +1442,12 @@ function mountFramePipeline(doc, view) {
      }
    });
    get("use-synthetic").addEventListener("click", () => controller.synthetic());

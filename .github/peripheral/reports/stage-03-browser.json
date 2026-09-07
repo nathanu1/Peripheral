@@ -1,56 +1,44 @@
 {
-  "date": "2026-09-06",
+  "date": "2026-09-07",
   "browser": "Chrome via supervised HTTP preview",
-  "candidateSourceSha256": "a812d1fe7cc73f6803d581ef97f6797bb7343fffd3946f3c83ad6fab1dbaf2be",
-  "syntheticSuite": {
-    "passed": 207,
-    "failed": 0,
-    "displayedSummary": "207 passed / 0 failed"
+  "candidateSourceSha256": "6400db222d1a61d917ba64e30b0c3d2f671809690fc95fa20ff90f8ca4d9f240",
+  "syntheticSuite": { "passed": 210, "failed": 0, "displayedSummary": "210 passed / 0 failed" },
+  "runtimeRepair": {
+    "integrityFallback": "FIPS 180-4 SHA-256 implementation used when SubtleCrypto is absent; exact model hashes still enforced",
+    "mediaPipeExecutionPlacement": "scheduled, single-flight main-thread CPU/WASM adapter because @mediapipe/tasks-vision 0.10.21 requires page graphics state during inference",
+    "modelLoad": "passed",
+    "actual": "Face and hand models ready · scheduled CPU/WASM · positive-frame validation still required",
+    "meaning": "Pinned package imported, model bytes downloaded and hash-verified, and both task instances constructed"
   },
-  "observations": [
-    {
-      "check": "Synthetic pose selection and keyboard range adjustment",
-      "status": "passed",
-      "actual": "synthetic-pose \u00b7 no live tier \u00b7 Synthetic observation; no live tier; -25.0\u00b0, 0.0\u00b0 / 0.65 [model]"
-    },
-    {
-      "check": "Reticle-free synthetic scene",
-      "status": "observed",
-      "actual": "World raster and shifted block/stripe visible; no reticle or assistance overlay visible. This is synthetic panning, not head-motion validation."
-    },
-    {
-      "check": "User camera selection",
-      "status": "blocked",
-      "actual": "Unavailable; camera indicator Inactive; synthetic fallback; face-head missing/stale sample; Unavailable / 0.00"
-    },
-    {
-      "check": "Model startup on original candidate",
-      "status": "blocked",
-      "actual": "Models unavailable: TypeError: Cannot read properties of undefined (reading 'digest')"
-    },
-    {
-      "check": "Model startup on final candidate with explicit preflight",
-      "status": "blocked",
-      "actual": "Models unavailable: Error: Secure origin required for model integrity checks; use HTTPS or localhost"
-    },
-    {
-      "check": "Render throughput",
-      "status": "target_unverified",
-      "actual": "1.0 / 30 FPS; representative capture 4.00 ms, analysis 0.55 ms, paint 0.05 ms, processing total 4.60 ms; no sensor/display latency measurement"
-    }
-  ],
-  "liveModelInference": "not executed; model readiness not reached; smoke control remained disabled",
-  "headMotionGate": "blocked; no observed real head movement driving view center",
-  "otherUnverified": [
-    "Positive face/iris frames",
-    "Real hand/pinch input",
+  "runtimeFailure": {
+    "operation": "Run synthetic model smoke check",
+    "status": "failed",
+    "actual": "Models unavailable: TypeError: Cannot read properties of undefined (reading 'activeTexture')",
+    "meaning": "MediaPipe image preprocessing attempted unavailable WebGL state before either model returned inference output"
+  },
+  "camera": {
+    "status": "blocked",
+    "actual": "User-facing camera unavailable in this browser environment",
+    "interactionResult": "No fresh face pose; direction unavailable and modeled confidence 0"
+  },
+  "headMotionGate": "blocked; no actual face-pose sequence drove the reticle-free view center",
+  "liveModelInference": "not passed; tasks constructed but no inference result returned",
+  "realModelConstruction": "passed; this is not an inference or live-camera pass",
+  "unverified": [
+    "Positive face and iris inference",
+    "Head-motion-driven world panning",
+    "Real hand landmarks and pinch input",
     "Device-orientation sensor events",
     "Iris calibration accuracy",
     "Sustained 30 FPS",
     "Physical display emission and outward camera indicator"
   ],
-  "limitations": [
-    "Read-only browser DOM scope did not expose canvas getContext; no pixel-alpha assertion was obtained from that inspection. Visual observation is not a physical emission measurement.",
-    "Browser extension metadata errors occurred independently; model failure was captured in the application status."
+  "syntheticOnly": [
+    "Gaze source provenance and loss behavior",
+    "Pose matrix conversion",
+    "Iris affine fit and blink rejection",
+    "Pinch debounce, loss and rearming",
+    "Reticle-free scene panning",
+    "Resource generation and single-flight scheduling"
   ]
 }

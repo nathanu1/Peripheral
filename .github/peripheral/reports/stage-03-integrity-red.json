@@ -1,8 +1,8 @@
 {
   "runtime": "v24.19.0",
-  "sourceSha256": "6400db222d1a61d917ba64e30b0c3d2f671809690fc95fa20ff90f8ca4d9f240",
-  "passed": 210,
-  "failed": 0,
+  "sourceSha256": "f145f4e9b089d210f50edaa6899723d6a2e65f4f7149e297ddc558498be86679",
+  "passed": 207,
+  "failed": 1,
   "results": [
     {
       "suite": "Harness: result contract",
@@ -1538,24 +1538,10 @@
     },
     {
       "suite": "Perception: model integrity fallback",
-      "passed": true,
-      "message": "empty SHA-256 vector matches FIPS 180-4",
-      "expected": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "actual": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    {
-      "suite": "Perception: model integrity fallback",
-      "passed": true,
-      "message": "abc SHA-256 vector matches FIPS 180-4",
-      "expected": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
-      "actual": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
-    },
-    {
-      "suite": "Perception: model integrity fallback",
-      "passed": true,
-      "message": "integrity input requires bytes",
-      "expected": "exception",
-      "actual": "TypeError: SHA-256 input must be Uint8Array"
+      "passed": false,
+      "message": "Suite threw unexpectedly",
+      "expected": "no unexpected exception",
+      "actual": "TypeError: Core.sha256Hex is not a function"
     }
   ]
 }
