@@ -22,13 +22,17 @@ An optional local preview is available with `npm run dev`. It uses Node’s buil
 
 ## Status
 
-Implemented: a single-file shell, separate world/additive/subtractive canvas layers, optional camera capture with synthetic fallback, deterministic frame scheduling, pixel brightness and neighboring-contrast proxies, angular geometry, and keyboard-accessible debug controls. The suite currently has **145 passing assertions**.
+Implemented: a single-file shell, separate world/additive/subtractive canvas layers, optional camera capture with synthetic fallback, deterministic frame scheduling, pixel brightness and neighboring-contrast proxies, angular geometry, swappable gaze sources, on-device face/hand model adapters, a developer direction gauge, and keyboard-accessible debug controls. The suite currently has **217 passing assertions**.
 
 Geometry uses degrees for model positions and converts to pixels at an explicit paint boundary. It includes visual-angle calculations, display bounds, and an immutable horizontal/vertical/diagonal FOV triple. The nominal 600×600 / 42 PPD display fixture uses a uniform-angular approximation; it does not calibrate the camera or validate wearable optics. Its independent core check runs with `node tests/geometry-gate.mjs`.
 
 The debug console reports actual processed FPS, missed frame slots, and capture, analysis, and paint-submission CPU time. These timings exclude sensor and display latency. Brightness and clutter are uncalibrated pixel proxies; synthetic input never carries a live-perception tier.
 
-The synthetic feed and fallback were checked in Chrome. This test session observed approximately 1 FPS despite the 30 FPS scheduling target; sustained 30 FPS and live-camera performance remain unverified. Assistance overlays remain empty. Object models, gaze, world anchoring, and assistance behaviors are upcoming. This is a browser prototype, not a validated wearable device.
+Face-pose tracking has been reported working in a local user-camera test, with one face and a displayed 30 FPS. This is not a controlled performance benchmark or wearable-hardware validation. The cloud test browser cannot create the required WebGL context; the application reports that before model downloads. Live hand/pinch, iris accuracy and device mounting remain unverified. Assistance overlays remain empty; object detection, world anchors, VLM interpretation and warranted reveals are upcoming.
+
+For head tracking, select **Face pose · user camera**, click **Use camera**, then **Load face and hand models**. Face forward and select **Set neutral pose**. Changing the source stops the feed and unloads models: repeat these steps after a source change. The camera observes the user while the scene stays explicitly synthetic. The developer gauge shows the selected direction; unavailable tracking hides its meters. Synthetic yaw is a test input, not a sensor.
+
+Models load on request from exact-version URLs and execute locally. Initial downloads require network; browser HTTP caching does not guarantee offline availability. No camera frames are uploaded. This is a browser prototype, not a validated wearable device.
 
 ## Design
 

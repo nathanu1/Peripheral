@@ -60,3 +60,33 @@ Fix reproducible defects and rerun relevant checks plus the full suite. Publish 
 ## Repository presentation
 
 Stage reports are delivered in the build conversation. Durable checkpoints, the original brief, and detailed test evidence live here under `.github/peripheral/`. Keep the root README focused on the product and usage. Use the specified conventional feature-oriented commit messages; do not include phrases such as "under Nathan", contributor announcements, or assistant narration in commit titles. Git metadata provides authorship. Preserve existing history. AI engineering assistance is disclosed in internal stage reports.
+
+## Pretrained visual interpretation — approved extension, 2026-09-07
+
+Use pretrained models to generalize beyond scripted object examples. Preserve the one-file browser target, on-device processing, original model stack, stage sequence, consent, warrant policy and automatic expiry. No VLM response may directly paint a reveal or establish unobservable smart-object state.
+
+### Model choices and revision candidates
+
+Primary model cards and upstream revisions checked on 2026-09-07:
+
+| Model | Exact upstream revision | Role |
+| --- | --- | --- |
+| [SmolVLM-256M-Instruct](https://huggingface.co/HuggingFaceTB/SmolVLM-256M-Instruct) | `7e3e67edbbed1bf9888184d9df282b700a323964` | First browser image-question adapter; official model card lists Apache-2.0 and ONNX support |
+| [SmolVLM2-500M-Video-Instruct](https://huggingface.co/HuggingFaceTB/SmolVLM2-500M-Video-Instruct) | `7b375e1b73b11138ff12fe22c8f2822d8fe03467` | Evaluate short temporal sequences; Apache-2.0 |
+| [Qwen3.5-2B](https://huggingface.co/Qwen/Qwen3.5-2B) | `15852e8c16360a2fea060d615a32b45270f8a8fc` | Larger comparison model; Apache-2.0; browser deployment not established |
+
+These are model choices, not implemented features or proven runtime compatibility. Before loading any model, pin its actual browser conversion repository, immutable revision, quantization, processor/tokenizer and runtime versions. Verify artifact licenses/hashes, disable library persistent caches, and measure memory and latency. Upstream model revision alone does not pin a third-party conversion. No cloud inference or local server is introduced into the product; native/desktop comparison remains a separate future evaluation path.
+
+### Stage assignments
+
+- **Stage 4:** finish pure dwell and cancellation. No VLM dependency in deterministic tests.
+- **Stage 5:** retain real EfficientDet object detection and OCR preparation. Add the SmolVLM on-device adapter with explicit load/unload, runtime capability checks and developer-only crop/question smoke testing. Unsupported VLM runtime is a reported block, not a fake response. Do not replace detection or OCR with language-model guesses.
+- **Stages 6–8:** retain optical flow, tracking, embeddings and depth. Crops for interpretation reference stable anchor IDs and observation timestamps. Reject responses for departed or rebound objects.
+- **Stage 9:** keep Tier 3 scripted facts separate from image-derived interpretations; preserve spatial recall provenance and expiry.
+- **Stage 10:** implement `interpret(region, question, recentObservations)` and validated evidence-bound results: request ID, anchor ID, observation time, model revision, tier 2, answer, supporting observations and abstention reason. Confidence is an evaluated estimate, never an invented percentage. Add dwell-triggered OCR, semantic entity binding, ambiguity refusal and activity proposals. Evaluate SmolVLM2 on actual temporal inputs before claiming video understanding.
+- **Stages 11–12:** only valid dwell/summon/safety/scheduled policy can admit a result. Treat observed text and model output as untrusted data. Enforce freshness, consent, output bounds and expiry. A VLM alone cannot create a safety warrant or override policy. Unknown/ambiguous outputs remain silent or show a requested uncertainty response under a valid warrant.
+- **Stages 18–19 and final acceptance:** retain all five deterministic scenarios and add a consented/licensed held-out evaluation set for image questions, unreadable labels, ambiguous objects and false completion claims. Report answer correctness, unsupported claims, abstention, tail latency, dropped render frames, memory and sustained device performance. Mocked outputs validate policy only; real model quality requires actual inference.
+
+### Scheduling and scale
+
+Use an independently scheduled, single-flight inference adapter. Run visual interpretation on a warranted request or selected task event, never every render frame. Drop obsolete work, cap crop size/context/output tokens, and invalidate results on camera/session/anchor changes. Keep output memory-only with explicit JSON textarea export/import. No arbitrary URL fetching, tool execution or telemetry from model answers. Select model tiers by measured device capability and task quality; no automatic network escalation.

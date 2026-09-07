@@ -1,8 +1,8 @@
 {
   "runtime": "v24.19.0",
-  "sourceSha256": "5daffb0cb2e9ec9d50082524ed70f22a38c66deb3ed47538d5f685efd4bfdb41",
-  "passed": 217,
-  "failed": 0,
+  "sourceSha256": "3f428a9f03ee981a9cb2ad21b7a16e04a8990f4500b40a6d2c7c4ee901e0286f",
+  "passed": 210,
+  "failed": 1,
   "results": [
     {
       "suite": "Harness: result contract",
@@ -1559,52 +1559,10 @@
     },
     {
       "suite": "Gaze: developer gauge",
-      "passed": true,
-      "message": "lost tracking hides the gauge",
-      "expected": null,
-      "actual": null
-    },
-    {
-      "suite": "Gaze: developer gauge",
-      "passed": true,
-      "message": "invalid direction cannot display a gauge",
-      "expected": null,
-      "actual": null
-    },
-    {
-      "suite": "Gaze: developer gauge",
-      "passed": true,
-      "message": "gauge preserves measured yaw",
-      "expected": -22.2,
-      "actual": -22.2
-    },
-    {
-      "suite": "Gaze: developer gauge",
-      "passed": true,
-      "message": "gauge preserves measured pitch",
-      "expected": -4,
-      "actual": -4
-    },
-    {
-      "suite": "Gaze: developer gauge",
-      "passed": true,
-      "message": "in-range direction is not clipped",
-      "expected": false,
-      "actual": false
-    },
-    {
-      "suite": "Gaze: developer gauge",
-      "passed": true,
-      "message": "gauge clips only its display extent",
-      "expected": 45,
-      "actual": 45
-    },
-    {
-      "suite": "Gaze: developer gauge",
-      "passed": true,
-      "message": "off-scale direction is labeled",
-      "expected": true,
-      "actual": true
+      "passed": false,
+      "message": "Suite threw unexpectedly",
+      "expected": "no unexpected exception",
+      "actual": "TypeError: Core.gazeGauge is not a function"
     }
   ]
 }

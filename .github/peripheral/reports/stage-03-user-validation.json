@@ -1,0 +1,28 @@
+{
+  "date": "2026-09-07",
+  "source": "Nathan conversation report and supplied 13:49 screenshot; user-observed, not an agent-operated camera test",
+  "statement": "yeah it works pretty well so far",
+  "context": "Reported after instructions to run Face pose and move head to verify scene response",
+  "observed": {
+    "camera": "active",
+    "source": "face-head",
+    "tier": 1,
+    "directionDeg": [
+      -22.2,
+      -4.0
+    ],
+    "modeledConfidence": 0.62,
+    "faceCount": 1,
+    "faceInferenceMs": 15.0,
+    "processedFps": 30.0,
+    "frameCount": 5566,
+    "missedSlots": 8
+  },
+  "gateAssessment": "Head-motion behavior accepted based on user confirmation supported by nonzero measured face direction. A still screenshot alone does not prove motion.",
+  "limitations": [
+    "Exact local source hash, browser version and hardware not supplied",
+    "Gauge added afterward; verified with deterministic and browser synthetic checks",
+    "Live hand/pinch, iris accuracy, device sensor operation and physical optics remain unverified",
+    "No captured face imagery is stored in this report"
+  ]
+}

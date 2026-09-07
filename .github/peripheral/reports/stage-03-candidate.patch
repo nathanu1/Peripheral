@@ -1,5 +1,5 @@
 diff --git a/index.html b/index.html
-index 0997e9e..90986b9 100644
+index 0997e9e..d69e0dd 100644
 --- a/index.html
 +++ b/index.html
 @@ -36,6 +36,15 @@
@@ -26,7 +26,7 @@ index 0997e9e..90986b9 100644
          <button id="use-camera" type="button">Use camera</button>
          <button id="use-synthetic" class="secondary" type="button">Use synthetic</button>
          <button id="stop-feed" class="secondary" type="button">Stop feed</button>
-@@ -92,12 +102,43 @@
+@@ -92,12 +102,51 @@
          <div><dt>Clutter proxy (0–1)</dt><dd id="clutter">—</dd></div>
        </dl>
        <p class="muted">CPU timings exclude sensor and display latency. Brightness and clutter are uncalibrated pixel proxies. This indicator demonstrates camera state; a physical outward-facing signal needs hardware verification.</p>
@@ -56,6 +56,14 @@ index 0997e9e..90986b9 100644
 +        </dl>
 +        <p class="muted">Point the user camera at yourself; it never supplies the world view. With a world camera, view center is a proxy without measured head pose. Device orientation measures the device, whose mounting and standard screen orientation must be checked. Face/iris confidence is a modeled availability score, not a detector probability. Lost or stale input stops interaction. Summon intents do not yet render assistance.</p>
 +        <p class="muted">Pinned MediaPipe 0.10.21 models run locally as scheduled, single-flight CPU/WASM tasks. This library revision needs page graphics state, so inference is not placed in a Web Worker. Initial downloads need network; browser HTTP caching cannot guarantee offline use. No frame leaves this device.</p>
++        <div aria-label="Selected direction gauge">
++          <p>Selected direction · developer gauge (head pose, iris estimate, or proxy as selected above)</p>
++          <div id="gaze-gauges" hidden>
++            <label for="yaw-gauge">Yaw −45° to +45°</label> <meter id="yaw-gauge" min="-45" max="45" value="0">0</meter>
++            <label for="pitch-gauge">Pitch −30° to +30°</label> <meter id="pitch-gauge" min="-30" max="30" value="0">0</meter>
++          </div>
++          <p id="gauge-status">Unavailable</p>
++        </div>
 +        <p id="calibration-status" role="status">Iris calibration missing. Keep your head still; look at each target and activate it with a held keyboard focus or pointer. Calibration resets with the camera session. The angular mapping is a prototype model, not a measured eye-tracker accuracy.</p>
 +        <div class="calibration-pad" aria-label="Developer iris calibration targets">
 +          <button type="button" data-point="0" class="secondary">Center</button><button type="button" data-point="1" class="secondary">Left</button><button type="button" data-point="2" class="secondary">Right</button><button type="button" data-point="3" class="secondary">Up</button><button type="button" data-point="4" class="secondary">Down</button>
@@ -71,7 +79,7 @@ index 0997e9e..90986b9 100644
    <noscript><p>JavaScript is required to run the test harness.</p></noscript>
  </main>
  <script>
-@@ -116,7 +157,15 @@ const CONSTANTS = Object.freeze({
+@@ -116,7 +165,15 @@ const CONSTANTS = Object.freeze({
    frameWidth: Object.freeze({ value: 320, kind: "model", source: "Stage 1 processing raster" }),
    frameHeight: Object.freeze({ value: 180, kind: "model", source: "Stage 1 processing raster" }),
    cameraTimeoutMs: Object.freeze({ value: 10000, kind: "model", source: "Bound unanswered permission requests" }),
@@ -88,7 +96,7 @@ index 0997e9e..90986b9 100644
  });
  
  function validateRaster(width, height) {
-@@ -156,7 +205,166 @@ function validateDisplayGeometry(display) {
+@@ -156,7 +213,172 @@ function validateDisplayGeometry(display) {
    }
  }
  
@@ -120,6 +128,12 @@ index 0997e9e..90986b9 100644
 +}
 +
  const Core = Object.freeze({
++  gazeGauge(sample) {
++    if(!sample?.available || !Number.isFinite(sample.directionDeg?.xDeg) || !Number.isFinite(sample.directionDeg?.yDeg)) return null;
++    const {xDeg,yDeg}=sample.directionDeg;
++    // Developer display extents only [model]; never modify the underlying gaze.
++    return {yaw:Math.max(-45,Math.min(45,xDeg)),pitch:Math.max(-30,Math.min(30,yDeg)),clipped:Math.abs(xDeg)>45||Math.abs(yDeg)>30};
++  },
 +  sha256Hex,
 +  poseDirectionDeg(matrix, neutralMatrix = null) {
 +    const axes = m => {
@@ -255,7 +269,7 @@ index 0997e9e..90986b9 100644
    degToPx(deg, pixelsPerDegree) {
      finiteNumber(deg, "deg");
      positiveNumber(pixelsPerDegree, "pixelsPerDegree");
-@@ -335,6 +543,118 @@ function createSourceController({ requestCamera, releaseStream, onChange }) {
+@@ -335,6 +557,118 @@ function createSourceController({ requestCamera, releaseStream, onChange }) {
  }
  
  // HARNESS BEGIN: synchronous deterministic assertions, independent of the DOM.
@@ -374,7 +388,7 @@ index 0997e9e..90986b9 100644
  function createHarness() {
    const suites = [];
    let activeSuite = null;
-@@ -658,10 +978,144 @@ function registerStage2Tests(T) {
+@@ -658,10 +992,158 @@ function registerStage2Tests(T) {
    });
  }
  
@@ -511,15 +525,29 @@ index 0997e9e..90986b9 100644
 +  });
 +}
 +
++function registerGaugeTests(T) {
++  T.suite("Gaze: developer gauge",()=>{
++    T.eq(Core.gazeGauge({available:false}),null,"lost tracking hides the gauge");
++    T.eq(Core.gazeGauge({available:true,directionDeg:{xDeg:NaN,yDeg:0}}),null,"invalid direction cannot display a gauge");
++    const value=Core.gazeGauge({available:true,directionDeg:{xDeg:-22.2,yDeg:-4}});
++    T.eq(value.yaw,-22.2,"gauge preserves measured yaw");
++    T.eq(value.pitch,-4,"gauge preserves measured pitch");
++    T.eq(value.clipped,false,"in-range direction is not clipped");
++    T.eq(Core.gazeGauge({available:true,directionDeg:{xDeg:90,yDeg:-60}}).yaw,45,"gauge clips only its display extent");
++    T.eq(Core.gazeGauge({available:true,directionDeg:{xDeg:90,yDeg:-60}}).clipped,true,"off-scale direction is labeled");
++  });
++}
++
  const T = createHarness();
  registerStage0Tests(T, createHarness, Core);
  registerStage1Tests(T);
  registerStage2Tests(T);
 +registerStage3Tests(T);
++registerGaugeTests(T);
  // Public, DOM-free test entry point; the Node runner executes this same inline script.
  globalThis.Peripheral = Object.freeze({ T, Core, CONSTANTS, createHarness, createSourceController });
  
-@@ -716,6 +1170,140 @@ function mount(doc, view) {
+@@ -716,6 +1198,148 @@ function mount(doc, view) {
    mountFramePipeline(doc, view);
  }
  
@@ -581,6 +609,14 @@ index 0997e9e..90986b9 100644
 +    const value=sample(now);
 +    get("gaze-provenance").textContent=`${mode()} · ${value.tier===null?"no live tier":`Tier ${value.tier}`} · ${value.reason}`;
 +    get("gaze-value").textContent=value.available ? `${value.directionDeg.xDeg.toFixed(1)}°, ${value.directionDeg.yDeg.toFixed(1)}° / ${value.confidence.toFixed(2)} [model]` : "Unavailable / 0.00";
++    const gauge=Core.gazeGauge(value);
++    get("gaze-gauges").hidden=!gauge;
++    get("gauge-status").textContent=gauge ? (gauge.clipped?"Direction exceeds gauge scale; exact angles are shown above.":"Direction available; confidence above is modeled, not calibrated accuracy.") : "Unavailable · no current direction";
++    if(gauge) {
++      get("yaw-gauge").value=gauge.yaw;get("pitch-gauge").value=gauge.pitch;
++      get("yaw-gauge").setAttribute("aria-valuetext",`${value.directionDeg.xDeg.toFixed(1)} degrees`);
++      get("pitch-gauge").setAttribute("aria-valuetext",`${value.directionDeg.yDeg.toFixed(1)} degrees`);
++    }
 +    const ms=v=>Number.isFinite(v)?`${v.toFixed(1)} ms`:"—";
 +    get("vision-latency").textContent=`${ms(latest.faceMs)} / ${ms(latest.handMs)} (last result)`;
 +    get("vision-counts").textContent=`${latest.faceCount??"—"} / ${latest.handCount??"—"} (last result)`;
@@ -660,7 +696,7 @@ index 0997e9e..90986b9 100644
  function mountFramePipeline(doc, view) {
    const get = id => doc.getElementById(id);
    const world = get("world-layer");
-@@ -739,6 +1327,8 @@ function mountFramePipeline(doc, view) {
+@@ -739,6 +1363,8 @@ function mountFramePipeline(doc, view) {
    let samples = [], lastStats = null, rafId = null, timeoutId = null;
    let clock = Core.createFrameClock(CONSTANTS.renderHz.value, view.performance.now());
    let lastDebugMs = -Infinity, lastVideoTime = -1, lastCameraPixelMs = null;
@@ -669,7 +705,7 @@ index 0997e9e..90986b9 100644
  
    function releaseStream(stream) {
      for (const track of stream.getTracks()) track.stop();
-@@ -753,10 +1343,11 @@ function mountFramePipeline(doc, view) {
+@@ -753,10 +1379,11 @@ function mountFramePipeline(doc, view) {
    function requestCamera(accept, reject) {
      const devices = view.navigator.mediaDevices;
      if (!view.isSecureContext || !devices?.getUserMedia) { reject({ name: "Unavailable" }); return; }
@@ -682,7 +718,7 @@ index 0997e9e..90986b9 100644
      resetMetrics();
      get("source-status").textContent = state.reason;
      get("camera-indicator").dataset.active = String(state.cameraActive);
-@@ -764,6 +1355,11 @@ function mountFramePipeline(doc, view) {
+@@ -764,6 +1391,11 @@ function mountFramePipeline(doc, view) {
      get("source-label").textContent = state.kind === "camera" ? "Live camera · on-device pixels" : state.kind === "stopped" ? "Feed stopped" : "Synthetic test pattern · no live perception";
      get("frame-provenance").textContent = state.kind === "camera" ? "Camera pixels · Tier 1" : state.kind === "stopped" ? "No active source" : "Synthetic · no tier";
      get("wearer-view").setAttribute("aria-label", state.kind === "camera" ? "Live camera view. Assistance overlays are empty." : state.kind === "stopped" ? "Feed stopped. Empty wearer view." : "Synthetic raster test scene. Assistance overlays are empty.");
@@ -694,7 +730,7 @@ index 0997e9e..90986b9 100644
      get("use-camera").disabled = state.status === "requesting" || state.status === "starting" || state.kind === "camera";
      get("stop-feed").disabled = state.kind === "stopped";
      if (state.status === "running" || state.status === "stopped") { view.clearTimeout(timeoutId); timeoutId = null; }
-@@ -797,6 +1393,7 @@ function mountFramePipeline(doc, view) {
+@@ -797,6 +1429,7 @@ function mountFramePipeline(doc, view) {
      get("work-ms").textContent = duration(metrics.workMs);
      get("brightness").textContent = lastStats ? lastStats.brightness01.toFixed(3) : "—";
      get("clutter").textContent = lastStats ? lastStats.edgeContrast01.toFixed(3) : "—";
@@ -702,7 +738,7 @@ index 0997e9e..90986b9 100644
      lastDebugMs = now;
    }
  
-@@ -811,6 +1408,7 @@ function mountFramePipeline(doc, view) {
+@@ -811,6 +1444,7 @@ function mountFramePipeline(doc, view) {
        try {
          const begin = view.performance.now();
          let frame = null;
@@ -710,7 +746,7 @@ index 0997e9e..90986b9 100644
          if (state.kind === "camera") {
            if (lastCameraPixelMs === null) lastCameraPixelMs = now;
            if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
-@@ -823,9 +1421,13 @@ function mountFramePipeline(doc, view) {
+@@ -823,9 +1457,13 @@ function mountFramePipeline(doc, view) {
              frame = { width: capture.width, height: capture.height, data: captureContext.getImageData(0, 0, capture.width, capture.height).data, source: "camera", tier: 1 };
              lastVideoTime = video.currentTime;
              lastCameraPixelMs = now;
@@ -725,7 +761,7 @@ index 0997e9e..90986b9 100644
            frameIndex++;
          }
          if (frame) {
-@@ -855,6 +1457,12 @@ function mountFramePipeline(doc, view) {
+@@ -855,6 +1493,12 @@ function mountFramePipeline(doc, view) {
      }
    });
    get("use-synthetic").addEventListener("click", () => controller.synthetic());

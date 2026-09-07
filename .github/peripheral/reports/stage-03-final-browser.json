@@ -1,0 +1,14 @@
+{
+  "sourceSha256": "5daffb0cb2e9ec9d50082524ed70f22a38c66deb3ed47538d5f685efd4bfdb41",
+  "syntheticSuite": {
+    "passed": 217,
+    "failed": 0
+  },
+  "gauge": {
+    "keyboardSyntheticYaw": "5.0 degrees after ArrowRight",
+    "missingFace": "Unavailable \u00b7 no current direction",
+    "metersHiddenWhenUnavailable": true
+  },
+  "liveGateEvidence": "stage-03-user-validation.json",
+  "agentLiveRuntime": "WebGL/camera limitation documented previously remains; no agent live pass claimed"
+}
