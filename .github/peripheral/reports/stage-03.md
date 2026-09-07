@@ -143,10 +143,10 @@ function registerStage3Tests(T) {
 
 ## Implementation — precise diff
 
-[Complete candidate patch](stage-03-candidate.patch), against `index.html` at parent `10ad27aaaaed462b24f038d21008577e966e4a9d`. Applying the patch reproduces the tested file byte for byte (verified using `patch --batch -p1` in an isolated temporary directory).
+[Complete candidate patch](stage-03-candidate.patch), against `index.html` at parent `d3845af1533153497939370fa3bc6b79e690950b`. Applying the patch reproduces the tested file byte for byte (verified using `patch --batch -p1` in an isolated temporary directory).
 
 - Parent HTML: 878 lines; SHA-256 `0af85b4821b55b7baec41d29986a562642bc95accdb6e59dd139103da3098358`.
-- Candidate HTML: 1,476 lines; SHA-256 `78e30fd768623d719ac935d26514374cec2c3e1060e5c8fbca73e6aa3ed708dc`.
+- Candidate HTML: 1,486 lines; SHA-256 `29050b179dc98e27f5b1d78d58d0b3440b209107c94c5017a26d86da0af4bd0f`.
 - Main application, README, license and existing history remain at the last passed product checkpoint. This checkpoint only adds internal reports, the candidate patch and blocked progress metadata.
 
 The candidate adds a pure, swappable `gazeSource(mode).sample(input, nowMs)` contract, column-major pose extraction and neutral-relative rotation, W3C device orientation, iris features with blink rejection and affine calibration, and pinch hysteresis/debounce/rearming. Synthetic world sampling changes with pose without adding a reticle. Confidence values and all thresholds are model choices, never detector probabilities or calibrated gaze accuracy.
@@ -242,7 +242,7 @@ If current main changes, reconcile the patch against a fresh parent rather than 
 
 ## Commit
 
-This incomplete-stage evidence checkpoint uses **`docs: preserve gaze cancellation repair`**. The commit containing this report is the checkpoint; its actual GitHub link and verified author are returned in the build conversation. The completed-stage message **`feat(core): gaze source abstraction`** remains reserved until the full gate passes.
+This incomplete-stage evidence checkpoint uses **`docs: record graphics preflight validation`**. The commit containing this report is the checkpoint; its actual GitHub link and verified author are returned in the build conversation. The completed-stage message **`feat(core): gaze source abstraction`** remains reserved until the full gate passes.
 
 Nathan (@nathanu1) remains project lead and primary contributor through verified repository authorship. AI engineering assistance produced this candidate, tests and report at Nathan's direction. Preserve MIT and all existing attribution; MediaPipe code/model attribution remains with its authors. GitHub account resolution is distinct from a cryptographic signed-commit badge.
 
@@ -275,3 +275,36 @@ node tests/geometry-gate.mjs
 Final results: adapter checks 2/0, full inline suite 210/0, core gate 5/0. All deterministic final failures: none. The adapter test replaces only the external module import with a controlled task factory and downloads nothing. It does not execute MediaPipe.
 
 Fresh Chrome verification: `#test` 210/0; pinned face and hand tasks constructed; synthetic model smoke failed with `TypeError: Cannot read properties of undefined (reading 'activeTexture')`; user-facing camera reported `Unavailable`. The exception establishes a graphics initialization failure, but does not by itself prove the browser fundamentally lacks WebGL support. Root cause and positive-frame inference remain unverified. The candidate remains unmerged. The recurring build is paused; state metadata now reflects that actual status. Resume Stage 3, not Stage 4. AI assistance and attribution above remain applicable.
+
+
+## Stage 3 retry — graphics capability diagnosis
+
+**Tests.** The new dependency-injected adapter test was written first. Canvas checks initially returned 0 passed / 2 failed: `both tasks receive an explicit canvas` and `face and hand use distinct canvases`, each expected true, actual false. After explicit task canvases, a second red phase returned 2 passed / 2 failed: `unsupported graphics fails before downloads` and `unsupported graphics reports explicit WebGL requirement`, each expected true, actual false. Evidence: [canvas red](stage-03-canvas-red.json), [preflight red](stage-03-preflight-red.json), [test source](stage-03-canvas-test.mjs).
+
+```js
+checks.push({name:'unsupported graphics fails before downloads',passed:fetches===0});
+checks.push({name:'unsupported graphics reports explicit WebGL requirement',
+  passed:errors.some(e=>e.type==='error'&&e.message.includes('WebGL is unavailable'))});
+```
+
+**Implementation.** The preserved candidate creates distinct task canvases, requires a WebGL2 or WebGL context before importing model code or downloading model bytes, and passes each canvas explicitly to its task. CPU inference still needs graphics for this runtime's image preprocessing. Model versions and integrity checks are unchanged. The existing lifecycle fixture now supplies a graphics-capable mock. This is failure handling, not a successful inference fix. The complete candidate diff above reproduces these edits.
+
+**Actual runtime diagnosis.** Separate canvases alone still produced `TypeError: Cannot read properties of undefined (reading 'activeTexture')`. MediaPipe logged `Creating a context with WebGL 2 failed: UNKNOWN: emscripten_webgl_create_context() returned error 0`, then `Fall back on WebGL 1.` The final candidate's actual WebGL2/WebGL creation check failed and the browser displayed `Models unavailable: Error: WebGL is unavailable; face and hand processing cannot run in this browser. No model download started.` This establishes context unavailability in this session; it does not establish the underlying browser/driver cause. User camera again reported `Unavailable`.
+
+The inspected exact upstream artifacts are [vision_bundle.mjs 0.10.21](https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/vision_bundle.mjs) and [vision_wasm_internal.js 0.10.21](https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.21/wasm/vision_wasm_internal.js). The bundle accepts the task `canvas` option. The WASM glue calls `GLctx.activeTexture`; the earlier exception is consistent with context initialization failure.
+
+**Test results.** Final full inline suite 210/0; core gate 5/0; lifecycle checks 2/0; canvas/preflight checks 4/0; browser inline suite 210/0. All final deterministic failures: none. No real inference or head-motion gate passed. Run the new checks from repository root after applying the candidate:
+```sh
+node .github/peripheral/reports/stage-03-canvas-test.mjs
+node .github/peripheral/reports/stage-03-lifecycle.mjs
+node tests/run.mjs
+node tests/geometry-gate.mjs
+```
+
+**Perception tiers touched.** Tier 1 runtime capability checks only; no new measured output or tier promotion.
+
+**Gate.** Blocked: real head motion has not driven the view center. Both required graphics contexts and the user camera are unavailable here.
+
+**Commit.** `docs: record graphics preflight validation` is an internal blocker checkpoint, authorized by the blocked-stage protocol; `index.html` stays at Stage 2. AI assistance is disclosed above.
+
+**Next.** Resume Stage 3 with working WebGL and a user-facing camera; preserve the live gate and leave Stage 4 pending. Schedule remains paused.

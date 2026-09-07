@@ -154,7 +154,7 @@
         "newAssertions": 65,
         "runtime": "Node v24.19.0 and Chrome (synthetic suite)",
         "evidencePath": ".github/peripheral/reports/stage-03-green.json",
-        "candidateSourceSha256": "78e30fd768623d719ac935d26514374cec2c3e1060e5c8fbca73e6aa3ed708dc",
+        "candidateSourceSha256": "29050b179dc98e27f5b1d78d58d0b3440b209107c94c5017a26d86da0af4bd0f",
         "redPhases": [
           {
             "passed": 145,
@@ -183,15 +183,20 @@
           "failed": 0,
           "evidencePath": ".github/peripheral/reports/stage-03-lifecycle-green.json",
           "redEvidencePath": ".github/peripheral/reports/stage-03-lifecycle-red.json"
+        },
+        "graphicsChecks": {
+          "passed": 4,
+          "failed": 0,
+          "evidencePath": ".github/peripheral/reports/stage-03-canvas-green.json"
         }
       },
       "candidatePatchPath": ".github/peripheral/reports/stage-03-candidate.patch",
-      "candidateBaseCommit": "10ad27aaaaed462b24f038d21008577e966e4a9d",
+      "candidateBaseCommit": "d3845af1533153497939370fa3bc6b79e690950b",
       "gate": {
         "status": "blocked",
         "required": "Reticle-free view center tracks head motion",
         "evidencePath": ".github/peripheral/reports/stage-03-browser.json",
-        "reason": "Pinned models construct, but inference fails with activeTexture undefined and user camera is unavailable. Graphics initialization root cause and real head-motion validation remain unresolved.",
+        "reason": "Actual WebGL2/WebGL context creation fails in this browser; final candidate stops before model downloads. User camera unavailable. Real head-motion gate remains blocked.",
         "coreChecks": {
           "passed": 5,
           "failed": 0,
@@ -336,7 +341,7 @@
     {
       "stage": 3,
       "status": "open",
-      "reason": "Pinned models construct, but inference fails with activeTexture undefined and user camera is unavailable. Graphics initialization root cause and real head-motion validation remain unresolved.",
+      "reason": "Actual WebGL2/WebGL context creation fails in this browser; final candidate stops before model downloads. User camera unavailable. Real head-motion gate remains blocked.",
       "reportPath": ".github/peripheral/reports/stage-03.md",
       "scheduleImpact": "Next run resumes Stage 3. Stages 4\u201319 and final acceptance cannot advance until the gate passes."
     }

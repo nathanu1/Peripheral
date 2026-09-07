@@ -1,5 +1,5 @@
 diff --git a/index.html b/index.html
-index 0997e9e..3f71a4e 100644
+index 0997e9e..90986b9 100644
 --- a/index.html
 +++ b/index.html
 @@ -36,6 +36,15 @@
@@ -255,7 +255,7 @@ index 0997e9e..3f71a4e 100644
    degToPx(deg, pixelsPerDegree) {
      finiteNumber(deg, "deg");
      positiveNumber(pixelsPerDegree, "pixelsPerDegree");
-@@ -335,6 +543,108 @@ function createSourceController({ requestCamera, releaseStream, onChange }) {
+@@ -335,6 +543,118 @@ function createSourceController({ requestCamera, releaseStream, onChange }) {
  }
  
  // HARNESS BEGIN: synchronous deterministic assertions, independent of the DOM.
@@ -309,6 +309,14 @@ index 0997e9e..3f71a4e 100644
 +    if(id!==generation) { if(m.type==="frame") m.frame.close(); return; }
 +    try {
 +      if(m.type==="load") {
++        // CPU inference still needs WebGL for MediaPipe image preprocessing.
++        const canvasForTask=()=>{
++          const canvas=view.document.createElement("canvas");
++          if(!(canvas.getContext("webgl2")||canvas.getContext("webgl")))
++            throw new Error("WebGL is unavailable; face and hand processing cannot run in this browser. No model download started.");
++          return canvas;
++        };
++        const faceCanvas=canvasForTask(),handCanvas=canvasForTask();
 +        const vision=await import(m.assets.library);
 +        if(id!==generation) return;
 +        const files=await vision.FilesetResolver.forVisionTasks(m.assets.wasm);
@@ -322,12 +330,14 @@ index 0997e9e..3f71a4e 100644
 +          return new Uint8Array(buffer);
 +        };
 +        faceTask=await vision.FaceLandmarker.createFromOptions(files,{
++          canvas:faceCanvas,
 +          baseOptions:{modelAssetBuffer:await read(m.assets.face,m.assets.faceSha256),delegate:"CPU"},
 +          runningMode:"VIDEO",numFaces:2,outputFacialTransformationMatrixes:true,
 +          outputFaceBlendshapes:false,minFaceDetectionConfidence:0.5,minFacePresenceConfidence:0.5,minTrackingConfidence:0.5
 +        });
 +        if(id!==generation) {faceTask.close();faceTask=null;return;}
 +        handTask=await vision.HandLandmarker.createFromOptions(files,{
++          canvas:handCanvas,
 +          baseOptions:{modelAssetBuffer:await read(m.assets.hand,m.assets.handSha256),delegate:"CPU"},
 +          runningMode:"VIDEO",numHands:2,minHandDetectionConfidence:0.5,minHandPresenceConfidence:0.5,minTrackingConfidence:0.5
 +        });
@@ -364,7 +374,7 @@ index 0997e9e..3f71a4e 100644
  function createHarness() {
    const suites = [];
    let activeSuite = null;
-@@ -658,10 +968,144 @@ function registerStage2Tests(T) {
+@@ -658,10 +978,144 @@ function registerStage2Tests(T) {
    });
  }
  
@@ -509,7 +519,7 @@ index 0997e9e..3f71a4e 100644
  // Public, DOM-free test entry point; the Node runner executes this same inline script.
  globalThis.Peripheral = Object.freeze({ T, Core, CONSTANTS, createHarness, createSourceController });
  
-@@ -716,6 +1160,140 @@ function mount(doc, view) {
+@@ -716,6 +1170,140 @@ function mount(doc, view) {
    mountFramePipeline(doc, view);
  }
  
@@ -650,7 +660,7 @@ index 0997e9e..3f71a4e 100644
  function mountFramePipeline(doc, view) {
    const get = id => doc.getElementById(id);
    const world = get("world-layer");
-@@ -739,6 +1317,8 @@ function mountFramePipeline(doc, view) {
+@@ -739,6 +1327,8 @@ function mountFramePipeline(doc, view) {
    let samples = [], lastStats = null, rafId = null, timeoutId = null;
    let clock = Core.createFrameClock(CONSTANTS.renderHz.value, view.performance.now());
    let lastDebugMs = -Infinity, lastVideoTime = -1, lastCameraPixelMs = null;
@@ -659,7 +669,7 @@ index 0997e9e..3f71a4e 100644
  
    function releaseStream(stream) {
      for (const track of stream.getTracks()) track.stop();
-@@ -753,10 +1333,11 @@ function mountFramePipeline(doc, view) {
+@@ -753,10 +1343,11 @@ function mountFramePipeline(doc, view) {
    function requestCamera(accept, reject) {
      const devices = view.navigator.mediaDevices;
      if (!view.isSecureContext || !devices?.getUserMedia) { reject({ name: "Unavailable" }); return; }
@@ -672,7 +682,7 @@ index 0997e9e..3f71a4e 100644
      resetMetrics();
      get("source-status").textContent = state.reason;
      get("camera-indicator").dataset.active = String(state.cameraActive);
-@@ -764,6 +1345,11 @@ function mountFramePipeline(doc, view) {
+@@ -764,6 +1355,11 @@ function mountFramePipeline(doc, view) {
      get("source-label").textContent = state.kind === "camera" ? "Live camera · on-device pixels" : state.kind === "stopped" ? "Feed stopped" : "Synthetic test pattern · no live perception";
      get("frame-provenance").textContent = state.kind === "camera" ? "Camera pixels · Tier 1" : state.kind === "stopped" ? "No active source" : "Synthetic · no tier";
      get("wearer-view").setAttribute("aria-label", state.kind === "camera" ? "Live camera view. Assistance overlays are empty." : state.kind === "stopped" ? "Feed stopped. Empty wearer view." : "Synthetic raster test scene. Assistance overlays are empty.");
@@ -684,7 +694,7 @@ index 0997e9e..3f71a4e 100644
      get("use-camera").disabled = state.status === "requesting" || state.status === "starting" || state.kind === "camera";
      get("stop-feed").disabled = state.kind === "stopped";
      if (state.status === "running" || state.status === "stopped") { view.clearTimeout(timeoutId); timeoutId = null; }
-@@ -797,6 +1383,7 @@ function mountFramePipeline(doc, view) {
+@@ -797,6 +1393,7 @@ function mountFramePipeline(doc, view) {
      get("work-ms").textContent = duration(metrics.workMs);
      get("brightness").textContent = lastStats ? lastStats.brightness01.toFixed(3) : "—";
      get("clutter").textContent = lastStats ? lastStats.edgeContrast01.toFixed(3) : "—";
@@ -692,7 +702,7 @@ index 0997e9e..3f71a4e 100644
      lastDebugMs = now;
    }
  
-@@ -811,6 +1398,7 @@ function mountFramePipeline(doc, view) {
+@@ -811,6 +1408,7 @@ function mountFramePipeline(doc, view) {
        try {
          const begin = view.performance.now();
          let frame = null;
@@ -700,7 +710,7 @@ index 0997e9e..3f71a4e 100644
          if (state.kind === "camera") {
            if (lastCameraPixelMs === null) lastCameraPixelMs = now;
            if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
-@@ -823,9 +1411,13 @@ function mountFramePipeline(doc, view) {
+@@ -823,9 +1421,13 @@ function mountFramePipeline(doc, view) {
              frame = { width: capture.width, height: capture.height, data: captureContext.getImageData(0, 0, capture.width, capture.height).data, source: "camera", tier: 1 };
              lastVideoTime = video.currentTime;
              lastCameraPixelMs = now;
@@ -715,7 +725,7 @@ index 0997e9e..3f71a4e 100644
            frameIndex++;
          }
          if (frame) {
-@@ -855,6 +1447,12 @@ function mountFramePipeline(doc, view) {
+@@ -855,6 +1457,12 @@ function mountFramePipeline(doc, view) {
      }
    });
    get("use-synthetic").addEventListener("click", () => controller.synthetic());

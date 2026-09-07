@@ -1,0 +1,22 @@
+{
+  "passed": 4,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "both tasks receive an explicit canvas",
+      "passed": true
+    },
+    {
+      "name": "face and hand use distinct canvases",
+      "passed": true
+    },
+    {
+      "name": "unsupported graphics fails before downloads",
+      "passed": true
+    },
+    {
+      "name": "unsupported graphics reports explicit WebGL requirement",
+      "passed": true
+    }
+  ]
+}

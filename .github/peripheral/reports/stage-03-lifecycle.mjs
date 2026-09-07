@@ -13,7 +13,7 @@ const adapterCode=source.slice(start,end).replace('await import(m.assets.library
 const context={injectedVision:vision,Uint8Array,Promise,sha256Hex:()=> 'hash'};
 vm.createContext(context);
 vm.runInContext(adapterCode,context);
-const adapter=context.createVisionAdapter({fetch:async()=>({ok:true,arrayBuffer:async()=>new ArrayBuffer(0)})});
+const adapter=context.createVisionAdapter({document:{createElement:()=>({getContext:()=>({})})},fetch:async()=>({ok:true,arrayBuffer:async()=>new ArrayBuffer(0)})});
 const messages=[];adapter.onmessage=e=>messages.push(e.data);
 adapter.postMessage({type:'load',assets:{faceSha256:'hash',handSha256:'hash'}});
 await new Promise(resolve=>setImmediate(resolve));

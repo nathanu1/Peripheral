@@ -1,0 +1,14 @@
+{
+  "passed": 0,
+  "failed": 2,
+  "checks": [
+    {
+      "name": "both tasks receive an explicit canvas",
+      "passed": false
+    },
+    {
+      "name": "face and hand use distinct canvases",
+      "passed": false
+    }
+  ]
+}

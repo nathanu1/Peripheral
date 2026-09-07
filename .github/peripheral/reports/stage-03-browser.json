@@ -1,7 +1,7 @@
 {
   "date": "2026-09-07",
   "browser": "Chrome via supervised HTTP preview",
-  "candidateSourceSha256": "78e30fd768623d719ac935d26514374cec2c3e1060e5c8fbca73e6aa3ed708dc",
+  "candidateSourceSha256": "29050b179dc98e27f5b1d78d58d0b3440b209107c94c5017a26d86da0af4bd0f",
   "syntheticSuite": {
     "passed": 210,
     "failed": 0,
@@ -14,12 +14,6 @@
     "actual": "Face and hand models ready \u00b7 scheduled CPU/WASM \u00b7 positive-frame validation still required",
     "meaning": "Pinned package imported, model bytes downloaded and hash-verified, and both task instances constructed"
   },
-  "runtimeFailure": {
-    "operation": "Run synthetic model smoke check",
-    "status": "failed",
-    "actual": "Models unavailable: TypeError: Cannot read properties of undefined (reading 'activeTexture')",
-    "meaning": "Graphics initialization failed before either task returned inference output; exact WebGL root cause is unverified."
-  },
   "camera": {
     "status": "blocked",
     "actual": "User-facing camera unavailable in this browser environment",
@@ -27,7 +21,7 @@
   },
   "headMotionGate": "blocked; no actual face-pose sequence drove the reticle-free view center",
   "liveModelInference": "not passed; tasks constructed but no inference result returned",
-  "realModelConstruction": "passed; this is not an inference or live-camera pass",
+  "realModelConstruction": "Earlier separate-canvas experiment constructed tasks; final candidate stops at graphics preflight.",
   "unverified": [
     "Positive face and iris inference",
     "Head-motion-driven world panning",
@@ -45,5 +39,15 @@
     "Reticle-free scene panning",
     "Resource generation and single-flight scheduling"
   ],
-  "retry": "Fresh retry after cancellation repair: 210/0 browser harness; tasks constructed; activeTexture failure reproduced; user camera unavailable."
+  "retry": "Final preflight candidate: browser suite 210/0; WebGL2 and WebGL context creation unavailable; no model download started; camera unavailable.",
+  "priorCandidateRuntimeFailure": {
+    "operation": "Run synthetic model smoke check",
+    "status": "failed",
+    "actual": "Models unavailable: TypeError: Cannot read properties of undefined (reading 'activeTexture')",
+    "meaning": "Graphics initialization failed before either task returned inference output; exact WebGL root cause is unverified."
+  },
+  "runtimeFailure": {
+    "status": "blocked",
+    "actual": "Models unavailable: Error: WebGL is unavailable; face and hand processing cannot run in this browser. No model download started."
+  }
 }
