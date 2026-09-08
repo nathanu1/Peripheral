@@ -1,0 +1,33 @@
+{
+  "runtime": "v24.19.0",
+  "mode": "synthetic injected runtime; no real model",
+  "sourceSha256": "8a0356ea81a9522735570a26ca4da4b7bf140ef60f19aea443ab94e68d3e548b",
+  "passed": 6,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "missing graphics fails before download",
+      "passed": true
+    },
+    {
+      "name": "integrity mismatch refuses model creation",
+      "passed": true
+    },
+    {
+      "name": "late-created task closes after cancellation and never becomes ready",
+      "passed": true
+    },
+    {
+      "name": "video task uses CPU and exact frame timestamp",
+      "passed": true
+    },
+    {
+      "name": "inference executes once and releases its frame",
+      "passed": true
+    },
+    {
+      "name": "cancelled queued frame closes without inference",
+      "passed": true
+    }
+  ]
+}

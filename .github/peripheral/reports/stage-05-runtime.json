@@ -5,7 +5,7 @@
   "liveCameraExecuted": false,
   "browserSuiteExecuted": false,
   "hardwareValidated": false,
-  "sourceSha256": "25311ed7b0612a2d73f95ba247741fe228c9bbad18ef446d549d646438317c95",
+  "sourceSha256": "8a0356ea81a9522735570a26ca4da4b7bf140ef60f19aea443ab94e68d3e548b",
   "attempts": [
     {
       "url": "http://127.0.0.1:5173/#test",
@@ -21,5 +21,7 @@
     "bytes": 4602795,
     "sha256": "0720bf247bd76e6594ea28fa9c6f7c5242be774818997dbbeffc4da460c723bb"
   },
-  "modelLicenseStatus": "TensorFlow family listing reports Apache 2.0; exact int8 artifact card mapping not established. No permissive-license acceptance claimed."
+  "modelLicenseStatus": "Resolved 2026-09-08 using upstream collaborator statement on pretrained object detector licensing; Apache-2.0.",
+  "licenseSource": "https://github.com/google-ai-edge/mediapipe/issues/4906#issuecomment-1778649604",
+  "note": "Browser block is carried forward from the prior attempt, not claimed as a new attempt. No real model/camera/browser execution in this repair."
 }

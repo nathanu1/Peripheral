@@ -1,5 +1,5 @@
 diff --git a/index.html b/index.html
-index e0276de..821c834 100644
+index e0276de..cf3e714 100644
 --- a/index.html
 +++ b/index.html
 @@ -141,6 +141,23 @@
@@ -26,7 +26,7 @@ index e0276de..821c834 100644
        <button id="run-tests" type="button" aria-controls="test-summary test-results">Run Tests</button>
        <p id="test-summary" role="status" aria-live="polite">Tests have not run.</p>
        <ol id="test-results" aria-label="Test results"></ol>
-@@ -249,6 +266,40 @@ function sha256Hex(bytes) {
+@@ -249,6 +266,43 @@ function sha256Hex(bytes) {
  }
  
  const Core = Object.freeze({
@@ -44,10 +44,10 @@ index e0276de..821c834 100644
 +      if(!b||![b.originX,b.originY,b.width,b.height].every(Number.isFinite)||b.width<=0||b.height<=0) continue;
 +      const left=Math.max(0,b.originX),top=Math.max(0,b.originY),right=Math.min(meta.width,b.originX+b.width),bottom=Math.min(meta.height,b.originY+b.height);
 +      if(right<=left||bottom<=top) continue;
-+      const category=(detection.categories||[]).filter(c=>typeof c.categoryName==="string"&&c.categoryName.trim()&&Number.isFinite(c.score)&&c.score>=threshold&&c.score<=1).sort((a,b)=>b.score-a.score)[0];
++      const category=(Array.isArray(detection.categories)?detection.categories:[]).filter(c=>c&&typeof c.categoryName==="string"&&c.categoryName.trim()&&Number.isFinite(c.score)&&c.score>=threshold&&c.score<=1).sort((a,b)=>b.score-a.score)[0];
 +      if(!category) continue;
 +      observations.push(Object.freeze({label:category.categoryName.slice(0,80),confidence:category.score,confidenceKind:"detector-score",tier:meta.source==="camera"?1:null,source:meta.source,
-+        timeMs:meta.timeMs,session:meta.session,model:"efficientdet-lite0-int8-v1",geometryKind:"uniform-angular-model",
++        timeMs:meta.timeMs,session:meta.session,model:"efficientdet-lite0-int8-v1",geometryKind:"uniform-angular-model",projectionFov:Object.freeze({...fov}),
 +        boxDeg:Object.freeze({leftDeg:(left/meta.width-0.5)*fov.horizontalDeg,topDeg:(0.5-top/meta.height)*fov.verticalDeg,widthDeg:(right-left)/meta.width*fov.horizontalDeg,heightDeg:(bottom-top)/meta.height*fov.verticalDeg})}));
 +    }
 +    return Object.freeze(observations.sort((a,b)=>b.confidence-a.confidence).slice(0,20));
@@ -55,6 +55,9 @@ index e0276de..821c834 100644
 +  // Preparation only. Stage 10 must additionally require dwell, an anchor ID,
 +  // consent and the same retained observation frame before executing OCR.
 +  objectCrop(observation,meta,nowMs,session) {
++    if(!observation||!meta||meta.timeMs!==observation.timeMs||meta.session!==observation.session||meta.source!==observation.source||meta.cameraRole!=="world") return null;
++    try {validateRaster(meta.width,meta.height);validateFov(meta.fov);} catch {return null;}
++    if(!observation.projectionFov||meta.fov.horizontalDeg!==observation.projectionFov.horizontalDeg||meta.fov.verticalDeg!==observation.projectionFov.verticalDeg) return null;
 +    if(!Number.isFinite(nowMs)||nowMs<observation.timeMs||nowMs-observation.timeMs>600||session!==observation.session) return null;
 +    const b=observation.boxDeg,f=meta.fov;
 +    const x=Math.max(0,Math.floor((b.leftDeg/f.horizontalDeg+0.5)*meta.width+1e-9));
@@ -67,7 +70,7 @@ index e0276de..821c834 100644
    createDwellState({thresholdMs=CONSTANTS.dwellThresholdMs.value}={}) {
      positiveNumber(thresholdMs,"dwell threshold");
      return Object.freeze({thresholdMs,phase:"idle",anchorId:null,progressMs:0,lastTimeMs:null,lastDirectionDeg:null,refractory:Object.freeze([])});
-@@ -654,6 +705,82 @@ const VISION_ASSETS=Object.freeze({
+@@ -654,6 +708,82 @@ const VISION_ASSETS=Object.freeze({
    handSha256:"fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1"
  });
  
@@ -150,7 +153,7 @@ index e0276de..821c834 100644
  // MediaPipe Tasks 0.10.21 requires page graphics state during inference, so this
  // worker-shaped adapter runs scheduled, single-flight inference on the main thread.
  // Models and application state remain in memory; no persistent cache API is used.
-@@ -1303,6 +1430,66 @@ function registerDwellRepairTests(T) {
+@@ -1303,6 +1433,87 @@ function registerDwellRepairTests(T) {
    });
  }
  
@@ -214,18 +217,40 @@ index e0276de..821c834 100644
 +  });
 +}
 +
++function registerObjectBoundaryTests(T) {
++  T.suite("Objects: observation-bound crops",()=>{
++    const meta={width:320,height:180,source:"camera",cameraRole:"world",timeMs:100,session:1,fov:Core.makeFov(60,33.75)};
++    const raw={boundingBox:{originX:80,originY:45,width:80,height:45},categories:[{categoryName:"cup",score:0.8}]};
++    const o=Core.objectDetections([raw],meta)[0];
++    T.eq(Core.objectCrop(o,{...meta,timeMs:101},110,1),null,"crop rejects a different observation frame");
++    T.eq(Core.objectCrop(o,{...meta,source:"synthetic"},110,1),null,"camera observation cannot crop synthetic input");
++    T.eq(Core.objectCrop(o,{...meta,session:2},110,1),null,"crop metadata must share the observation session");
++    T.eq(Core.objectCrop(o,{...meta,cameraRole:"user"},110,1),null,"world crop cannot use user-camera metadata");
++    T.eq(Core.objectCrop(o,{...meta,fov:Core.makeFov(80,45)},110,1),null,"changed angular projection invalidates crop");
++    T.eq(Core.objectCrop(o,{...meta,width:0},110,1),null,"invalid crop raster is refused");
++    T.eq(Core.objectCrop(o,meta,110,1)?.width,80,"matching observation still crops normally");
++  });
++  T.suite("Objects: malformed categories",()=>{
++    const meta={width:320,height:180,source:"synthetic",cameraRole:"world",timeMs:100,session:1,fov:Core.makeFov(60,33.75)};
++    const boundingBox={originX:80,originY:45,width:80,height:45};
++    T.eq(Core.objectDetections([{boundingBox,categories:[null]}],meta).length,0,"null category cannot crash perception");
++    T.eq(Core.objectDetections([{boundingBox,categories:{}}],meta).length,0,"non-array categories cannot crash perception");
++  });
++}
++
  const T = createHarness();
  registerStage0Tests(T, createHarness, Core);
  registerStage1Tests(T);
-@@ -1311,6 +1498,7 @@ registerStage3Tests(T);
+@@ -1311,6 +1522,8 @@ registerStage3Tests(T);
  registerGaugeTests(T);
  registerStage4Tests(T);
  registerDwellRepairTests(T);
 +registerStage5Tests(T);
++registerObjectBoundaryTests(T);
  // Public, DOM-free test entry point; the Node runner executes this same inline script.
  globalThis.Peripheral = Object.freeze({ T, Core, CONSTANTS, createHarness, createSourceController });
  
-@@ -1507,6 +1695,58 @@ function mountGazePipeline(doc,view,video) {
+@@ -1507,6 +1720,58 @@ function mountGazePipeline(doc,view,video) {
    return {reset,direction,diagnostics,capture};
  }
  
@@ -284,7 +309,7 @@ index e0276de..821c834 100644
  function mountFramePipeline(doc, view) {
    const get = id => doc.getElementById(id);
    const world = get("world-layer");
-@@ -1531,6 +1771,7 @@ function mountFramePipeline(doc, view) {
+@@ -1531,6 +1796,7 @@ function mountFramePipeline(doc, view) {
    let clock = Core.createFrameClock(CONSTANTS.renderHz.value, view.performance.now());
    let lastDebugMs = -Infinity, lastVideoTime = -1, lastCameraPixelMs = null;
    const gaze = mountGazePipeline(doc,view,video);
@@ -292,7 +317,7 @@ index e0276de..821c834 100644
    let activeRequestId = -1;
  
    function releaseStream(stream) {
-@@ -1550,7 +1791,7 @@ function mountFramePipeline(doc, view) {
+@@ -1550,7 +1816,7 @@ function mountFramePipeline(doc, view) {
        width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: CONSTANTS.renderHz.value } } }).then(accept, reject);
    }
    const controller = createSourceController({ requestCamera, releaseStream, onChange(state, stream) {
@@ -301,7 +326,7 @@ index e0276de..821c834 100644
      resetMetrics();
      get("source-status").textContent = state.reason;
      get("camera-indicator").dataset.active = String(state.cameraActive);
-@@ -1597,6 +1838,7 @@ function mountFramePipeline(doc, view) {
+@@ -1597,6 +1863,7 @@ function mountFramePipeline(doc, view) {
      get("brightness").textContent = lastStats ? lastStats.brightness01.toFixed(3) : "—";
      get("clutter").textContent = lastStats ? lastStats.edgeContrast01.toFixed(3) : "—";
      gaze.diagnostics(now);
@@ -309,7 +334,7 @@ index e0276de..821c834 100644
      lastDebugMs = now;
    }
  
-@@ -1642,6 +1884,7 @@ function mountFramePipeline(doc, view) {
+@@ -1642,6 +1909,7 @@ function mountFramePipeline(doc, view) {
            samples.push({ timeMs: now, captureMs: captured - begin, analysisMs: analyzed - captured, paintMs: painted - analyzed });
            samples = samples.filter(sample => sample.timeMs >= now - CONSTANTS.metricsWindowMs.value).slice(-121);
            count++;

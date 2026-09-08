@@ -1,3 +1,5 @@
+> Updated candidate: see [boundary repair and license resolution](stage-05-repair.md). Latest full suite: 309 passed / 0 failed. The original run below is historical evidence; its license blocker is now resolved. Browser runtime gate remains blocked.
+
 # Stage 5 — Object detection (Tier 1)
 
 Status: **incomplete; runtime gate blocked**. The candidate implementation is preserved as a patch, not applied to the main application. Main's product status remains Stage 4 / 263 assertions. No stage-completion commit has been made.

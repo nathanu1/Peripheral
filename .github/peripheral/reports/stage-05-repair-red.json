@@ -1,0 +1,2270 @@
+{
+  "runtime": "v24.19.0",
+  "sourceSha256": "1140ae075f10e050e96dd1ffa3f1827253bb7cc2fa2fa722fa8dfa3c7a9298a4",
+  "passed": 302,
+  "failed": 6,
+  "results": [
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "counts passing assertions",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "counts failing assertions",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "retains every assertion",
+      "expected": 2,
+      "actual": 2
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "retains suite name",
+      "expected": "sample",
+      "actual": "sample"
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "retains failure message",
+      "expected": "known mismatch",
+      "actual": "known mismatch"
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "retains expected value",
+      "expected": 2,
+      "actual": 2
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "retains actual value",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "marks the failure explicitly",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "reruns replace rather than accumulate results",
+      "expected": 2,
+      "actual": 2
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "empty harness has zero passes",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Harness: result contract",
+      "passed": true,
+      "message": "empty harness has zero failures",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Harness: approximate equality",
+      "passed": true,
+      "message": "only finite values within tolerance pass",
+      "expected": 2,
+      "actual": 2
+    },
+    {
+      "suite": "Harness: approximate equality",
+      "passed": true,
+      "message": "invalid and out-of-range comparisons fail",
+      "expected": 5,
+      "actual": 5
+    },
+    {
+      "suite": "Harness: approximate equality",
+      "passed": true,
+      "message": "exact tolerance boundary is accepted",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Harness: approximate equality",
+      "passed": true,
+      "message": "outside tolerance is rejected",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Harness: exceptions and strict assertions",
+      "passed": true,
+      "message": "correct throws and strict true pass",
+      "expected": 3,
+      "actual": 3
+    },
+    {
+      "suite": "Harness: exceptions and strict assertions",
+      "passed": true,
+      "message": "bad assertions and suite errors fail",
+      "expected": 5,
+      "actual": 5
+    },
+    {
+      "suite": "Harness: exceptions and strict assertions",
+      "passed": true,
+      "message": "suite error is not swallowed",
+      "expected": "Error: unexpected suite error",
+      "actual": "Error: unexpected suite error"
+    },
+    {
+      "suite": "Harness: exceptions and strict assertions",
+      "passed": true,
+      "message": "a suite error does not abort later suites",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Harness: exceptions and strict assertions",
+      "passed": true,
+      "message": "out-of-run assertions are rejected",
+      "expected": "exception",
+      "actual": "Error: Assertions must run inside a suite"
+    },
+    {
+      "suite": "Harness: exceptions and strict assertions",
+      "passed": true,
+      "message": "invalid suite callback is rejected",
+      "expected": "exception",
+      "actual": "TypeError: A suite needs a name and a function"
+    },
+    {
+      "suite": "Core: initial state boundaries",
+      "passed": true,
+      "message": "initial state has no reveals",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Core: initial state boundaries",
+      "passed": true,
+      "message": "initial state invents no perception",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Core: initial state boundaries",
+      "passed": true,
+      "message": "no frame source is fabricated",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Core: initial state boundaries",
+      "passed": true,
+      "message": "camera starts inactive",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Core: initial state boundaries",
+      "passed": true,
+      "message": "states are independently created",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Core: initial state boundaries",
+      "passed": true,
+      "message": "reveal collections are not shared",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Core: initial state boundaries",
+      "passed": true,
+      "message": "perception collections are not shared",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Frames: deterministic synthetic input",
+      "passed": true,
+      "message": "same seed and frame produce identical pixels",
+      "expected": "40,50,58,255,37,47,55,255,42,52,60,255,43,53,61,255,36,46,54,255,45,55,63,255,225,225,210,255,43,53,61,255,36,46,54,255,45,55,63,255,38,48,56,255,39,49,57,255,44,54,62,255,41,51,59,255,34,44,52,255,43,53,61,255,38,48,56,255,47,57,65,255,40,50,58,255,41,51,59,255,46,56,64,255,43,53,61,255,225,225,210,255,41,51,59,255,46,56,64,255,43,53,61,255,48,58,66,255,37,47,55,255,42,52,60,255,39,49,57,255,44,54,62,255,41,51,59,255,49,59,67,255,46,56,64,255,51,61,69,255,52,62,70,255,45,55,63,255,42,52,60,255,225,225,210,255,52,62,70,255,45,55,63,255,42,52,60,255,47,57,65,255,48,58,66,255,41,51,59,255,50,60,68,255,43,53,61,255,52,62,70,255,47,57,65,255,44,54,62,255,49,59,67,255,50,60,68,255,55,65,73,255,52,62,70,255,225,225,210,255,212,190,130,255,212,190,130,255,52,62,70,255,45,55,63,255,46,56,64,255,51,61,69,255,48,58,66,255,53,63,71,255,50,60,68,255,53,63,71,255,50,60,68,255,55,65,73,255,56,66,74,255,49,59,67,255,58,68,76,255,225,225,210,255,212,190,130,255,212,190,130,255,58,68,76,255,51,61,69,255,52,62,70,255,57,67,75,255,54,64,72,255,47,57,65,255,56,66,74,255,52,62,70,255,61,71,79,255,54,64,72,255,55,65,73,255,60,70,78,255,57,67,75,255,225,225,210,255,212,190,130,255,212,190,130,255,57,67,75,255,62,72,80,255,51,61,69,255,56,66,74,255,53,63,71,255,58,68,76,255,55,65,73,255,62,72,80,255,59,69,77,255,64,74,82,255,65,75,83,255,58,68,76,255,55,65,73,255,225,225,210,255,65,75,83,255,58,68,76,255,55,65,73,255,60,70,78,255,61,71,79,255,54,64,72,255,63,73,81,255,56,66,74,255,65,75,83,255,60,70,78,255,57,67,75,255,62,72,80,255,63,73,81,255,68,78,86,255,65,75,83,255,225,225,210,255,63,73,81,255,68,78,86,255,65,75,83,255,58,68,76,255,59,69,77,255,64,74,82,255,61,71,79,255,66,76,84,255,63,73,81,255,67,77,85,255,64,74,82,255,69,79,87,255,70,80,88,255,63,73,81,255,72,82,90,255,225,225,210,255,70,80,88,255,63,73,81,255,72,82,90,255,65,75,83,255,66,76,84,255,71,81,89,255,68,78,86,255,61,71,79,255,70,80,88,255",
+      "actual": "40,50,58,255,37,47,55,255,42,52,60,255,43,53,61,255,36,46,54,255,45,55,63,255,225,225,210,255,43,53,61,255,36,46,54,255,45,55,63,255,38,48,56,255,39,49,57,255,44,54,62,255,41,51,59,255,34,44,52,255,43,53,61,255,38,48,56,255,47,57,65,255,40,50,58,255,41,51,59,255,46,56,64,255,43,53,61,255,225,225,210,255,41,51,59,255,46,56,64,255,43,53,61,255,48,58,66,255,37,47,55,255,42,52,60,255,39,49,57,255,44,54,62,255,41,51,59,255,49,59,67,255,46,56,64,255,51,61,69,255,52,62,70,255,45,55,63,255,42,52,60,255,225,225,210,255,52,62,70,255,45,55,63,255,42,52,60,255,47,57,65,255,48,58,66,255,41,51,59,255,50,60,68,255,43,53,61,255,52,62,70,255,47,57,65,255,44,54,62,255,49,59,67,255,50,60,68,255,55,65,73,255,52,62,70,255,225,225,210,255,212,190,130,255,212,190,130,255,52,62,70,255,45,55,63,255,46,56,64,255,51,61,69,255,48,58,66,255,53,63,71,255,50,60,68,255,53,63,71,255,50,60,68,255,55,65,73,255,56,66,74,255,49,59,67,255,58,68,76,255,225,225,210,255,212,190,130,255,212,190,130,255,58,68,76,255,51,61,69,255,52,62,70,255,57,67,75,255,54,64,72,255,47,57,65,255,56,66,74,255,52,62,70,255,61,71,79,255,54,64,72,255,55,65,73,255,60,70,78,255,57,67,75,255,225,225,210,255,212,190,130,255,212,190,130,255,57,67,75,255,62,72,80,255,51,61,69,255,56,66,74,255,53,63,71,255,58,68,76,255,55,65,73,255,62,72,80,255,59,69,77,255,64,74,82,255,65,75,83,255,58,68,76,255,55,65,73,255,225,225,210,255,65,75,83,255,58,68,76,255,55,65,73,255,60,70,78,255,61,71,79,255,54,64,72,255,63,73,81,255,56,66,74,255,65,75,83,255,60,70,78,255,57,67,75,255,62,72,80,255,63,73,81,255,68,78,86,255,65,75,83,255,225,225,210,255,63,73,81,255,68,78,86,255,65,75,83,255,58,68,76,255,59,69,77,255,64,74,82,255,61,71,79,255,66,76,84,255,63,73,81,255,67,77,85,255,64,74,82,255,69,79,87,255,70,80,88,255,63,73,81,255,72,82,90,255,225,225,210,255,70,80,88,255,63,73,81,255,72,82,90,255,65,75,83,255,66,76,84,255,71,81,89,255,68,78,86,255,61,71,79,255,70,80,88,255"
+    },
+    {
+      "suite": "Frames: deterministic synthetic input",
+      "passed": true,
+      "message": "different seed changes pixels",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Frames: deterministic synthetic input",
+      "passed": true,
+      "message": "frame index advances scene",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Frames: deterministic synthetic input",
+      "passed": true,
+      "message": "frame is complete RGBA",
+      "expected": 576,
+      "actual": 576
+    },
+    {
+      "suite": "Frames: deterministic synthetic input",
+      "passed": true,
+      "message": "synthetic provenance survives transport",
+      "expected": "synthetic",
+      "actual": "synthetic"
+    },
+    {
+      "suite": "Frames: deterministic synthetic input",
+      "passed": true,
+      "message": "synthetic pixels never become measured Tier 1",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Frames: deterministic synthetic input",
+      "passed": true,
+      "message": "frames do not share writable buffers",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Frames: deterministic synthetic input",
+      "passed": true,
+      "message": "zero seed is valid and alpha is opaque",
+      "expected": 255,
+      "actual": 255
+    },
+    {
+      "suite": "Frames: deterministic synthetic input",
+      "passed": true,
+      "message": "negative frame index is rejected",
+      "expected": "exception",
+      "actual": "RangeError: Seed must be uint32; frame index must be a nonnegative integer"
+    },
+    {
+      "suite": "Frames: deterministic synthetic input",
+      "passed": true,
+      "message": "zero dimension is rejected",
+      "expected": "exception",
+      "actual": "RangeError: Frame dimensions must be positive integers, at most 2073600 pixels"
+    },
+    {
+      "suite": "Frames: cadence and skipped slots",
+      "passed": true,
+      "message": "120 Hz callbacks emit 30 frames in one second",
+      "expected": 30,
+      "actual": 30
+    },
+    {
+      "suite": "Frames: cadence and skipped slots",
+      "passed": true,
+      "message": "missed slots are counted",
+      "expected": 30,
+      "actual": 30
+    },
+    {
+      "suite": "Frames: cadence and skipped slots",
+      "passed": true,
+      "message": "late callback emits one current frame",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Frames: cadence and skipped slots",
+      "passed": true,
+      "message": "same timestamp cannot create a catch-up burst",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Frames: cadence and skipped slots",
+      "passed": true,
+      "message": "backward timestamps do not emit",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Frames: cadence and skipped slots",
+      "passed": true,
+      "message": "invalid target rate is rejected",
+      "expected": "exception",
+      "actual": "RangeError: Invalid frame-clock configuration"
+    },
+    {
+      "suite": "Frames: cadence and skipped slots",
+      "passed": true,
+      "message": "invalid clock sample is rejected",
+      "expected": "exception",
+      "actual": "RangeError: Invalid frame timestamp"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "NotAllowedError falls back to synthetic",
+      "expected": "synthetic",
+      "actual": "synthetic"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "NotAllowedError leaves no active camera",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "NotAllowedError remains visible",
+      "expected": "NotAllowedError",
+      "actual": "NotAllowedError"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "NotAllowedError keeps synthetic running while requesting",
+      "expected": "requesting",
+      "actual": "requesting"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "NotFoundError falls back to synthetic",
+      "expected": "synthetic",
+      "actual": "synthetic"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "NotFoundError leaves no active camera",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "NotFoundError remains visible",
+      "expected": "NotFoundError",
+      "actual": "NotFoundError"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "NotFoundError keeps synthetic running while requesting",
+      "expected": "requesting",
+      "actual": "requesting"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "Unavailable falls back to synthetic",
+      "expected": "synthetic",
+      "actual": "synthetic"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "Unavailable leaves no active camera",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "Unavailable remains visible",
+      "expected": "Unavailable",
+      "actual": "Unavailable"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "Unavailable keeps synthetic running while requesting",
+      "expected": "requesting",
+      "actual": "requesting"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "Timeout falls back to synthetic",
+      "expected": "synthetic",
+      "actual": "synthetic"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "Timeout leaves no active camera",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "Timeout remains visible",
+      "expected": "Timeout",
+      "actual": "Timeout"
+    },
+    {
+      "suite": "Frames: camera denial and unavailable API",
+      "passed": true,
+      "message": "Timeout keeps synthetic running while requesting",
+      "expected": "requesting",
+      "actual": "requesting"
+    },
+    {
+      "suite": "Frames: resource lifetime and cancellation",
+      "passed": true,
+      "message": "late camera grant is released after cancellation",
+      "expected": {
+        "id": "stale"
+      },
+      "actual": {
+        "id": "stale"
+      }
+    },
+    {
+      "suite": "Frames: resource lifetime and cancellation",
+      "passed": true,
+      "message": "late grant cannot resurrect camera",
+      "expected": "synthetic",
+      "actual": "synthetic"
+    },
+    {
+      "suite": "Frames: resource lifetime and cancellation",
+      "passed": true,
+      "message": "indicator reflects acquired stream before playback",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Frames: resource lifetime and cancellation",
+      "passed": true,
+      "message": "synthetic continues until camera has pixels",
+      "expected": "synthetic",
+      "actual": "synthetic"
+    },
+    {
+      "suite": "Frames: resource lifetime and cancellation",
+      "passed": true,
+      "message": "stale readiness is ignored",
+      "expected": "synthetic",
+      "actual": "synthetic"
+    },
+    {
+      "suite": "Frames: resource lifetime and cancellation",
+      "passed": true,
+      "message": "camera becomes source only after readiness",
+      "expected": "camera",
+      "actual": "camera"
+    },
+    {
+      "suite": "Frames: resource lifetime and cancellation",
+      "passed": true,
+      "message": "ended stream is released",
+      "expected": {
+        "id": "live"
+      },
+      "actual": {
+        "id": "live"
+      }
+    },
+    {
+      "suite": "Frames: resource lifetime and cancellation",
+      "passed": true,
+      "message": "lost camera falls back",
+      "expected": "synthetic",
+      "actual": "synthetic"
+    },
+    {
+      "suite": "Frames: resource lifetime and cancellation",
+      "passed": true,
+      "message": "late outcomes cannot restart a stopped source",
+      "expected": "stopped",
+      "actual": "stopped"
+    },
+    {
+      "suite": "Frames: resource lifetime and cancellation",
+      "passed": true,
+      "message": "stop turns off camera state",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Frames: diagnostics and tier labels",
+      "passed": true,
+      "message": "black code values have zero brightness proxy",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Frames: diagnostics and tier labels",
+      "passed": true,
+      "message": "white code values have unit brightness proxy",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Frames: diagnostics and tier labels",
+      "passed": true,
+      "message": "synthetic diagnostics carry no live tier",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Frames: diagnostics and tier labels",
+      "passed": true,
+      "message": "camera pixel diagnostics carry Tier 1 provenance",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Frames: diagnostics and tier labels",
+      "passed": true,
+      "message": "uniform frame has no neighboring contrast",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Frames: diagnostics and tier labels",
+      "passed": true,
+      "message": "black-white transition reaches unit contrast",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Frames: diagnostics and tier labels",
+      "passed": true,
+      "message": "unknown provenance is rejected",
+      "expected": "exception",
+      "actual": "TypeError: Frame needs complete pixels and known provenance"
+    },
+    {
+      "suite": "Frames: diagnostics and tier labels",
+      "passed": true,
+      "message": "incomplete pixel buffer is rejected",
+      "expected": "exception",
+      "actual": "TypeError: Frame needs complete pixels and known provenance"
+    },
+    {
+      "suite": "Frames: rolling performance measurements",
+      "passed": true,
+      "message": "FPS is computed from observed intervals",
+      "expected": {
+        "value": 30,
+        "tolerance": 1e-8
+      },
+      "actual": 30
+    },
+    {
+      "suite": "Frames: rolling performance measurements",
+      "passed": true,
+      "message": "capture CPU time is measured separately",
+      "expected": 2,
+      "actual": 2
+    },
+    {
+      "suite": "Frames: rolling performance measurements",
+      "passed": true,
+      "message": "analysis CPU time is measured separately",
+      "expected": 3,
+      "actual": 3
+    },
+    {
+      "suite": "Frames: rolling performance measurements",
+      "passed": true,
+      "message": "paint submission CPU time is measured separately",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Frames: rolling performance measurements",
+      "passed": true,
+      "message": "processing time sums actual stage durations",
+      "expected": 6,
+      "actual": 6
+    },
+    {
+      "suite": "Frames: rolling performance measurements",
+      "passed": true,
+      "message": "stale samples do not display a live FPS",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Frames: rolling performance measurements",
+      "passed": true,
+      "message": "absent measurements are not fabricated as zero latency",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "one degree maps to 42 nominal display pixels",
+      "expected": 42,
+      "actual": 42
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "fractional degrees retain precision",
+      "expected": 0.5,
+      "actual": 0.5
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "signed degree round-trip: -180",
+      "expected": {
+        "value": -180,
+        "tolerance": 1e-12
+      },
+      "actual": -180
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "signed degree round-trip: -7.125",
+      "expected": {
+        "value": -7.125,
+        "tolerance": 1e-12
+      },
+      "actual": -7.125
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "signed degree round-trip: 0",
+      "expected": {
+        "value": 0,
+        "tolerance": 1e-12
+      },
+      "actual": 0
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "signed degree round-trip: 0.4",
+      "expected": {
+        "value": 0.4,
+        "tolerance": 1e-12
+      },
+      "actual": 0.4
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "signed degree round-trip: 14.285714285714286",
+      "expected": {
+        "value": 14.285714285714286,
+        "tolerance": 1e-12
+      },
+      "actual": 14.285714285714286
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "signed degree round-trip: 180",
+      "expected": {
+        "value": 180,
+        "tolerance": 1e-12
+      },
+      "actual": 180
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "cap-height conversion does not round early",
+      "expected": 16.8,
+      "actual": 16.8
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "conversion accepts another explicit density",
+      "expected": 120,
+      "actual": 120
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "zero pixel density is rejected",
+      "expected": "exception",
+      "actual": "RangeError: pixelsPerDegree must be positive"
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "negative pixel density is rejected",
+      "expected": "exception",
+      "actual": "RangeError: pixelsPerDegree must be positive"
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "nonfinite angle is rejected",
+      "expected": "exception",
+      "actual": "RangeError: deg must be a finite number"
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "nonfinite pixel offset is rejected",
+      "expected": "exception",
+      "actual": "RangeError: px must be a finite number"
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "unit conversion never coerces strings",
+      "expected": "exception",
+      "actual": "RangeError: pixelsPerDegree must be a finite number"
+    },
+    {
+      "suite": "Geometry: angular units",
+      "passed": true,
+      "message": "overflow is rejected",
+      "expected": "exception",
+      "actual": "RangeError: pixel offset must be a finite number"
+    },
+    {
+      "suite": "Geometry: visual angle",
+      "passed": true,
+      "message": "one metre at three metres subtends about 18.9 degrees",
+      "expected": {
+        "value": 18.924644416051233,
+        "tolerance": 1e-12
+      },
+      "actual": 18.924644416051233
+    },
+    {
+      "suite": "Geometry: visual angle",
+      "passed": true,
+      "message": "near objects use exact trigonometry",
+      "expected": {
+        "value": 90,
+        "tolerance": 1e-12
+      },
+      "actual": 90
+    },
+    {
+      "suite": "Geometry: visual angle",
+      "passed": true,
+      "message": "zero extent subtends zero angle",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Geometry: visual angle",
+      "passed": true,
+      "message": "equal physical ratios subtend equal angles",
+      "expected": {
+        "value": 18.924644416051233,
+        "tolerance": 1e-12
+      },
+      "actual": 18.924644416051233
+    },
+    {
+      "suite": "Geometry: visual angle",
+      "passed": true,
+      "message": "negative physical extent is rejected",
+      "expected": "exception",
+      "actual": "RangeError: sizeM must not be negative"
+    },
+    {
+      "suite": "Geometry: visual angle",
+      "passed": true,
+      "message": "zero distance is rejected",
+      "expected": "exception",
+      "actual": "RangeError: distanceM must be positive"
+    },
+    {
+      "suite": "Geometry: visual angle",
+      "passed": true,
+      "message": "behind-eye distance is rejected",
+      "expected": "exception",
+      "actual": "RangeError: distanceM must be positive"
+    },
+    {
+      "suite": "Geometry: visual angle",
+      "passed": true,
+      "message": "nonfinite physical extent is rejected",
+      "expected": "exception",
+      "actual": "RangeError: sizeM must be a finite number"
+    },
+    {
+      "suite": "Geometry: explicit FOV",
+      "passed": true,
+      "message": "horizontal extent derives from pixel density",
+      "expected": {
+        "value": 14.285714285714286,
+        "tolerance": 1e-12
+      },
+      "actual": 14.285714285714286
+    },
+    {
+      "suite": "Geometry: explicit FOV",
+      "passed": true,
+      "message": "vertical extent derives from pixel density",
+      "expected": {
+        "value": 14.285714285714286,
+        "tolerance": 1e-12
+      },
+      "actual": 14.285714285714286
+    },
+    {
+      "suite": "Geometry: explicit FOV",
+      "passed": true,
+      "message": "diagonal derives from both angular extents",
+      "expected": {
+        "value": 20.203050891044217,
+        "tolerance": 1e-12
+      },
+      "actual": 20.203050891044217
+    },
+    {
+      "suite": "Geometry: explicit FOV",
+      "passed": true,
+      "message": "FOV is an explicit triple",
+      "expected": "diagonalDeg,horizontalDeg,verticalDeg",
+      "actual": "diagonalDeg,horizontalDeg,verticalDeg"
+    },
+    {
+      "suite": "Geometry: explicit FOV",
+      "passed": true,
+      "message": "derived diagonal cannot become stale through mutation",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Geometry: explicit FOV",
+      "passed": true,
+      "message": "FOV mutation is rejected",
+      "expected": "exception",
+      "actual": "TypeError: Cannot assign to read only property 'horizontalDeg' of object '#<Object>'"
+    },
+    {
+      "suite": "Geometry: explicit FOV",
+      "passed": true,
+      "message": "nonsquare FOV uses both axes",
+      "expected": {
+        "value": 13,
+        "tolerance": 1e-12
+      },
+      "actual": 13
+    },
+    {
+      "suite": "Geometry: explicit FOV",
+      "passed": true,
+      "message": "empty FOV is rejected",
+      "expected": "exception",
+      "actual": "RangeError: horizontalDeg must be positive"
+    },
+    {
+      "suite": "Geometry: explicit FOV",
+      "passed": true,
+      "message": "unsupported wide display FOV is rejected",
+      "expected": "exception",
+      "actual": "RangeError: Display axes must be below 180 degrees"
+    },
+    {
+      "suite": "Geometry: explicit FOV",
+      "passed": true,
+      "message": "nonfinite FOV is rejected",
+      "expected": "exception",
+      "actual": "RangeError: verticalDeg must be a finite number"
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "nominal display uses reported width",
+      "expected": 600,
+      "actual": 600
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "nominal display uses reported height",
+      "expected": 600,
+      "actual": 600
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "nominal display uses reported density",
+      "expected": 42,
+      "actual": 42
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "derived geometry is not a hardware measurement",
+      "expected": "model",
+      "actual": "model"
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "projection assumption is explicit",
+      "expected": "uniform-angular",
+      "actual": "uniform-angular"
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "display profile is immutable",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "positive horizontal angle paints right of centre",
+      "expected": 342,
+      "actual": 342
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "positive vertical angle paints above centre",
+      "expected": 216,
+      "actual": 216
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "paint boundary restores horizontal degrees",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "paint boundary restores vertical degrees",
+      "expected": 2,
+      "actual": 2
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "model point retains degrees only",
+      "expected": "xDeg,yDeg",
+      "actual": "xDeg,yDeg"
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "custom raster derives horizontal FOV",
+      "expected": 20,
+      "actual": 20
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "custom raster derives vertical FOV",
+      "expected": 10,
+      "actual": 10
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "custom paint centre follows display width",
+      "expected": 420,
+      "actual": 420
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "invalid display raster is rejected",
+      "expected": "exception",
+      "actual": "RangeError: Display dimensions must be positive safe integers"
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "invalid point cannot reach paint",
+      "expected": "exception",
+      "actual": "RangeError: deg must be a finite number"
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "reported density has source classification",
+      "expected": "established",
+      "actual": "established"
+    },
+    {
+      "suite": "Geometry: display profile and paint boundary",
+      "passed": true,
+      "message": "reported density names its primary source",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Geometry: display bounds",
+      "passed": true,
+      "message": "view centre is inside the display",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Geometry: display bounds",
+      "passed": true,
+      "message": "display edge is inclusive",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Geometry: display bounds",
+      "passed": true,
+      "message": "horizontal overflow is outside",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Geometry: display bounds",
+      "passed": true,
+      "message": "vertical overflow is outside",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Geometry: display bounds",
+      "passed": true,
+      "message": "off-screen anchor is never silently clamped",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Geometry: display bounds",
+      "passed": true,
+      "message": "bare scalar FOV is rejected",
+      "expected": "exception",
+      "actual": "TypeError: FOV must be an explicit degree triple"
+    },
+    {
+      "suite": "Geometry: display bounds",
+      "passed": true,
+      "message": "inconsistent imported FOV is rejected",
+      "expected": "exception",
+      "actual": "RangeError: FOV diagonal is inconsistent with its angular extents"
+    },
+    {
+      "suite": "Gaze: pose matrix convention",
+      "passed": true,
+      "message": "neutral pose points at view centre",
+      "expected": {
+        "value": 0,
+        "tolerance": 1e-10
+      },
+      "actual": 0
+    },
+    {
+      "suite": "Gaze: pose matrix convention",
+      "passed": true,
+      "message": "column-major positive yaw maps to camera-right degrees",
+      "expected": {
+        "value": 30,
+        "tolerance": 1e-10
+      },
+      "actual": 30.000000000000004
+    },
+    {
+      "suite": "Gaze: pose matrix convention",
+      "passed": true,
+      "message": "neutral calibration cancels initial rotation",
+      "expected": {
+        "value": 0,
+        "tolerance": 1e-10
+      },
+      "actual": 0
+    },
+    {
+      "suite": "Gaze: pose matrix convention",
+      "passed": true,
+      "message": "upward face normal gives positive elevation",
+      "expected": {
+        "value": 30,
+        "tolerance": 1e-10
+      },
+      "actual": 30.000000000000004
+    },
+    {
+      "suite": "Gaze: pose matrix convention",
+      "passed": true,
+      "message": "incomplete matrix is rejected",
+      "expected": "exception",
+      "actual": "TypeError: Expected finite column-major 4x4 pose"
+    },
+    {
+      "suite": "Gaze: pose matrix convention",
+      "passed": true,
+      "message": "degenerate rotation is rejected",
+      "expected": "exception",
+      "actual": "RangeError: Degenerate pose rotation"
+    },
+    {
+      "suite": "Gaze: pose matrix convention",
+      "passed": true,
+      "message": "nonfinite matrix is rejected",
+      "expected": "exception",
+      "actual": "TypeError: Expected finite column-major 4x4 pose"
+    },
+    {
+      "suite": "Gaze: pose matrix convention",
+      "passed": true,
+      "message": "device angles use declared Z-X-Y convention",
+      "expected": {
+        "value": 30,
+        "tolerance": 1e-10
+      },
+      "actual": 29.999999999999993
+    },
+    {
+      "suite": "Gaze: pose matrix convention",
+      "passed": true,
+      "message": "missing device orientation is not fabricated",
+      "expected": "exception",
+      "actual": "RangeError: device angle must be a finite number"
+    },
+    {
+      "suite": "Gaze: swappable sources and honest provenance",
+      "passed": true,
+      "message": "view-centre proxy has zero horizontal offset",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Gaze: swappable sources and honest provenance",
+      "passed": true,
+      "message": "default proxy is not measured perception",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Gaze: swappable sources and honest provenance",
+      "passed": true,
+      "message": "proxy confidence is labeled a model choice",
+      "expected": "model",
+      "actual": "model"
+    },
+    {
+      "suite": "Gaze: swappable sources and honest provenance",
+      "passed": true,
+      "message": "user-facing camera coordinates map to wearer direction",
+      "expected": {
+        "value": -30,
+        "tolerance": 1e-10
+      },
+      "actual": -30.000000000000004
+    },
+    {
+      "suite": "Gaze: swappable sources and honest provenance",
+      "passed": true,
+      "message": "synthetic pose never becomes Tier 1",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Gaze: swappable sources and honest provenance",
+      "passed": true,
+      "message": "real-camera pose path retains measurement provenance",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Gaze: swappable sources and honest provenance",
+      "passed": true,
+      "message": "world camera cannot observe wearer face",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Gaze: swappable sources and honest provenance",
+      "passed": true,
+      "message": "multiple faces cannot silently select a wearer",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Gaze: swappable sources and honest provenance",
+      "passed": true,
+      "message": "face loss immediately drops confidence",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Gaze: swappable sources and honest provenance",
+      "passed": true,
+      "message": "stale face direction cannot drive interaction",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Gaze: swappable sources and honest provenance",
+      "passed": true,
+      "message": "future samples are invalid",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Gaze: swappable sources and honest provenance",
+      "passed": true,
+      "message": "iris direction requires calibration and landmarks",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Gaze: swappable sources and honest provenance",
+      "passed": true,
+      "message": "device measurement stays separately labeled",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Gaze: swappable sources and honest provenance",
+      "passed": true,
+      "message": "unknown gaze source fails loudly",
+      "expected": "exception",
+      "actual": "RangeError: Unknown gaze source"
+    },
+    {
+      "suite": "Gaze: iris calibration and loss",
+      "passed": true,
+      "message": "centred irises have no horizontal displacement",
+      "expected": {
+        "value": 0,
+        "tolerance": 1e-10
+      },
+      "actual": 0
+    },
+    {
+      "suite": "Gaze: iris calibration and loss",
+      "passed": true,
+      "message": "centred irises have no vertical displacement",
+      "expected": {
+        "value": 0,
+        "tolerance": 1e-10
+      },
+      "actual": 0
+    },
+    {
+      "suite": "Gaze: iris calibration and loss",
+      "passed": true,
+      "message": "missing iris landmarks cannot become gaze",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Gaze: iris calibration and loss",
+      "passed": true,
+      "message": "closed eye refuses iris direction",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Gaze: iris calibration and loss",
+      "passed": true,
+      "message": "calibration recovers horizontal affine mapping",
+      "expected": {
+        "value": 1.8,
+        "tolerance": 1e-10
+      },
+      "actual": 1.7999999999999998
+    },
+    {
+      "suite": "Gaze: iris calibration and loss",
+      "passed": true,
+      "message": "calibration recovers vertical affine mapping",
+      "expected": {
+        "value": -1.8,
+        "tolerance": 1e-10
+      },
+      "actual": -1.8
+    },
+    {
+      "suite": "Gaze: iris calibration and loss",
+      "passed": true,
+      "message": "collapsed calibration cannot claim eye tracking",
+      "expected": "exception",
+      "actual": "RangeError: Calibration has insufficient eye movement"
+    },
+    {
+      "suite": "Gaze: iris calibration and loss",
+      "passed": true,
+      "message": "insufficient calibration is rejected",
+      "expected": "exception",
+      "actual": "RangeError: Need 5–100 calibration samples"
+    },
+    {
+      "suite": "Gaze: iris calibration and loss",
+      "passed": true,
+      "message": "iris-to-gaze mapping is explicitly inferred",
+      "expected": 2,
+      "actual": 2
+    },
+    {
+      "suite": "Gaze: iris calibration and loss",
+      "passed": true,
+      "message": "real iris measurements retain their input tier",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Gaze: iris calibration and loss",
+      "passed": true,
+      "message": "blink disables iris-driven interaction",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Hands: pinch intent and rearming",
+      "passed": true,
+      "message": "pinch distance accounts for image aspect ratio",
+      "expected": {
+        "value": 0.2,
+        "tolerance": 1e-10
+      },
+      "actual": 0.1999999999999998
+    },
+    {
+      "suite": "Hands: pinch intent and rearming",
+      "passed": true,
+      "message": "missing hand yields no pinch measurement",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Hands: pinch intent and rearming",
+      "passed": true,
+      "message": "starting with closed fingers does not summon",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Hands: pinch intent and rearming",
+      "passed": true,
+      "message": "pinch must persist through debounce",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Hands: pinch intent and rearming",
+      "passed": true,
+      "message": "deliberate pinch produces summon intent",
+      "expected": "summon",
+      "actual": "summon"
+    },
+    {
+      "suite": "Hands: pinch intent and rearming",
+      "passed": true,
+      "message": "held pinch cannot repeat",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Hands: pinch intent and rearming",
+      "passed": true,
+      "message": "hand loss requires an observed release before rearming",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Hands: pinch intent and rearming",
+      "passed": true,
+      "message": "reacquired closed fingers do not retrigger",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Hands: pinch intent and rearming",
+      "passed": true,
+      "message": "disabled pinch clears readiness",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Hands: pinch intent and rearming",
+      "passed": true,
+      "message": "stale hand cannot summon",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Hands: pinch intent and rearming",
+      "passed": true,
+      "message": "ambiguous hands clear readiness",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Hands: pinch intent and rearming",
+      "passed": true,
+      "message": "a gap in observations cannot complete a pinch",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Hands: pinch intent and rearming",
+      "passed": true,
+      "message": "observation gaps require a new release",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Gaze: synthetic world view",
+      "passed": true,
+      "message": "head-directed view changes world sampling without a reticle",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Gaze: synthetic world view",
+      "passed": true,
+      "message": "panned world remains explicitly synthetic",
+      "expected": "synthetic",
+      "actual": "synthetic"
+    },
+    {
+      "suite": "Gaze: synthetic world view",
+      "passed": true,
+      "message": "panned world never becomes measured input",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Gaze: synthetic world view",
+      "passed": true,
+      "message": "synthetic view is deterministic",
+      "expected": "43,53,61,255,36,46,54,255,45,55,63,255,38,48,56,255,43,53,61,255,36,46,54,255,45,55,63,255,225,225,210,255,39,49,57,255,44,54,62,255,41,51,59,255,34,44,52,255,43,53,61,255,36,46,54,255,45,55,63,255,38,48,56,255,39,49,57,255,44,54,62,255,41,51,59,255,34,44,52,255,39,49,57,255,44,54,62,255,41,51,59,255,34,44,52,255,35,45,53,255,40,50,58,255,37,47,55,255,42,52,60,255,43,53,61,255,40,50,58,255,37,47,55,255,42,52,60,255,40,50,58,255,45,55,63,255,42,52,60,255,47,57,65,255,40,50,58,255,45,55,63,255,42,52,60,255,225,225,210,255,36,46,54,255,41,51,59,255,38,48,56,255,43,53,61,255,40,50,58,255,45,55,63,255,42,52,60,255,47,57,65,255,36,46,54,255,41,51,59,255,38,48,56,255,43,53,61,255,36,46,54,255,41,51,59,255,38,48,56,255,43,53,61,255,44,54,62,255,37,47,55,255,46,56,64,255,39,49,57,255,40,50,58,255,37,47,55,255,46,56,64,255,39,49,57,255,48,58,66,255,41,51,59,255,38,48,56,255,43,53,61,255,48,58,66,255,41,51,59,255,38,48,56,255,225,225,210,255,44,54,62,255,37,47,55,255,46,56,64,255,39,49,57,255,48,58,66,255,41,51,59,255,38,48,56,255,43,53,61,255,44,54,62,255,37,47,55,255,46,56,64,255,39,49,57,255,44,54,62,255,37,47,55,255,46,56,64,255,39,49,57,255,40,50,58,255,45,55,63,255,42,52,60,255,47,57,65,255,48,58,66,255,45,55,63,255,42,52,60,255,47,57,65,255,45,55,63,255,50,60,68,255,47,57,65,255,40,50,58,255,45,55,63,255,50,60,68,255,47,57,65,255,225,225,210,255,41,51,59,255,46,56,64,255,43,53,61,255,48,58,66,255,45,55,63,255,50,60,68,255,47,57,65,255,40,50,58,255,41,51,59,255,46,56,64,255,43,53,61,255,48,58,66,255,41,51,59,255,46,56,64,255,43,53,61,255,48,58,66,255,49,59,67,255,42,52,60,255,39,49,57,255,44,54,62,255,45,55,63,255,42,52,60,255,39,49,57,255,44,54,62,255,50,60,68,255,43,53,61,255,52,62,70,255,45,55,63,255,50,60,68,255,43,53,61,255,52,62,70,255,225,225,210,255,46,56,64,255,51,61,69,255,48,58,66,255,41,51,59,255,50,60,68,255,43,53,61,255,52,62,70,255,45,55,63,255,46,56,64,255,51,61,69,255,48,58,66,255,41,51,59,255,46,56,64,255,51,61,69,255,48,58,66,255,41,51,59,255,42,52,60,255,47,57,65,255,44,54,62,255,49,59,67,255,50,60,68,255,47,57,65,255,44,54,62,255,49,59,67,255,46,56,64,255,51,61,69,255,48,58,66,255,53,63,71,255,46,56,64,255,51,61,69,255,48,58,66,255,225,225,210,255,42,52,60,255,47,57,65,255,44,54,62,255,49,59,67,255,46,56,64,255,51,61,69,255,48,58,66,255,53,63,71,255,42,52,60,255,47,57,65,255,44,54,62,255,49,59,67,255,42,52,60,255,47,57,65,255,44,54,62,255,49,59,67,255,50,60,68,255,43,53,61,255,52,62,70,255,45,55,63,255,46,56,64,255,43,53,61,255,52,62,70,255,45,55,63,255,55,65,73,255,48,58,66,255,45,55,63,255,50,60,68,255,55,65,73,255,48,58,66,255,45,55,63,255,225,225,210,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,48,58,66,255,45,55,63,255,50,60,68,255,51,61,69,255,44,54,62,255,53,63,71,255,46,56,64,255,51,61,69,255,44,54,62,255,53,63,71,255,46,56,64,255,47,57,65,255,52,62,70,255,49,59,67,255,54,64,72,255,55,65,73,255,52,62,70,255,49,59,67,255,54,64,72,255,52,62,70,255,57,67,75,255,54,64,72,255,47,57,65,255,52,62,70,255,57,67,75,255,54,64,72,255,225,225,210,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,57,67,75,255,54,64,72,255,47,57,65,255,48,58,66,255,53,63,71,255,50,60,68,255,55,65,73,255,48,58,66,255,53,63,71,255,50,60,68,255,55,65,73,255,56,66,74,255,49,59,67,255,46,56,64,255,51,61,69,255,52,62,70,255,49,59,67,255,46,56,64,255,51,61,69,255,56,66,74,255,49,59,67,255,58,68,76,255,51,61,69,255,56,66,74,255,49,59,67,255,58,68,76,255,225,225,210,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,49,59,67,255,58,68,76,255,51,61,69,255,52,62,70,255,57,67,75,255,54,64,72,255,47,57,65,255,52,62,70,255,57,67,75,255,54,64,72,255,47,57,65,255,48,58,66,255,53,63,71,255,50,60,68,255,55,65,73,255,56,66,74,255,53,63,71,255,50,60,68,255,55,65,73,255,53,63,71,255,58,68,76,255,55,65,73,255,60,70,78,255,53,63,71,255,58,68,76,255,55,65,73,255,225,225,210,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,58,68,76,255,55,65,73,255,60,70,78,255,49,59,67,255,54,64,72,255,51,61,69,255,56,66,74,255,49,59,67,255,54,64,72,255,51,61,69,255,56,66,74,255,57,67,75,255,50,60,68,255,59,69,77,255,52,62,70,255,53,63,71,255,50,60,68,255,59,69,77,255,52,62,70,255,62,72,80,255,55,65,73,255,52,62,70,255,57,67,75,255,62,72,80,255,55,65,73,255,52,62,70,255,225,225,210,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,55,65,73,255,52,62,70,255,57,67,75,255,58,68,76,255,51,61,69,255,60,70,78,255,53,63,71,255,58,68,76,255,51,61,69,255,60,70,78,255,53,63,71,255,54,64,72,255,59,69,77,255,56,66,74,255,61,71,79,255,62,72,80,255,59,69,77,255,56,66,74,255,61,71,79,255,58,68,76,255,63,73,81,255,60,70,78,255,53,63,71,255,58,68,76,255,63,73,81,255,60,70,78,255,225,225,210,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,63,73,81,255,60,70,78,255,53,63,71,255,54,64,72,255,59,69,77,255,56,66,74,255,61,71,79,255,54,64,72,255,59,69,77,255,56,66,74,255,61,71,79,255,62,72,80,255,55,65,73,255,52,62,70,255,57,67,75,255,58,68,76,255,55,65,73,255,52,62,70,255,57,67,75,255,63,73,81,255,56,66,74,255,65,75,83,255,58,68,76,255,63,73,81,255,56,66,74,255,65,75,83,255,225,225,210,255,59,69,77,255,64,74,82,255,61,71,79,255,54,64,72,255,63,73,81,255,56,66,74,255,65,75,83,255,58,68,76,255,59,69,77,255,64,74,82,255,61,71,79,255,54,64,72,255,59,69,77,255,64,74,82,255,61,71,79,255,54,64,72,255,55,65,73,255,60,70,78,255,57,67,75,255,62,72,80,255,63,73,81,255,60,70,78,255,57,67,75,255,62,72,80,255,60,70,78,255,65,75,83,255,62,72,80,255,67,77,85,255,60,70,78,255,65,75,83,255,62,72,80,255,225,225,210,255,56,66,74,255,61,71,79,255,58,68,76,255,63,73,81,255,60,70,78,255,65,75,83,255,62,72,80,255,67,77,85,255,56,66,74,255,61,71,79,255,58,68,76,255,63,73,81,255,56,66,74,255,61,71,79,255,58,68,76,255,63,73,81,255,64,74,82,255,57,67,75,255,66,76,84,255,59,69,77,255,60,70,78,255,57,67,75,255,66,76,84,255,59,69,77,255,68,78,86,255,61,71,79,255,58,68,76,255,63,73,81,255,68,78,86,255,61,71,79,255,58,68,76,255,225,225,210,255,64,74,82,255,57,67,75,255,66,76,84,255,59,69,77,255,68,78,86,255,61,71,79,255,58,68,76,255,63,73,81,255,64,74,82,255,57,67,75,255,66,76,84,255,59,69,77,255,64,74,82,255,57,67,75,255,66,76,84,255,59,69,77,255,60,70,78,255,65,75,83,255,62,72,80,255,67,77,85,255,68,78,86,255,65,75,83,255,62,72,80,255,67,77,85,255,65,75,83,255,70,80,88,255,67,77,85,255,60,70,78,255,65,75,83,255,70,80,88,255,67,77,85,255,225,225,210,255,61,71,79,255,66,76,84,255,63,73,81,255,68,78,86,255,65,75,83,255,70,80,88,255,67,77,85,255,60,70,78,255,61,71,79,255,66,76,84,255,63,73,81,255,68,78,86,255,61,71,79,255,66,76,84,255,63,73,81,255,68,78,86,255,69,79,87,255,62,72,80,255,59,69,77,255,64,74,82,255,65,75,83,255,62,72,80,255,59,69,77,255,64,74,82,255,70,80,88,255,63,73,81,255,72,82,90,255,65,75,83,255,70,80,88,255,63,73,81,255,72,82,90,255,225,225,210,255,66,76,84,255,71,81,89,255,68,78,86,255,61,71,79,255,70,80,88,255,63,73,81,255,72,82,90,255,65,75,83,255,66,76,84,255,71,81,89,255,68,78,86,255,61,71,79,255,66,76,84,255,71,81,89,255,68,78,86,255,61,71,79,255,62,72,80,255,67,77,85,255,64,74,82,255,69,79,87,255,70,80,88,255,67,77,85,255,64,74,82,255,69,79,87,255,66,76,84,255,71,81,89,255,68,78,86,255,73,83,91,255,66,76,84,255,71,81,89,255,68,78,86,255,225,225,210,255,62,72,80,255,67,77,85,255,64,74,82,255,69,79,87,255,66,76,84,255,71,81,89,255,68,78,86,255,73,83,91,255,62,72,80,255,67,77,85,255,64,74,82,255,69,79,87,255,62,72,80,255,67,77,85,255,64,74,82,255,69,79,87,255,70,80,88,255,63,73,81,255,72,82,90,255,65,75,83,255,66,76,84,255,63,73,81,255,72,82,90,255,65,75,83,255",
+      "actual": "43,53,61,255,36,46,54,255,45,55,63,255,38,48,56,255,43,53,61,255,36,46,54,255,45,55,63,255,225,225,210,255,39,49,57,255,44,54,62,255,41,51,59,255,34,44,52,255,43,53,61,255,36,46,54,255,45,55,63,255,38,48,56,255,39,49,57,255,44,54,62,255,41,51,59,255,34,44,52,255,39,49,57,255,44,54,62,255,41,51,59,255,34,44,52,255,35,45,53,255,40,50,58,255,37,47,55,255,42,52,60,255,43,53,61,255,40,50,58,255,37,47,55,255,42,52,60,255,40,50,58,255,45,55,63,255,42,52,60,255,47,57,65,255,40,50,58,255,45,55,63,255,42,52,60,255,225,225,210,255,36,46,54,255,41,51,59,255,38,48,56,255,43,53,61,255,40,50,58,255,45,55,63,255,42,52,60,255,47,57,65,255,36,46,54,255,41,51,59,255,38,48,56,255,43,53,61,255,36,46,54,255,41,51,59,255,38,48,56,255,43,53,61,255,44,54,62,255,37,47,55,255,46,56,64,255,39,49,57,255,40,50,58,255,37,47,55,255,46,56,64,255,39,49,57,255,48,58,66,255,41,51,59,255,38,48,56,255,43,53,61,255,48,58,66,255,41,51,59,255,38,48,56,255,225,225,210,255,44,54,62,255,37,47,55,255,46,56,64,255,39,49,57,255,48,58,66,255,41,51,59,255,38,48,56,255,43,53,61,255,44,54,62,255,37,47,55,255,46,56,64,255,39,49,57,255,44,54,62,255,37,47,55,255,46,56,64,255,39,49,57,255,40,50,58,255,45,55,63,255,42,52,60,255,47,57,65,255,48,58,66,255,45,55,63,255,42,52,60,255,47,57,65,255,45,55,63,255,50,60,68,255,47,57,65,255,40,50,58,255,45,55,63,255,50,60,68,255,47,57,65,255,225,225,210,255,41,51,59,255,46,56,64,255,43,53,61,255,48,58,66,255,45,55,63,255,50,60,68,255,47,57,65,255,40,50,58,255,41,51,59,255,46,56,64,255,43,53,61,255,48,58,66,255,41,51,59,255,46,56,64,255,43,53,61,255,48,58,66,255,49,59,67,255,42,52,60,255,39,49,57,255,44,54,62,255,45,55,63,255,42,52,60,255,39,49,57,255,44,54,62,255,50,60,68,255,43,53,61,255,52,62,70,255,45,55,63,255,50,60,68,255,43,53,61,255,52,62,70,255,225,225,210,255,46,56,64,255,51,61,69,255,48,58,66,255,41,51,59,255,50,60,68,255,43,53,61,255,52,62,70,255,45,55,63,255,46,56,64,255,51,61,69,255,48,58,66,255,41,51,59,255,46,56,64,255,51,61,69,255,48,58,66,255,41,51,59,255,42,52,60,255,47,57,65,255,44,54,62,255,49,59,67,255,50,60,68,255,47,57,65,255,44,54,62,255,49,59,67,255,46,56,64,255,51,61,69,255,48,58,66,255,53,63,71,255,46,56,64,255,51,61,69,255,48,58,66,255,225,225,210,255,42,52,60,255,47,57,65,255,44,54,62,255,49,59,67,255,46,56,64,255,51,61,69,255,48,58,66,255,53,63,71,255,42,52,60,255,47,57,65,255,44,54,62,255,49,59,67,255,42,52,60,255,47,57,65,255,44,54,62,255,49,59,67,255,50,60,68,255,43,53,61,255,52,62,70,255,45,55,63,255,46,56,64,255,43,53,61,255,52,62,70,255,45,55,63,255,55,65,73,255,48,58,66,255,45,55,63,255,50,60,68,255,55,65,73,255,48,58,66,255,45,55,63,255,225,225,210,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,48,58,66,255,45,55,63,255,50,60,68,255,51,61,69,255,44,54,62,255,53,63,71,255,46,56,64,255,51,61,69,255,44,54,62,255,53,63,71,255,46,56,64,255,47,57,65,255,52,62,70,255,49,59,67,255,54,64,72,255,55,65,73,255,52,62,70,255,49,59,67,255,54,64,72,255,52,62,70,255,57,67,75,255,54,64,72,255,47,57,65,255,52,62,70,255,57,67,75,255,54,64,72,255,225,225,210,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,57,67,75,255,54,64,72,255,47,57,65,255,48,58,66,255,53,63,71,255,50,60,68,255,55,65,73,255,48,58,66,255,53,63,71,255,50,60,68,255,55,65,73,255,56,66,74,255,49,59,67,255,46,56,64,255,51,61,69,255,52,62,70,255,49,59,67,255,46,56,64,255,51,61,69,255,56,66,74,255,49,59,67,255,58,68,76,255,51,61,69,255,56,66,74,255,49,59,67,255,58,68,76,255,225,225,210,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,49,59,67,255,58,68,76,255,51,61,69,255,52,62,70,255,57,67,75,255,54,64,72,255,47,57,65,255,52,62,70,255,57,67,75,255,54,64,72,255,47,57,65,255,48,58,66,255,53,63,71,255,50,60,68,255,55,65,73,255,56,66,74,255,53,63,71,255,50,60,68,255,55,65,73,255,53,63,71,255,58,68,76,255,55,65,73,255,60,70,78,255,53,63,71,255,58,68,76,255,55,65,73,255,225,225,210,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,58,68,76,255,55,65,73,255,60,70,78,255,49,59,67,255,54,64,72,255,51,61,69,255,56,66,74,255,49,59,67,255,54,64,72,255,51,61,69,255,56,66,74,255,57,67,75,255,50,60,68,255,59,69,77,255,52,62,70,255,53,63,71,255,50,60,68,255,59,69,77,255,52,62,70,255,62,72,80,255,55,65,73,255,52,62,70,255,57,67,75,255,62,72,80,255,55,65,73,255,52,62,70,255,225,225,210,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,55,65,73,255,52,62,70,255,57,67,75,255,58,68,76,255,51,61,69,255,60,70,78,255,53,63,71,255,58,68,76,255,51,61,69,255,60,70,78,255,53,63,71,255,54,64,72,255,59,69,77,255,56,66,74,255,61,71,79,255,62,72,80,255,59,69,77,255,56,66,74,255,61,71,79,255,58,68,76,255,63,73,81,255,60,70,78,255,53,63,71,255,58,68,76,255,63,73,81,255,60,70,78,255,225,225,210,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,212,190,130,255,63,73,81,255,60,70,78,255,53,63,71,255,54,64,72,255,59,69,77,255,56,66,74,255,61,71,79,255,54,64,72,255,59,69,77,255,56,66,74,255,61,71,79,255,62,72,80,255,55,65,73,255,52,62,70,255,57,67,75,255,58,68,76,255,55,65,73,255,52,62,70,255,57,67,75,255,63,73,81,255,56,66,74,255,65,75,83,255,58,68,76,255,63,73,81,255,56,66,74,255,65,75,83,255,225,225,210,255,59,69,77,255,64,74,82,255,61,71,79,255,54,64,72,255,63,73,81,255,56,66,74,255,65,75,83,255,58,68,76,255,59,69,77,255,64,74,82,255,61,71,79,255,54,64,72,255,59,69,77,255,64,74,82,255,61,71,79,255,54,64,72,255,55,65,73,255,60,70,78,255,57,67,75,255,62,72,80,255,63,73,81,255,60,70,78,255,57,67,75,255,62,72,80,255,60,70,78,255,65,75,83,255,62,72,80,255,67,77,85,255,60,70,78,255,65,75,83,255,62,72,80,255,225,225,210,255,56,66,74,255,61,71,79,255,58,68,76,255,63,73,81,255,60,70,78,255,65,75,83,255,62,72,80,255,67,77,85,255,56,66,74,255,61,71,79,255,58,68,76,255,63,73,81,255,56,66,74,255,61,71,79,255,58,68,76,255,63,73,81,255,64,74,82,255,57,67,75,255,66,76,84,255,59,69,77,255,60,70,78,255,57,67,75,255,66,76,84,255,59,69,77,255,68,78,86,255,61,71,79,255,58,68,76,255,63,73,81,255,68,78,86,255,61,71,79,255,58,68,76,255,225,225,210,255,64,74,82,255,57,67,75,255,66,76,84,255,59,69,77,255,68,78,86,255,61,71,79,255,58,68,76,255,63,73,81,255,64,74,82,255,57,67,75,255,66,76,84,255,59,69,77,255,64,74,82,255,57,67,75,255,66,76,84,255,59,69,77,255,60,70,78,255,65,75,83,255,62,72,80,255,67,77,85,255,68,78,86,255,65,75,83,255,62,72,80,255,67,77,85,255,65,75,83,255,70,80,88,255,67,77,85,255,60,70,78,255,65,75,83,255,70,80,88,255,67,77,85,255,225,225,210,255,61,71,79,255,66,76,84,255,63,73,81,255,68,78,86,255,65,75,83,255,70,80,88,255,67,77,85,255,60,70,78,255,61,71,79,255,66,76,84,255,63,73,81,255,68,78,86,255,61,71,79,255,66,76,84,255,63,73,81,255,68,78,86,255,69,79,87,255,62,72,80,255,59,69,77,255,64,74,82,255,65,75,83,255,62,72,80,255,59,69,77,255,64,74,82,255,70,80,88,255,63,73,81,255,72,82,90,255,65,75,83,255,70,80,88,255,63,73,81,255,72,82,90,255,225,225,210,255,66,76,84,255,71,81,89,255,68,78,86,255,61,71,79,255,70,80,88,255,63,73,81,255,72,82,90,255,65,75,83,255,66,76,84,255,71,81,89,255,68,78,86,255,61,71,79,255,66,76,84,255,71,81,89,255,68,78,86,255,61,71,79,255,62,72,80,255,67,77,85,255,64,74,82,255,69,79,87,255,70,80,88,255,67,77,85,255,64,74,82,255,69,79,87,255,66,76,84,255,71,81,89,255,68,78,86,255,73,83,91,255,66,76,84,255,71,81,89,255,68,78,86,255,225,225,210,255,62,72,80,255,67,77,85,255,64,74,82,255,69,79,87,255,66,76,84,255,71,81,89,255,68,78,86,255,73,83,91,255,62,72,80,255,67,77,85,255,64,74,82,255,69,79,87,255,62,72,80,255,67,77,85,255,64,74,82,255,69,79,87,255,70,80,88,255,63,73,81,255,72,82,90,255,65,75,83,255,66,76,84,255,63,73,81,255,72,82,90,255,65,75,83,255"
+    },
+    {
+      "suite": "Perception: scheduling and resource lifetime",
+      "passed": true,
+      "message": "frames arriving before model readiness are released",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Perception: scheduling and resource lifetime",
+      "passed": true,
+      "message": "user camera schedules face inference",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Perception: scheduling and resource lifetime",
+      "passed": true,
+      "message": "enabled hands schedule independently",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Perception: scheduling and resource lifetime",
+      "passed": true,
+      "message": "busy inference drops frames instead of building a queue",
+      "expected": "b",
+      "actual": "b"
+    },
+    {
+      "suite": "Perception: scheduling and resource lifetime",
+      "passed": true,
+      "message": "perception respects rate ceilings",
+      "expected": "too soon",
+      "actual": "too soon"
+    },
+    {
+      "suite": "Perception: scheduling and resource lifetime",
+      "passed": true,
+      "message": "world camera never schedules wearer-face inference",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Perception: scheduling and resource lifetime",
+      "passed": true,
+      "message": "stop terminates the worker and its models",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Perception: scheduling and resource lifetime",
+      "passed": true,
+      "message": "late results after stop cannot restore measurements",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Perception: scheduling and resource lifetime",
+      "passed": true,
+      "message": "old worker failure cannot poison a new session",
+      "expected": "ready",
+      "actual": "ready"
+    },
+    {
+      "suite": "Perception: scheduling and resource lifetime",
+      "passed": true,
+      "message": "current worker failure is reported",
+      "expected": "error",
+      "actual": "error"
+    },
+    {
+      "suite": "Perception: scheduling and resource lifetime",
+      "passed": true,
+      "message": "failed worker releases resources",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Perception: model integrity fallback",
+      "passed": true,
+      "message": "empty SHA-256 vector matches FIPS 180-4",
+      "expected": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "actual": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "suite": "Perception: model integrity fallback",
+      "passed": true,
+      "message": "abc SHA-256 vector matches FIPS 180-4",
+      "expected": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+      "actual": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    },
+    {
+      "suite": "Perception: model integrity fallback",
+      "passed": true,
+      "message": "integrity input requires bytes",
+      "expected": "exception",
+      "actual": "TypeError: SHA-256 input must be Uint8Array"
+    },
+    {
+      "suite": "Gaze: developer gauge",
+      "passed": true,
+      "message": "lost tracking hides the gauge",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Gaze: developer gauge",
+      "passed": true,
+      "message": "invalid direction cannot display a gauge",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Gaze: developer gauge",
+      "passed": true,
+      "message": "gauge preserves measured yaw",
+      "expected": -22.2,
+      "actual": -22.2
+    },
+    {
+      "suite": "Gaze: developer gauge",
+      "passed": true,
+      "message": "gauge preserves measured pitch",
+      "expected": -4,
+      "actual": -4
+    },
+    {
+      "suite": "Gaze: developer gauge",
+      "passed": true,
+      "message": "in-range direction is not clipped",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Gaze: developer gauge",
+      "passed": true,
+      "message": "gauge clips only its display extent",
+      "expected": 45,
+      "actual": 45
+    },
+    {
+      "suite": "Gaze: developer gauge",
+      "passed": true,
+      "message": "off-scale direction is labeled",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Dwell: model constants and initial state",
+      "passed": true,
+      "message": "threshold is the specified 1.5 seconds",
+      "expected": 1500,
+      "actual": 1500
+    },
+    {
+      "suite": "Dwell: model constants and initial state",
+      "passed": true,
+      "message": "threshold is labeled as a design choice",
+      "expected": "model",
+      "actual": "model"
+    },
+    {
+      "suite": "Dwell: model constants and initial state",
+      "passed": true,
+      "message": "jitter tolerance is positive",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Dwell: model constants and initial state",
+      "passed": true,
+      "message": "refractory duration is positive",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Dwell: model constants and initial state",
+      "passed": true,
+      "message": "dwell begins idle",
+      "expected": "idle",
+      "actual": "idle"
+    },
+    {
+      "suite": "Dwell: model constants and initial state",
+      "passed": true,
+      "message": "dwell begins with no accumulated time",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Dwell: model constants and initial state",
+      "passed": true,
+      "message": "dwell states do not share refractory collections",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Dwell: steady and jittery traces",
+      "passed": true,
+      "message": "steady 1.5 second trace fires once",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Dwell: steady and jittery traces",
+      "passed": true,
+      "message": "event carries the dwell warrant",
+      "expected": "dwell",
+      "actual": "dwell"
+    },
+    {
+      "suite": "Dwell: steady and jittery traces",
+      "passed": true,
+      "message": "event remains bound to its anchor",
+      "expected": "mug",
+      "actual": "mug"
+    },
+    {
+      "suite": "Dwell: steady and jittery traces",
+      "passed": true,
+      "message": "event fires at the threshold",
+      "expected": 1500,
+      "actual": 1500
+    },
+    {
+      "suite": "Dwell: steady and jittery traces",
+      "passed": true,
+      "message": "jitter inside the cone does not reset dwell",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Dwell: steady and jittery traces",
+      "passed": true,
+      "message": "jitter cannot change anchor identity",
+      "expected": "book",
+      "actual": "book"
+    },
+    {
+      "suite": "Dwell: excursion decay and interruption",
+      "passed": true,
+      "message": "brief excursion decays instead of zeroing progress",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Dwell: excursion decay and interruption",
+      "passed": true,
+      "message": "excursion removes accumulated progress",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Dwell: excursion decay and interruption",
+      "passed": true,
+      "message": "returning inside the cone resumes progress",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Dwell: excursion decay and interruption",
+      "passed": true,
+      "message": "lost gaze cancels dwell",
+      "expected": "idle",
+      "actual": "idle"
+    },
+    {
+      "suite": "Dwell: excursion decay and interruption",
+      "passed": true,
+      "message": "lost gaze clears progress",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Dwell: excursion decay and interruption",
+      "passed": true,
+      "message": "an observation gap starts a fresh dwell",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Dwell: excursion decay and interruption",
+      "passed": true,
+      "message": "a gap cannot complete dwell",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Dwell: saccade and anchor changes",
+      "passed": true,
+      "message": "large fast departure cancels immediately",
+      "expected": "idle",
+      "actual": "idle"
+    },
+    {
+      "suite": "Dwell: saccade and anchor changes",
+      "passed": true,
+      "message": "saccade does not decay gradually",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Dwell: saccade and anchor changes",
+      "passed": true,
+      "message": "progress cannot transfer between anchors",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Dwell: saccade and anchor changes",
+      "passed": true,
+      "message": "new target begins its own dwell",
+      "expected": "book",
+      "actual": "book"
+    },
+    {
+      "suite": "Dwell: saccade and anchor changes",
+      "passed": true,
+      "message": "new target accumulates only its own time",
+      "expected": 500,
+      "actual": 500
+    },
+    {
+      "suite": "Dwell: refractory and time integrity",
+      "passed": true,
+      "message": "same anchor cannot refire during refractory period",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Dwell: refractory and time integrity",
+      "passed": true,
+      "message": "another anchor may begin during the first anchor refractory period",
+      "expected": "tracking",
+      "actual": "tracking"
+    },
+    {
+      "suite": "Dwell: refractory and time integrity",
+      "passed": true,
+      "message": "backward time is rejected",
+      "expected": "exception",
+      "actual": "RangeError: Dwell samples must advance in time"
+    },
+    {
+      "suite": "Dwell: refractory and time integrity",
+      "passed": true,
+      "message": "step does not mutate its input state",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Dwell: refractory and time integrity",
+      "passed": true,
+      "message": "same anchor may fire after refractory expires and a new dwell completes",
+      "expected": 2,
+      "actual": 2
+    },
+    {
+      "suite": "Dwell repair: configured threshold",
+      "passed": true,
+      "message": "configured threshold fires at 1000 ms",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Dwell repair: configured threshold",
+      "passed": true,
+      "message": "default still waits 1500 ms",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Dwell repair: configured threshold",
+      "passed": true,
+      "message": "zero threshold rejected",
+      "expected": "exception",
+      "actual": "RangeError: dwell threshold must be positive"
+    },
+    {
+      "suite": "Dwell repair: configured threshold",
+      "passed": true,
+      "message": "nonfinite threshold rejected",
+      "expected": "exception",
+      "actual": "RangeError: dwell threshold must be a finite number"
+    },
+    {
+      "suite": "Dwell repair: configured threshold",
+      "passed": true,
+      "message": "string threshold rejected",
+      "expected": "exception",
+      "actual": "RangeError: dwell threshold must be a finite number"
+    },
+    {
+      "suite": "Dwell repair: pending reveal suppresses repeats",
+      "passed": true,
+      "message": "no repeat before reveal completion even after ten seconds",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Dwell repair: pending reveal suppresses repeats",
+      "passed": true,
+      "message": "pending lifecycle has no invented expiry",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Dwell repair: pending reveal suppresses repeats",
+      "passed": true,
+      "message": "JSON round trip preserves pending suppression",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Dwell repair: cooldown starts at reveal end",
+      "passed": true,
+      "message": "three seconds begin at actual reveal end",
+      "expected": 9000,
+      "actual": 9000
+    },
+    {
+      "suite": "Dwell repair: cooldown starts at reveal end",
+      "passed": true,
+      "message": "lifecycle completion does not mutate prior state",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Dwell repair: cooldown starts at reveal end",
+      "passed": true,
+      "message": "no trigger while cooling down",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Dwell repair: cooldown starts at reveal end",
+      "passed": true,
+      "message": "fresh full dwell allowed after cooldown",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Dwell repair: cooldown starts at reveal end",
+      "passed": true,
+      "message": "cooldown time is never credited toward dwell",
+      "expected": 10500,
+      "actual": 10500
+    },
+    {
+      "suite": "Dwell repair: cooldown starts at reveal end",
+      "passed": true,
+      "message": "completion before request rejected",
+      "expected": "exception",
+      "actual": "RangeError: Invalid dwell completion"
+    },
+    {
+      "suite": "Dwell repair: cooldown starts at reveal end",
+      "passed": true,
+      "message": "mismatched request cannot release anchor",
+      "expected": "exception",
+      "actual": "RangeError: Invalid dwell completion"
+    },
+    {
+      "suite": "Dwell repair: cooldown starts at reveal end",
+      "passed": true,
+      "message": "duplicate completion rejected",
+      "expected": "exception",
+      "actual": "RangeError: Invalid dwell completion"
+    },
+    {
+      "suite": "Objects: provenance and filtering",
+      "passed": true,
+      "message": "below threshold is dropped; boundary is retained",
+      "expected": 2,
+      "actual": 2
+    },
+    {
+      "suite": "Objects: provenance and filtering",
+      "passed": true,
+      "message": "real world input retains Tier 1",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Objects: provenance and filtering",
+      "passed": true,
+      "message": "detector score survives without invented calibration",
+      "expected": 0.8,
+      "actual": 0.8
+    },
+    {
+      "suite": "Objects: provenance and filtering",
+      "passed": true,
+      "message": "semantic label survives",
+      "expected": "cup",
+      "actual": "cup"
+    },
+    {
+      "suite": "Objects: provenance and filtering",
+      "passed": true,
+      "message": "observation time survives",
+      "expected": 100,
+      "actual": 100
+    },
+    {
+      "suite": "Objects: provenance and filtering",
+      "passed": true,
+      "message": "camera session survives",
+      "expected": 1,
+      "actual": 1
+    },
+    {
+      "suite": "Objects: provenance and filtering",
+      "passed": true,
+      "message": "synthetic inference has no live tier",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Objects: provenance and filtering",
+      "passed": true,
+      "message": "user-facing camera cannot label the world",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Objects: provenance and filtering",
+      "passed": true,
+      "message": "unknown provenance is rejected",
+      "expected": "exception",
+      "actual": "TypeError: Invalid detector provenance"
+    },
+    {
+      "suite": "Objects: provenance and filtering",
+      "passed": true,
+      "message": "invalid threshold is rejected",
+      "expected": "exception",
+      "actual": "RangeError: Invalid score threshold"
+    },
+    {
+      "suite": "Objects: provenance and filtering",
+      "passed": true,
+      "message": "malformed scores are refused",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Objects: provenance and filtering",
+      "passed": true,
+      "message": "missing label is not guessed",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Objects: angular boxes and crop boundary",
+      "passed": true,
+      "message": "left pixel boundary becomes angular position",
+      "expected": -15,
+      "actual": -15
+    },
+    {
+      "suite": "Objects: angular boxes and crop boundary",
+      "passed": true,
+      "message": "vertical angle increases upward",
+      "expected": 8.4375,
+      "actual": 8.4375
+    },
+    {
+      "suite": "Objects: angular boxes and crop boundary",
+      "passed": true,
+      "message": "box extent is stored in degrees",
+      "expected": 15,
+      "actual": 15
+    },
+    {
+      "suite": "Objects: angular boxes and crop boundary",
+      "passed": true,
+      "message": "angular height preserves aspect ratio",
+      "expected": 8.4375,
+      "actual": 8.4375
+    },
+    {
+      "suite": "Objects: angular boxes and crop boundary",
+      "passed": true,
+      "message": "normalization leaves input untouched",
+      "expected": "{\"boundingBox\":{\"originX\":80,\"originY\":45,\"width\":80,\"height\":45},\"categories\":[{\"categoryName\":\"cup\",\"score\":0.8,\"index\":47}]}",
+      "actual": "{\"boundingBox\":{\"originX\":80,\"originY\":45,\"width\":80,\"height\":45},\"categories\":[{\"categoryName\":\"cup\",\"score\":0.8,\"index\":47}]}"
+    },
+    {
+      "suite": "Objects: angular boxes and crop boundary",
+      "passed": true,
+      "message": "observations are immutable",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Objects: angular boxes and crop boundary",
+      "passed": true,
+      "message": "raw raster box is not retained in the model"
+    },
+    {
+      "suite": "Objects: angular boxes and crop boundary",
+      "passed": true,
+      "message": "OCR preparation maps angular region back to exact pixels",
+      "expected": "{\"x\":80,\"y\":45,\"width\":80,\"height\":45}",
+      "actual": "{\"x\":80,\"y\":45,\"width\":80,\"height\":45}"
+    },
+    {
+      "suite": "Objects: angular boxes and crop boundary",
+      "passed": true,
+      "message": "stale OCR crops are refused",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Objects: angular boxes and crop boundary",
+      "passed": true,
+      "message": "new session cannot reuse an old crop",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Objects: angular boxes and crop boundary",
+      "passed": true,
+      "message": "future observation is refused",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Objects: angular boxes and crop boundary",
+      "passed": true,
+      "message": "invalid and fully outside boxes are dropped",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Objects: angular boxes and crop boundary",
+      "passed": true,
+      "message": "partly outside box is clipped before crop",
+      "expected": 10,
+      "actual": 10
+    },
+    {
+      "suite": "Objects: independent schedule and cancellation",
+      "passed": true,
+      "message": "6 Hz detector schedule holds beneath 30 Hz rendering",
+      "expected": 6,
+      "actual": 6
+    },
+    {
+      "suite": "Objects: independent schedule and cancellation",
+      "passed": true,
+      "message": "each accepted inference returns once",
+      "expected": 6,
+      "actual": 6
+    },
+    {
+      "suite": "Objects: independent schedule and cancellation",
+      "passed": true,
+      "message": "next eligible frame is accepted",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Objects: independent schedule and cancellation",
+      "passed": true,
+      "message": "busy detector drops frames instead of queueing",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Objects: independent schedule and cancellation",
+      "passed": true,
+      "message": "unmatched result cannot release current inference",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Objects: independent schedule and cancellation",
+      "passed": true,
+      "message": "late completion after stop is ignored",
+      "expected": 6,
+      "actual": 6
+    },
+    {
+      "suite": "Objects: independent schedule and cancellation",
+      "passed": true,
+      "message": "stop releases model adapter",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Objects: independent schedule and cancellation",
+      "passed": true,
+      "message": "old worker error cannot poison new session",
+      "expected": "ready",
+      "actual": "ready"
+    },
+    {
+      "suite": "Objects: independent schedule and cancellation",
+      "passed": true,
+      "message": "user camera is never submitted to world detector",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Objects: independent schedule and cancellation",
+      "passed": true,
+      "message": "invalid timestamp is rejected",
+      "expected": false,
+      "actual": false
+    },
+    {
+      "suite": "Objects: independent schedule and cancellation",
+      "passed": true,
+      "message": "discarded frame ownership is released",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Objects: independent schedule and cancellation",
+      "passed": true,
+      "message": "current runtime failure remains visible",
+      "expected": "error",
+      "actual": "error"
+    },
+    {
+      "suite": "Objects: observation-bound crops",
+      "passed": false,
+      "message": "crop rejects a different observation frame",
+      "expected": null,
+      "actual": {
+        "x": 80,
+        "y": 45,
+        "width": 80,
+        "height": 45
+      }
+    },
+    {
+      "suite": "Objects: observation-bound crops",
+      "passed": false,
+      "message": "camera observation cannot crop synthetic input",
+      "expected": null,
+      "actual": {
+        "x": 80,
+        "y": 45,
+        "width": 80,
+        "height": 45
+      }
+    },
+    {
+      "suite": "Objects: observation-bound crops",
+      "passed": false,
+      "message": "crop metadata must share the observation session",
+      "expected": null,
+      "actual": {
+        "x": 80,
+        "y": 45,
+        "width": 80,
+        "height": 45
+      }
+    },
+    {
+      "suite": "Objects: observation-bound crops",
+      "passed": false,
+      "message": "world crop cannot use user-camera metadata",
+      "expected": null,
+      "actual": {
+        "x": 80,
+        "y": 45,
+        "width": 80,
+        "height": 45
+      }
+    },
+    {
+      "suite": "Objects: observation-bound crops",
+      "passed": false,
+      "message": "changed angular projection invalidates crop",
+      "expected": null,
+      "actual": {
+        "x": 100,
+        "y": 56,
+        "width": 60,
+        "height": 34
+      }
+    },
+    {
+      "suite": "Objects: observation-bound crops",
+      "passed": true,
+      "message": "invalid crop raster is refused",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Objects: observation-bound crops",
+      "passed": true,
+      "message": "matching observation still crops normally",
+      "expected": 80,
+      "actual": 80
+    },
+    {
+      "suite": "Objects: malformed categories",
+      "passed": false,
+      "message": "Suite threw unexpectedly",
+      "expected": "no unexpected exception",
+      "actual": "TypeError: Cannot read properties of null (reading 'categoryName')"
+    }
+  ]
+}
