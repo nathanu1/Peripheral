@@ -1,0 +1,319 @@
+diff --git a/index.html b/index.html
+index e0276de..821c834 100644
+--- a/index.html
++++ b/index.html
+@@ -141,6 +141,23 @@
+           <button type="button" data-point="0" class="secondary">Center</button><button type="button" data-point="1" class="secondary">Left</button><button type="button" data-point="2" class="secondary">Right</button><button type="button" data-point="3" class="secondary">Up</button><button type="button" data-point="4" class="secondary">Down</button>
+         </div>
+       </fieldset>
++      <fieldset>
++        <legend>Objects in the world</legend>
++        <div class="feed-controls">
++          <button id="load-objects" type="button">Load object detector</button>
++          <button id="stop-objects" type="button" class="secondary">Unload detector</button>
++          <label for="object-threshold">Minimum score</label><input id="object-threshold" type="range" min="0.25" max="1" step="0.05" value="0.5">
++        </div>
++        <p id="object-status" role="status">Detector unloaded. Downloads begin only on request.</p>
++        <dl class="debug-readouts">
++          <div><dt>Completed detections / target</dt><dd id="object-rate">— / 6 Hz</dd></div>
++          <div><dt>Object inference CPU</dt><dd id="object-cpu">—</dd></div>
++        </dl>
++        <canvas id="object-preview" width="320" height="180" role="img" aria-label="Developer detection snapshot; labels are listed below" style="max-width:100%;background:#111"></canvas>
++        <pre id="object-list" aria-label="Detected object labels">No current observations</pre>
++        <p class="muted">Boxes mark the last analyzed world frame, not tracked objects. Snapshots expire after 600 ms. Camera detections carry Tier 1; synthetic-world results never do. Scores are model outputs, not calibrated certainty. This 80-class model cannot name every object or establish its state. Angular boxes use an uncalibrated 60° raster projection.</p>
++        <p class="muted">Choose a camera role and start the feed before loading. Source changes unload the detector. EfficientDet-Lite0 int8 revision 1 runs on-device with MediaPipe 0.10.21. CPU/WASM inference blocks the page thread; compare processed FPS with the detector unloaded and loaded. Initial model downloads need network; offline caching is best effort. No image is uploaded. OCR crop preparation is present; text recognition is not active yet.</p>
++      </fieldset>
+       <button id="run-tests" type="button" aria-controls="test-summary test-results">Run Tests</button>
+       <p id="test-summary" role="status" aria-live="polite">Tests have not run.</p>
+       <ol id="test-results" aria-label="Test results"></ol>
+@@ -249,6 +266,40 @@ function sha256Hex(bytes) {
+ }
+ 
+ const Core = Object.freeze({
++  // Raster coordinates are an adapter input only. Angular mapping is explicitly
++  // uniform-angular and uncalibrated: no metric position or hardware claim.
++  objectDetections(detections, meta, threshold=0.5) {
++    if(!Array.isArray(detections)||!meta||!["camera","synthetic"].includes(meta.source)) throw new TypeError("Invalid detector provenance");
++    if(!Number.isFinite(threshold)||threshold<0||threshold>1) throw new RangeError("Invalid score threshold");
++    if(!Number.isInteger(meta.width)||!Number.isInteger(meta.height)||meta.width<=0||meta.height<=0||!Number.isFinite(meta.timeMs)||meta.timeMs<0||!Number.isInteger(meta.session)) throw new TypeError("Invalid observation metadata");
++    validateFov(meta.fov); const fov=meta.fov;
++    if(meta.cameraRole!=="world") return Object.freeze([]);
++    const observations=[];
++    for(const detection of detections.slice(0,100)) {
++      const b=detection?.boundingBox;
++      if(!b||![b.originX,b.originY,b.width,b.height].every(Number.isFinite)||b.width<=0||b.height<=0) continue;
++      const left=Math.max(0,b.originX),top=Math.max(0,b.originY),right=Math.min(meta.width,b.originX+b.width),bottom=Math.min(meta.height,b.originY+b.height);
++      if(right<=left||bottom<=top) continue;
++      const category=(detection.categories||[]).filter(c=>typeof c.categoryName==="string"&&c.categoryName.trim()&&Number.isFinite(c.score)&&c.score>=threshold&&c.score<=1).sort((a,b)=>b.score-a.score)[0];
++      if(!category) continue;
++      observations.push(Object.freeze({label:category.categoryName.slice(0,80),confidence:category.score,confidenceKind:"detector-score",tier:meta.source==="camera"?1:null,source:meta.source,
++        timeMs:meta.timeMs,session:meta.session,model:"efficientdet-lite0-int8-v1",geometryKind:"uniform-angular-model",
++        boxDeg:Object.freeze({leftDeg:(left/meta.width-0.5)*fov.horizontalDeg,topDeg:(0.5-top/meta.height)*fov.verticalDeg,widthDeg:(right-left)/meta.width*fov.horizontalDeg,heightDeg:(bottom-top)/meta.height*fov.verticalDeg})}));
++    }
++    return Object.freeze(observations.sort((a,b)=>b.confidence-a.confidence).slice(0,20));
++  },
++  // Preparation only. Stage 10 must additionally require dwell, an anchor ID,
++  // consent and the same retained observation frame before executing OCR.
++  objectCrop(observation,meta,nowMs,session) {
++    if(!Number.isFinite(nowMs)||nowMs<observation.timeMs||nowMs-observation.timeMs>600||session!==observation.session) return null;
++    const b=observation.boxDeg,f=meta.fov;
++    const x=Math.max(0,Math.floor((b.leftDeg/f.horizontalDeg+0.5)*meta.width+1e-9));
++    const y=Math.max(0,Math.floor((0.5-b.topDeg/f.verticalDeg)*meta.height+1e-9));
++    const right=Math.min(meta.width,Math.ceil((b.leftDeg/f.horizontalDeg+0.5+b.widthDeg/f.horizontalDeg)*meta.width-1e-9));
++    const bottom=Math.min(meta.height,Math.ceil((0.5-b.topDeg/f.verticalDeg+b.heightDeg/f.verticalDeg)*meta.height-1e-9));
++    return right>x&&bottom>y?{x,y,width:right-x,height:bottom-y}:null;
++  },
++
+   createDwellState({thresholdMs=CONSTANTS.dwellThresholdMs.value}={}) {
+     positiveNumber(thresholdMs,"dwell threshold");
+     return Object.freeze({thresholdMs,phase:"idle",anchorId:null,progressMs:0,lastTimeMs:null,lastDirectionDeg:null,refractory:Object.freeze([])});
+@@ -654,6 +705,82 @@ const VISION_ASSETS=Object.freeze({
+   handSha256:"fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1"
+ });
+ 
++// Independently scheduled detector; injected adapter keeps deterministic tests
++// camera-free. One in-flight frame; timestamps and epochs reject obsolete work.
++function createObjectController({createWorker,onStatus,onResult,releaseFrame}) {
++  let worker=null,epoch=0,phase="stopped",busy=false,lastTime=-Infinity,hz=6,pending=null;
++  const snapshot=()=>({phase,busy,epoch});
++  function stop() {epoch++;worker?.terminate();worker=null;busy=false;pending=null;phase="stopped";onStatus(snapshot());}
++  function fail(message) {stop();phase="error";onStatus({...snapshot(),message});}
++  return Object.freeze({snapshot,stop,start(options={}) {
++    stop();hz=options.hz??6;
++    if(!Number.isFinite(hz)||hz<5||hz>8) {fail("Detector rate must be 5–8 Hz");return;}
++    lastTime=-Infinity;phase="loading";const id=epoch;onStatus(snapshot());
++    try {
++      worker=createWorker();
++      worker.onmessage=({data})=>{
++        if(id!==epoch) return;
++        if(data.type==="ready") {phase="ready";onStatus(snapshot());}
++        else if(data.type==="error") fail(data.message);
++        else if(data.type==="result"&&busy&&data.timeMs===lastTime) {busy=false;const meta=pending;pending=null;onResult({...data,metadata:meta});}
++      };
++      worker.onerror=error=>{if(id===epoch) fail(error.message||"Detector error");};
++      worker.postMessage({type:"load",...options});
++    } catch(error) {fail(error.message);}
++  },submit(frame,meta) {
++    const t=meta.timeMs;
++    if(phase!=="ready"||busy||meta.cameraRole!=="world"||!["camera","synthetic"].includes(meta.source)||!Number.isFinite(t)||t<0||t<=lastTime||t-lastTime+1e-7<1000/hz) {releaseFrame(frame);return false;}
++    busy=true;lastTime=t;pending={...meta,fov:{...meta.fov}};
++    try {worker.postMessage({type:"frame",frame,timeMs:t},[frame]);return true;}
++    catch(error) {releaseFrame(frame);fail(error.message);return false;}
++  }});
++}
++
++const OBJECT_ASSETS=Object.freeze({
++  ...VISION_ASSETS,
++  model:"https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/int8/1/efficientdet_lite0.tflite",
++  sha256:"0720bf247bd76e6594ea28fa9c6f7c5242be774818997dbbeffc4da460c723bb"
++});
++
++// Same pinned Tasks revision as face/hand. Its page-graphics dependency is
++// explicit: CPU/WASM here blocks the main thread, so actual FPS is a live gate.
++function createObjectAdapter(view) {
++  let generation=0,task=null,abort=null,onmessage=()=>{},onerror=()=>{};
++  const send=data=>onmessage({data});
++  async function handle(m,id) {
++    if(id!==generation) {m.frame?.close();return;}
++    try {
++      if(m.type==="load") {
++        const canvas=view.document.createElement("canvas");
++        if(!(canvas.getContext("webgl2")||canvas.getContext("webgl"))) throw new Error("WebGL is unavailable; object detection cannot run here. No model download started.");
++        const vision=await import(m.assets.library);
++        if(id!==generation) return;
++        const files=await vision.FilesetResolver.forVisionTasks(m.assets.wasm);
++        if(id!==generation) return;
++        const request=new view.AbortController();abort=request;
++        const response=await view.fetch(m.assets.model,{signal:request.signal,credentials:"omit",referrerPolicy:"no-referrer"});
++        if(!response.ok) throw new Error(`Detector model HTTP ${response.status}`);
++        const bytes=new Uint8Array(await response.arrayBuffer());
++        if(id!==generation) return;
++        if(sha256Hex(bytes)!==m.assets.sha256) throw new Error("Detector model integrity mismatch");
++        const created=await vision.ObjectDetector.createFromOptions(files,{canvas,baseOptions:{modelAssetBuffer:bytes,delegate:"CPU"},runningMode:"VIDEO",scoreThreshold:0.25,maxResults:20});
++        if(id!==generation) {created.close();return;}
++        task=created;abort=null;send({type:"ready"});
++      } else if(m.type==="frame") {
++        try {
++          const begin=view.performance.now(),result=task.detectForVideo(m.frame,m.timeMs);
++          if(id===generation) send({type:"result",timeMs:m.timeMs,detections:result.detections,cpuMs:view.performance.now()-begin});
++        } finally {m.frame.close();}
++      }
++    } catch(error) {
++      if(id===generation) {task?.close();task=null;send({type:"error",message:`${error.name}: ${error.message}`});}
++    }
++  }
++  return {postMessage(m) {const id=generation;Promise.resolve().then(()=>handle(m,id)).catch(error=>onerror({message:error.message}));},
++    terminate(){generation++;abort?.abort();abort=null;task?.close();task=null;},
++    set onmessage(fn){onmessage=fn;},set onerror(fn){onerror=fn;}};
++}
++
+ // MediaPipe Tasks 0.10.21 requires page graphics state during inference, so this
+ // worker-shaped adapter runs scheduled, single-flight inference on the main thread.
+ // Models and application state remain in memory; no persistent cache API is used.
+@@ -1303,6 +1430,66 @@ function registerDwellRepairTests(T) {
+   });
+ }
+ 
++function registerStage5Tests(T) {
++  const meta={width:320,height:180,source:"camera",cameraRole:"world",timeMs:100,session:1,fov:{horizontalDeg:60,verticalDeg:33.75,diagonalDeg:Math.hypot(60,33.75)}};
++  const detection=(score=0.8,box={originX:80,originY:45,width:80,height:45})=>({boundingBox:box,categories:[{categoryName:"cup",score,index:47}]});
++  T.suite("Objects: provenance and filtering",()=>{
++    const r=Core.objectDetections([detection(),detection(0.49),detection(0.5)],meta,0.5);
++    T.eq(r.length,2,"below threshold is dropped; boundary is retained");
++    T.eq(r[0].tier,1,"real world input retains Tier 1");
++    T.eq(r[0].confidence,0.8,"detector score survives without invented calibration");
++    T.eq(r[0].label,"cup","semantic label survives");
++    T.eq(r[0].timeMs,100,"observation time survives");
++    T.eq(r[0].session,1,"camera session survives");
++    T.eq(Core.objectDetections([detection()],{...meta,source:"synthetic"})[0].tier,null,"synthetic inference has no live tier");
++    T.eq(Core.objectDetections([detection()],{...meta,cameraRole:"user"}).length,0,"user-facing camera cannot label the world");
++    T.throws(()=>Core.objectDetections([],{...meta,source:"unknown"}),"unknown provenance is rejected");
++    T.throws(()=>Core.objectDetections([],meta,NaN),"invalid threshold is rejected");
++    T.eq(Core.objectDetections([detection(NaN),detection(1.1),detection(-1)],meta).length,0,"malformed scores are refused");
++    T.eq(Core.objectDetections([{boundingBox:detection().boundingBox,categories:[]}],meta).length,0,"missing label is not guessed");
++  });
++  T.suite("Objects: angular boxes and crop boundary",()=>{
++    const original=detection(), before=JSON.stringify(original),r=Core.objectDetections([original],meta)[0];
++    T.eq(r.boxDeg.leftDeg,-15,"left pixel boundary becomes angular position");
++    T.eq(r.boxDeg.topDeg,8.4375,"vertical angle increases upward");
++    T.eq(r.boxDeg.widthDeg,15,"box extent is stored in degrees");
++    T.eq(r.boxDeg.heightDeg,8.4375,"angular height preserves aspect ratio");
++    T.eq(JSON.stringify(original),before,"normalization leaves input untouched");
++    T.true(Object.isFrozen(r)&&Object.isFrozen(r.boxDeg),"observations are immutable");
++    T.eq(r.boundingBox,undefined,"raw raster box is not retained in the model");
++    const crop=Core.objectCrop(r,meta,100,1);
++    T.eq(JSON.stringify(crop),JSON.stringify({x:80,y:45,width:80,height:45}),"OCR preparation maps angular region back to exact pixels");
++    T.eq(Core.objectCrop(r,meta,701,1),null,"stale OCR crops are refused");
++    T.eq(Core.objectCrop(r,meta,100,2),null,"new session cannot reuse an old crop");
++    T.eq(Core.objectCrop(r,meta,99,1),null,"future observation is refused");
++    T.eq(Core.objectDetections([detection(0.8,{originX:NaN,originY:0,width:2,height:2}),detection(0.8,{originX:400,originY:0,width:2,height:2})],meta).length,0,"invalid and fully outside boxes are dropped");
++    const clipped=Core.objectDetections([detection(0.8,{originX:-10,originY:0,width:20,height:20})],meta)[0];
++    T.eq(Core.objectCrop(clipped,meta,100,1).width,10,"partly outside box is clipped before crop");
++  });
++  T.suite("Objects: independent schedule and cancellation",()=>{
++    let workers=[],results=[],released=0;
++    const p=createObjectController({createWorker:()=>{const w={postMessage(m){this.messages.push(m);},terminate(){this.closed=true;},messages:[]};workers.push(w);return w;},onStatus:()=>{},onResult:r=>results.push(r),releaseFrame:()=>released++});
++    p.start({hz:6}); const w=workers[0];w.onmessage({data:{type:"ready"}});
++    let render=Core.createFrameClock(30,0),submissions=0;
++    for(let i=0;i<120;i++) {const now=i*1000/120,step=Core.stepFrameClock(render,now);render=step.clock;if(step.emit&&p.submit({}, {...meta,timeMs:now})){submissions++; w.onmessage({data:{type:"result",timeMs:now,detections:[]}});}}
++    T.eq(submissions,6,"6 Hz detector schedule holds beneath 30 Hz rendering");
++    T.eq(results.length,6,"each accepted inference returns once");
++    T.true(p.submit({}, {...meta,timeMs:2000}),"next eligible frame is accepted");
++    T.eq(p.submit({}, {...meta,timeMs:2200}),false,"busy detector drops frames instead of queueing");
++    w.onmessage({data:{type:"result",timeMs:1900,detections:[]}});
++    T.true(p.snapshot().busy,"unmatched result cannot release current inference");
++    p.stop();w.onmessage({data:{type:"result",timeMs:2000,detections:[]}});
++    T.eq(results.length,6,"late completion after stop is ignored");
++    T.true(w.closed,"stop releases model adapter");
++    p.start({hz:6});const next=workers[1];next.onmessage({data:{type:"ready"}});
++    w.onerror({message:"obsolete failure"});T.eq(p.snapshot().phase,"ready","old worker error cannot poison new session");
++    T.eq(p.submit({}, {...meta,cameraRole:"user",timeMs:3000}),false,"user camera is never submitted to world detector");
++    T.eq(p.submit({}, {...meta,timeMs:NaN}),false,"invalid timestamp is rejected");
++    T.true(released>0,"discarded frame ownership is released");
++    next.onerror({message:"runtime failure"});T.eq(p.snapshot().phase,"error","current runtime failure remains visible");
++  });
++}
++
+ const T = createHarness();
+ registerStage0Tests(T, createHarness, Core);
+ registerStage1Tests(T);
+@@ -1311,6 +1498,7 @@ registerStage3Tests(T);
+ registerGaugeTests(T);
+ registerStage4Tests(T);
+ registerDwellRepairTests(T);
++registerStage5Tests(T);
+ // Public, DOM-free test entry point; the Node runner executes this same inline script.
+ globalThis.Peripheral = Object.freeze({ T, Core, CONSTANTS, createHarness, createSourceController });
+ 
+@@ -1507,6 +1695,58 @@ function mountGazePipeline(doc,view,video) {
+   return {reset,direction,diagnostics,capture};
+ }
+ 
++function mountObjectPipeline(doc,view) {
++  const get=id=>doc.getElementById(id),canvas=get("object-preview"),ctx=canvas.getContext("2d");
++  let epoch=0,latest=null,captured=null,creating=false,lastSubmit=-Infinity,completed=[],cpuMs=null,phase="stopped";
++  const pipeline=createObjectController({createWorker:()=>createObjectAdapter(view),releaseFrame:frame=>frame.close(),
++    onStatus(status) {
++      phase=status.phase;get("load-objects").disabled=["loading","ready"].includes(phase);
++      get("object-status").textContent=status.message||({loading:"Loading EfficientDet-Lite0…",ready:"Detector ready · scheduled CPU/WASM · runtime gate unverified",stopped:"Detector unloaded. Downloads begin only on request."}[phase]||phase);
++      if(phase!=="ready") {latest=null;captured=null;completed=[];cpuMs=null;ctx?.clearRect(0,0,canvas.width,canvas.height);get("object-list").textContent="No current observations";}
++    },onResult(result) {
++      const now=view.performance.now();
++      if(!captured||result.metadata.session!==epoch||now-result.timeMs>600) {captured=null;return;}
++      latest={metadata:result.metadata,observations:Core.objectDetections(result.detections,result.metadata,get("object-threshold").valueAsNumber),image:captured};
++      captured=null;cpuMs=result.cpuMs;completed.push(now);completed=completed.filter(t=>now-t<=2000);paint(now);
++    }});
++  function reset() {epoch++;creating=false;lastSubmit=-Infinity;pipeline.stop();}
++  function paint(now) {
++    if(!ctx) return;
++    ctx.clearRect(0,0,canvas.width,canvas.height);
++    if(!latest||now-latest.metadata.timeMs>600) {latest=null;get("object-list").textContent="No current observations";return;}
++    ctx.putImageData(latest.image,0,0);
++    const text=[];
++    for(const observation of latest.observations) {
++      const crop=Core.objectCrop(observation,latest.metadata,now,epoch);if(!crop) continue;
++      ctx.strokeStyle="#76ffba";ctx.lineWidth=2;ctx.strokeRect(crop.x,crop.y,crop.width,crop.height);
++      ctx.fillStyle="#76ffba";ctx.font="12px sans-serif";ctx.fillText(observation.label,crop.x,Math.max(12,crop.y-3));
++      text.push(`${observation.label} · score ${observation.confidence.toFixed(2)} · ${observation.tier===1?"Tier 1 camera":"synthetic / no live tier"}`);
++    }
++    get("object-list").textContent=text.join("\n")||`${latest.metadata.source} · No labels above threshold`;
++  }
++  get("load-objects").addEventListener("click",()=>{reset();pipeline.start({hz:6,assets:OBJECT_ASSETS});});
++  get("stop-objects").addEventListener("click",reset);
++  get("object-threshold").addEventListener("change",()=>{latest=null;paint(view.performance.now());});
++  return {reset,capture(frame,now) {
++    if(!ctx||creating||pipeline.snapshot().phase!=="ready"||pipeline.snapshot().busy||now-lastSubmit<1000/6) return;
++    const id=epoch,image=new view.ImageData(new Uint8ClampedArray(frame.data),frame.width,frame.height);
++    creating=true;lastSubmit=now;
++    view.createImageBitmap(image).then(bitmap=>{
++      if(id!==epoch) {bitmap.close();return;}
++      creating=false;captured=image;
++      const metadata={width:frame.width,height:frame.height,timeMs:now,session:epoch,source:frame.source,cameraRole:"world",
++        fov:Core.makeFov(CONSTANTS.syntheticFovDeg.value,CONSTANTS.syntheticFovDeg.value*frame.height/frame.width)};
++      if(!pipeline.submit(bitmap,metadata)) captured=null;
++    },error=>{if(id===epoch){creating=false;reset();get("object-status").textContent=`Detector frame capture failed: ${error.message}`;}});
++  },diagnostics(now) {
++    completed=completed.filter(t=>now-t<=2000);
++    const hz=completed.length>1?(completed.length-1)*1000/(completed.at(-1)-completed[0]):0;
++    get("object-rate").textContent=`${hz.toFixed(1)} / 6 Hz target · ${phase}`;
++    get("object-cpu").textContent=cpuMs===null?"—":`${cpuMs.toFixed(2)} ms (last inference; outside frame CPU sum)`;
++    if(latest&&now-latest.metadata.timeMs>600) paint(now);
++  }};
++}
++
+ function mountFramePipeline(doc, view) {
+   const get = id => doc.getElementById(id);
+   const world = get("world-layer");
+@@ -1531,6 +1771,7 @@ function mountFramePipeline(doc, view) {
+   let clock = Core.createFrameClock(CONSTANTS.renderHz.value, view.performance.now());
+   let lastDebugMs = -Infinity, lastVideoTime = -1, lastCameraPixelMs = null;
+   const gaze = mountGazePipeline(doc,view,video);
++  const objects = mountObjectPipeline(doc,view);
+   let activeRequestId = -1;
+ 
+   function releaseStream(stream) {
+@@ -1550,7 +1791,7 @@ function mountFramePipeline(doc, view) {
+       width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: CONSTANTS.renderHz.value } } }).then(accept, reject);
+   }
+   const controller = createSourceController({ requestCamera, releaseStream, onChange(state, stream) {
+-    if (activeRequestId !== state.requestId) { gaze.reset(); activeRequestId=state.requestId; }
++    if (activeRequestId !== state.requestId) { gaze.reset(); objects.reset(); activeRequestId=state.requestId; }
+     resetMetrics();
+     get("source-status").textContent = state.reason;
+     get("camera-indicator").dataset.active = String(state.cameraActive);
+@@ -1597,6 +1838,7 @@ function mountFramePipeline(doc, view) {
+     get("brightness").textContent = lastStats ? lastStats.brightness01.toFixed(3) : "—";
+     get("clutter").textContent = lastStats ? lastStats.edgeContrast01.toFixed(3) : "—";
+     gaze.diagnostics(now);
++    objects.diagnostics(now);
+     lastDebugMs = now;
+   }
+ 
+@@ -1642,6 +1884,7 @@ function mountFramePipeline(doc, view) {
+           samples.push({ timeMs: now, captureMs: captured - begin, analysisMs: analyzed - captured, paintMs: painted - analyzed });
+           samples = samples.filter(sample => sample.timeMs >= now - CONSTANTS.metricsWindowMs.value).slice(-121);
+           count++;
++          objects.capture(frame,now);
+         }
+       } catch (error) {
+         if (state.kind === "camera") controller.fail(state.requestId, error?.name || "CaptureError");

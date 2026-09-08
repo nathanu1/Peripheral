@@ -1,0 +1,25 @@
+{
+  "status": "blocked",
+  "syntheticGatePassed": true,
+  "realModelInferenceExecuted": false,
+  "liveCameraExecuted": false,
+  "browserSuiteExecuted": false,
+  "hardwareValidated": false,
+  "sourceSha256": "25311ed7b0612a2d73f95ba247741fe228c9bbad18ef446d549d646438317c95",
+  "attempts": [
+    {
+      "url": "http://127.0.0.1:5173/#test",
+      "result": "net::ERR_BLOCKED_BY_CLIENT"
+    },
+    {
+      "url": "file:///home/oai/share/6fb1af195273/Peripheral-s5/index.html#test",
+      "result": "Cloud browser URL security policy blocks this action. No circumvention attempted."
+    }
+  ],
+  "modelDownload": {
+    "url": "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/int8/1/efficientdet_lite0.tflite",
+    "bytes": 4602795,
+    "sha256": "0720bf247bd76e6594ea28fa9c6f7c5242be774818997dbbeffc4da460c723bb"
+  },
+  "modelLicenseStatus": "TensorFlow family listing reports Apache 2.0; exact int8 artifact card mapping not established. No permissive-license acceptance claimed."
+}

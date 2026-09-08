@@ -20,9 +20,10 @@
     ],
     "timingMode": "flexible_schedule",
     "plannedRuns": 21,
-    "status": "enabled",
+    "status": "paused",
     "taskTitle": "Build Peripheral",
-    "nextRunVerified": false
+    "nextRunVerified": false,
+    "pauseReason": "Stage 5 real-frame validation is blocked in the available browser."
   },
   "nextStage": 5,
   "stages": [
@@ -267,9 +268,36 @@
       "stage": 5,
       "name": "Object detection (Tier 1)",
       "commitMessage": "feat(perception): tier-1 object detection",
-      "status": "pending",
+      "status": "blocked",
       "reportPath": ".github/peripheral/reports/stage-05.md",
-      "testResults": null
+      "testResults": {
+        "scope": "Unapplied candidate patch; main application remains Stage 4",
+        "passed": 300,
+        "failed": 0,
+        "newAssertions": 37,
+        "runtime": "Node v24.19.0, deterministic synthetic suite",
+        "sourceSha256": "25311ed7b0612a2d73f95ba247741fe228c9bbad18ef446d549d646438317c95",
+        "evidencePath": ".github/peripheral/reports/stage-05-green.json",
+        "redPhases": [
+          {
+            "passed": 263,
+            "failed": 3,
+            "evidencePath": ".github/peripheral/reports/stage-05-red.json"
+          }
+        ]
+      },
+      "implementationDiffPath": ".github/peripheral/reports/stage-05-candidate.patch",
+      "implementationBaseCommit": "ae432289d97e6773a9c92ec5a77635755c18687b",
+      "gate": {
+        "status": "blocked",
+        "required": "Real boxes on real frames without tanking frame rate",
+        "evidencePath": ".github/peripheral/reports/stage-05-runtime.json",
+        "limitations": [
+          "Cloud browser rejects local HTTP and single-file URLs; no real-frame inference or FPS benchmark executed.",
+          "Exact model download/hash verified; model-card license mapping for the distributed int8 v1 artifact still requires confirmation.",
+          "Candidate uses scheduled main-thread CPU/WASM; acceptable live performance is not established."
+        ]
+      }
     },
     {
       "stage": 6,
@@ -395,7 +423,14 @@
       "reason": "User reports working face-head behavior with live measurements; agent runtime limitation remains documented.",
       "reportPath": ".github/peripheral/reports/stage-03.md",
       "scheduleImpact": "Resolved; Stage 4 completed and Stage 5 is eligible."
+    },
+    {
+      "stage": 5,
+      "status": "open",
+      "reason": "Real-frame browser gate unavailable; implementation retained as an unapplied tested patch.",
+      "reportPath": ".github/peripheral/reports/stage-05.md",
+      "scheduleImpact": "Next run resumes Stage 5; Stage 6 cannot begin until the gate passes."
     }
   ],
-  "lastUpdated": "2026-09-07"
+  "lastUpdated": "2026-09-08"
 }

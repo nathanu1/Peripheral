@@ -1,0 +1,15 @@
+{
+  "sourceSha256": "25311ed7b0612a2d73f95ba247741fe228c9bbad18ef446d549d646438317c95",
+  "passed": 2,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "cancelled load closes every task created after termination",
+      "passed": true
+    },
+    {
+      "name": "cancelled load emits no ready event",
+      "passed": true
+    }
+  ]
+}
