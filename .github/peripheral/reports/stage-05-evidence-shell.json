@@ -1,0 +1,34 @@
+{
+  "passed": 7,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "one inline script",
+      "passed": true
+    },
+    {
+      "name": "one inline style",
+      "passed": true
+    },
+    {
+      "name": "baseline control",
+      "passed": true
+    },
+    {
+      "name": "detector control",
+      "passed": true
+    },
+    {
+      "name": "textarea export",
+      "passed": true
+    },
+    {
+      "name": "no browser storage",
+      "passed": true
+    },
+    {
+      "name": "wearer canvas untouched",
+      "passed": true
+    }
+  ]
+}

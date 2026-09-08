@@ -1,4 +1,4 @@
-> Updated candidate: see [boundary repair and license resolution](stage-05-repair.md). Latest full suite: 309 passed / 0 failed. The original run below is historical evidence; its license blocker is now resolved. Browser runtime gate remains blocked.
+> Updated candidate: see [runtime evidence capture](stage-05-evidence.md) and [boundary repair and license resolution](stage-05-repair.md). Latest full suite: 322 passed / 0 failed. The original run below is historical evidence; its license blocker is resolved. Browser runtime gate remains blocked.
 
 # Stage 5 — Object detection (Tier 1)
 

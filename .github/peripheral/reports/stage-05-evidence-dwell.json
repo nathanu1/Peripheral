@@ -1,0 +1,28 @@
+{
+  "runtime": "v24.19.0",
+  "sourceSha256": "6dad4651080c270a71a9a88b98717b299a47c566fab1e34fedef03ee5c1423fd",
+  "passed": 5,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "Exact inline application initializes for synthetic dwell traces",
+      "passed": true
+    },
+    {
+      "name": "Dwell constants are explicit model choices",
+      "passed": true
+    },
+    {
+      "name": "Pure synthetic 1.5 second trace emits exactly one dwell event",
+      "passed": true
+    },
+    {
+      "name": "Dwell implementation has no browser, clock, network, or storage dependency",
+      "passed": true
+    },
+    {
+      "name": "Wearer view contains no dwell progress element",
+      "passed": true
+    }
+  ]
+}

@@ -5,7 +5,7 @@
   "liveCameraExecuted": false,
   "browserSuiteExecuted": false,
   "hardwareValidated": false,
-  "sourceSha256": "8a0356ea81a9522735570a26ca4da4b7bf140ef60f19aea443ab94e68d3e548b",
+  "sourceSha256": "6dad4651080c270a71a9a88b98717b299a47c566fab1e34fedef03ee5c1423fd",
   "attempts": [
     {
       "url": "http://127.0.0.1:5173/#test",
@@ -23,5 +23,5 @@
   },
   "modelLicenseStatus": "Resolved 2026-09-08 using upstream collaborator statement on pretrained object detector licensing; Apache-2.0.",
   "licenseSource": "https://github.com/google-ai-edge/mediapipe/issues/4906#issuecomment-1778649604",
-  "note": "Browser block is carried forward from the prior attempt, not claimed as a new attempt. No real model/camera/browser execution in this repair."
+  "note": "Browser block is carried forward from the prior attempt, not claimed as a new attempt. No real model/camera/browser execution in this repair. The candidate now exports peripheral.stage5.runtime.v1 evidence from explicit baseline and loaded captures."
 }

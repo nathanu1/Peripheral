@@ -1,8 +1,8 @@
 diff --git a/index.html b/index.html
-index e0276de..cf3e714 100644
+index e0276de..6c7a84d 100644
 --- a/index.html
 +++ b/index.html
-@@ -141,6 +141,23 @@
+@@ -141,6 +141,30 @@
            <button type="button" data-point="0" class="secondary">Center</button><button type="button" data-point="1" class="secondary">Left</button><button type="button" data-point="2" class="secondary">Right</button><button type="button" data-point="3" class="secondary">Up</button><button type="button" data-point="4" class="secondary">Down</button>
          </div>
        </fieldset>
@@ -20,16 +20,52 @@ index e0276de..cf3e714 100644
 +        </dl>
 +        <canvas id="object-preview" width="320" height="180" role="img" aria-label="Developer detection snapshot; labels are listed below" style="max-width:100%;background:#111"></canvas>
 +        <pre id="object-list" aria-label="Detected object labels">No current observations</pre>
++        <div class="feed-controls">
++          <button id="record-baseline" type="button" class="secondary">Record 10 s baseline</button>
++          <button id="record-detector" type="button" class="secondary">Record 15 s detector run</button>
++        </div>
++        <p id="evidence-status" role="status" aria-live="polite">Runtime evidence not recorded.</p>
++        <label for="runtime-evidence">Stage 5 runtime evidence JSON</label>
++        <textarea id="runtime-evidence" rows="12" readonly spellcheck="false" style="width:100%;font:12px ui-monospace,monospace"></textarea>
 +        <p class="muted">Boxes mark the last analyzed world frame, not tracked objects. Snapshots expire after 600 ms. Camera detections carry Tier 1; synthetic-world results never do. Scores are model outputs, not calibrated certainty. This 80-class model cannot name every object or establish its state. Angular boxes use an uncalibrated 60° raster projection.</p>
 +        <p class="muted">Choose a camera role and start the feed before loading. Source changes unload the detector. EfficientDet-Lite0 int8 revision 1 runs on-device with MediaPipe 0.10.21. CPU/WASM inference blocks the page thread; compare processed FPS with the detector unloaded and loaded. Initial model downloads need network; offline caching is best effort. No image is uploaded. OCR crop preparation is present; text recognition is not active yet.</p>
 +      </fieldset>
        <button id="run-tests" type="button" aria-controls="test-summary test-results">Run Tests</button>
        <p id="test-summary" role="status" aria-live="polite">Tests have not run.</p>
        <ol id="test-results" aria-label="Test results"></ol>
-@@ -249,6 +266,43 @@ function sha256Hex(bytes) {
+@@ -249,6 +273,72 @@ function sha256Hex(bytes) {
  }
  
  const Core = Object.freeze({
++  objectRuntimeEvidence({baseline,loaded,browser,device,capturedAt}) {
++    if(!baseline||!loaded||typeof browser!=="string"||typeof device!=="string"||typeof capturedAt!=="string")
++      throw new TypeError("Runtime evidence requires both captures and environment labels");
++    const numeric=(sample,keys)=> {
++      for(const key of keys) if(!Number.isFinite(sample[key])||sample[key]<0) throw new RangeError(`${key} must be a nonnegative finite number`);
++    };
++    numeric(baseline,["durationMs","frameFps","missedSlots"]);
++    numeric(loaded,["durationMs","frameFps","missedSlots","detectorHz","inferenceCpuMs","detectionCount","tier1Count"]);
++    if(baseline.durationMs<10000) throw new RangeError("Baseline capture must last at least 10 seconds");
++    if(loaded.durationMs<15000) throw new RangeError("Loaded capture must last at least 15 seconds");
++    if(!Number.isInteger(baseline.missedSlots)||!Number.isInteger(loaded.missedSlots)||
++       !Number.isInteger(loaded.detectionCount)||!Number.isInteger(loaded.tier1Count))
++      throw new TypeError("Counts must be integers");
++    const labels=Object.freeze([...new Set((Array.isArray(loaded.labels)?loaded.labels:[])
++      .filter(label=>typeof label==="string"&&label.trim()).map(label=>label.trim().slice(0,80)))].sort());
++    const checks=Object.freeze([
++      Object.freeze({name:"world camera provenance",passed:baseline.source==="camera"&&loaded.source==="camera"&&baseline.cameraRole==="world"&&loaded.cameraRole==="world"}),
++      Object.freeze({name:"baseline duration >= 10 s",passed:baseline.durationMs>=10000}),
++      Object.freeze({name:"detector duration >= 15 s",passed:loaded.durationMs>=15000}),
++      Object.freeze({name:"detector schedule 5–8 Hz",passed:loaded.detectorHz>=5&&loaded.detectorHz<=8}),
++      Object.freeze({name:"loaded render rate >= 27 FPS",passed:loaded.frameFps>=27}),
++      Object.freeze({name:"loaded render retains >= 90% baseline",passed:baseline.frameFps>0&&loaded.frameFps/baseline.frameFps>=0.9}),
++      Object.freeze({name:"real boxes are current Tier 1",passed:loaded.detectionCount>0&&loaded.tier1Count===loaded.detectionCount&&labels.length>0})
++    ]);
++    const normalize=sample=>Object.freeze({...sample,labels:sample===loaded?labels:undefined});
++    return Object.freeze({schema:"peripheral.stage5.runtime.v1",capturedAt:capturedAt.slice(0,80),browser:browser.slice(0,160),
++      device:device.slice(0,160),baseline:normalize(baseline),loaded:normalize(loaded),
++      gate:Object.freeze({status:checks.every(check=>check.passed)?"passed":"failed",checks})});
++  },
 +  // Raster coordinates are an adapter input only. Angular mapping is explicitly
 +  // uniform-angular and uncalibrated: no metric position or hardware claim.
 +  objectDetections(detections, meta, threshold=0.5) {
@@ -70,7 +106,7 @@ index e0276de..cf3e714 100644
    createDwellState({thresholdMs=CONSTANTS.dwellThresholdMs.value}={}) {
      positiveNumber(thresholdMs,"dwell threshold");
      return Object.freeze({thresholdMs,phase:"idle",anchorId:null,progressMs:0,lastTimeMs:null,lastDirectionDeg:null,refractory:Object.freeze([])});
-@@ -654,6 +708,82 @@ const VISION_ASSETS=Object.freeze({
+@@ -654,6 +744,82 @@ const VISION_ASSETS=Object.freeze({
    handSha256:"fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1"
  });
  
@@ -153,7 +189,7 @@ index e0276de..cf3e714 100644
  // MediaPipe Tasks 0.10.21 requires page graphics state during inference, so this
  // worker-shaped adapter runs scheduled, single-flight inference on the main thread.
  // Models and application state remain in memory; no persistent cache API is used.
-@@ -1303,6 +1433,87 @@ function registerDwellRepairTests(T) {
+@@ -1303,6 +1469,109 @@ function registerDwellRepairTests(T) {
    });
  }
  
@@ -238,25 +274,49 @@ index e0276de..cf3e714 100644
 +  });
 +}
 +
++function registerStage5EvidenceTests(T) {
++  T.suite("Objects: runtime gate evidence",()=>{
++    const baseline={durationMs:10000,source:"camera",cameraRole:"world",frameFps:29.7,missedSlots:1};
++    const loaded={durationMs:15000,source:"camera",cameraRole:"world",frameFps:28.9,missedSlots:3,detectorHz:5.8,
++      inferenceCpuMs:72.4,detectionCount:4,tier1Count:4,labels:["cup","chair"]};
++    const evidence=Core.objectRuntimeEvidence({baseline,loaded,browser:"Safari 26.5",device:"Mac",capturedAt:"2026-09-08T19:00:00.000Z"});
++    T.eq(evidence.schema,"peripheral.stage5.runtime.v1","evidence has a versioned schema");
++    T.eq(evidence.gate.status,"passed","sustained real detections can pass the gate");
++    T.eq(evidence.gate.checks.length,7,"every runtime condition is explicit");
++    T.eq(evidence.loaded.labels.join(","),"chair,cup","labels are normalized and deterministic");
++    T.eq(evidence.loaded.tier1Count,4,"measured Tier 1 count survives export");
++    T.true(Object.isFrozen(evidence)&&Object.isFrozen(evidence.gate),"runtime evidence is immutable");
++    T.eq(Core.objectRuntimeEvidence({baseline,loaded:{...loaded,source:"synthetic"},browser:"x",device:"y",capturedAt:"z"}).gate.status,"failed","synthetic input cannot pass");
++    T.eq(Core.objectRuntimeEvidence({baseline,loaded:{...loaded,detectorHz:4.9},browser:"x",device:"y",capturedAt:"z"}).gate.status,"failed","below-schedule detector cannot pass");
++    T.eq(Core.objectRuntimeEvidence({baseline,loaded:{...loaded,frameFps:25},browser:"x",device:"y",capturedAt:"z"}).gate.status,"failed","render regression cannot pass");
++    T.eq(Core.objectRuntimeEvidence({baseline,loaded:{...loaded,detectionCount:0,tier1Count:0,labels:[]},browser:"x",device:"y",capturedAt:"z"}).gate.status,"failed","no real boxes cannot pass");
++    T.throws(()=>Core.objectRuntimeEvidence({baseline:{...baseline,durationMs:9999},loaded,browser:"x",device:"y",capturedAt:"z"}),"short baseline is rejected");
++    T.throws(()=>Core.objectRuntimeEvidence({baseline,loaded:{...loaded,durationMs:14999},browser:"x",device:"y",capturedAt:"z"}),"short loaded capture is rejected");
++    T.throws(()=>Core.objectRuntimeEvidence({baseline,loaded:{...loaded,inferenceCpuMs:NaN},browser:"x",device:"y",capturedAt:"z"}),"nonfinite metrics are rejected");
++  });
++}
++
  const T = createHarness();
  registerStage0Tests(T, createHarness, Core);
  registerStage1Tests(T);
-@@ -1311,6 +1522,8 @@ registerStage3Tests(T);
+@@ -1311,6 +1580,9 @@ registerStage3Tests(T);
  registerGaugeTests(T);
  registerStage4Tests(T);
  registerDwellRepairTests(T);
 +registerStage5Tests(T);
 +registerObjectBoundaryTests(T);
++registerStage5EvidenceTests(T);
  // Public, DOM-free test entry point; the Node runner executes this same inline script.
  globalThis.Peripheral = Object.freeze({ T, Core, CONSTANTS, createHarness, createSourceController });
  
-@@ -1507,6 +1720,58 @@ function mountGazePipeline(doc,view,video) {
+@@ -1507,6 +1779,70 @@ function mountGazePipeline(doc,view,video) {
    return {reset,direction,diagnostics,capture};
  }
  
 +function mountObjectPipeline(doc,view) {
 +  const get=id=>doc.getElementById(id),canvas=get("object-preview"),ctx=canvas.getContext("2d");
 +  let epoch=0,latest=null,captured=null,creating=false,lastSubmit=-Infinity,completed=[],cpuMs=null,phase="stopped";
++  let evidenceStart=0,evidenceCompleted=0,evidenceCpuTotal=0,evidenceDetections=0,evidenceTier1=0,evidenceLabels=new Set();
 +  const pipeline=createObjectController({createWorker:()=>createObjectAdapter(view),releaseFrame:frame=>frame.close(),
 +    onStatus(status) {
 +      phase=status.phase;get("load-objects").disabled=["loading","ready"].includes(phase);
@@ -266,7 +326,11 @@ index e0276de..cf3e714 100644
 +      const now=view.performance.now();
 +      if(!captured||result.metadata.session!==epoch||now-result.timeMs>600) {captured=null;return;}
 +      latest={metadata:result.metadata,observations:Core.objectDetections(result.detections,result.metadata,get("object-threshold").valueAsNumber),image:captured};
-+      captured=null;cpuMs=result.cpuMs;completed.push(now);completed=completed.filter(t=>now-t<=2000);paint(now);
++      captured=null;cpuMs=result.cpuMs;completed.push(now);completed=completed.filter(t=>now-t<=2000);
++      evidenceCompleted++;evidenceCpuTotal+=result.cpuMs;evidenceDetections+=latest.observations.length;
++      evidenceTier1+=latest.observations.filter(item=>item.tier===1).length;
++      for(const item of latest.observations) evidenceLabels.add(item.label);
++      paint(now);
 +    }});
 +  function reset() {epoch++;creating=false;lastSubmit=-Infinity;pipeline.stop();}
 +  function paint(now) {
@@ -286,7 +350,14 @@ index e0276de..cf3e714 100644
 +  get("load-objects").addEventListener("click",()=>{reset();pipeline.start({hz:6,assets:OBJECT_ASSETS});});
 +  get("stop-objects").addEventListener("click",reset);
 +  get("object-threshold").addEventListener("change",()=>{latest=null;paint(view.performance.now());});
-+  return {reset,capture(frame,now) {
++  return {reset,phase:()=>phase,resetEvidence(now) {
++    evidenceStart=now;evidenceCompleted=0;evidenceCpuTotal=0;evidenceDetections=0;evidenceTier1=0;evidenceLabels=new Set();
++  },evidence(now) {
++    const durationMs=Math.max(0,now-evidenceStart);
++    return {durationMs,detectorHz:durationMs>0?evidenceCompleted*1000/durationMs:0,
++      inferenceCpuMs:evidenceCompleted?evidenceCpuTotal/evidenceCompleted:0,detectionCount:evidenceDetections,
++      tier1Count:evidenceTier1,labels:[...evidenceLabels]};
++  },capture(frame,now) {
 +    if(!ctx||creating||pipeline.snapshot().phase!=="ready"||pipeline.snapshot().busy||now-lastSubmit<1000/6) return;
 +    const id=epoch,image=new view.ImageData(new Uint8ClampedArray(frame.data),frame.width,frame.height);
 +    creating=true;lastSubmit=now;
@@ -309,15 +380,16 @@ index e0276de..cf3e714 100644
  function mountFramePipeline(doc, view) {
    const get = id => doc.getElementById(id);
    const world = get("world-layer");
-@@ -1531,6 +1796,7 @@ function mountFramePipeline(doc, view) {
+@@ -1531,6 +1867,8 @@ function mountFramePipeline(doc, view) {
    let clock = Core.createFrameClock(CONSTANTS.renderHz.value, view.performance.now());
    let lastDebugMs = -Infinity, lastVideoTime = -1, lastCameraPixelMs = null;
    const gaze = mountGazePipeline(doc,view,video);
 +  const objects = mountObjectPipeline(doc,view);
++  let evidenceRecording=null,evidenceBaseline=null;
    let activeRequestId = -1;
  
    function releaseStream(stream) {
-@@ -1550,7 +1816,7 @@ function mountFramePipeline(doc, view) {
+@@ -1550,7 +1888,7 @@ function mountFramePipeline(doc, view) {
        width: { ideal: 640 }, height: { ideal: 360 }, frameRate: { ideal: CONSTANTS.renderHz.value } } }).then(accept, reject);
    }
    const controller = createSourceController({ requestCamera, releaseStream, onChange(state, stream) {
@@ -326,15 +398,60 @@ index e0276de..cf3e714 100644
      resetMetrics();
      get("source-status").textContent = state.reason;
      get("camera-indicator").dataset.active = String(state.cameraActive);
-@@ -1597,6 +1863,7 @@ function mountFramePipeline(doc, view) {
+@@ -1597,9 +1935,52 @@ function mountFramePipeline(doc, view) {
      get("brightness").textContent = lastStats ? lastStats.brightness01.toFixed(3) : "—";
      get("clutter").textContent = lastStats ? lastStats.edgeContrast01.toFixed(3) : "—";
      gaze.diagnostics(now);
 +    objects.diagnostics(now);
++    updateRuntimeEvidence(now);
      lastDebugMs = now;
    }
  
-@@ -1642,6 +1909,7 @@ function mountFramePipeline(doc, view) {
++  function beginRuntimeEvidence(kind) {
++    const state=controller.snapshot(),durationMs=kind==="baseline"?10000:15000;
++    if(state.kind!=="camera"||get("camera-role").value!=="world") {
++      get("evidence-status").textContent="Start a world-facing camera before recording evidence.";return;
++    }
++    if(kind==="baseline"&&objects.phase()!=="stopped") {
++      get("evidence-status").textContent="Unload the object detector before recording the baseline.";return;
++    }
++    if(kind==="loaded"&&objects.phase()!=="ready") {
++      get("evidence-status").textContent="Load the object detector and wait for Detector ready before recording.";return;
++    }
++    objects.resetEvidence(view.performance.now());
++    evidenceRecording={kind,startMs:view.performance.now(),durationMs,startCount:count,startMissed:missed,requestId:state.requestId};
++    get("evidence-status").textContent=`Recording ${kind==="baseline"?"baseline":"detector"} for ${durationMs/1000} seconds…`;
++  }
++
++  function updateRuntimeEvidence(now) {
++    if(!evidenceRecording)return;
++    const state=controller.snapshot(),record=evidenceRecording,elapsed=now-record.startMs;
++    if(state.kind!=="camera"||state.requestId!==record.requestId||get("camera-role").value!=="world") {
++      evidenceRecording=null;get("evidence-status").textContent="Evidence capture cancelled because the camera session changed.";return;
++    }
++    if(elapsed<record.durationMs) return;
++    const base={durationMs:elapsed,source:"camera",cameraRole:"world",
++      frameFps:(count-record.startCount)*1000/elapsed,missedSlots:missed-record.startMissed};
++    if(record.kind==="baseline") {
++      evidenceBaseline=base;evidenceRecording=null;
++      get("evidence-status").textContent="Baseline recorded. Load the detector, then record the detector run.";return;
++    }
++    const loaded={...base,...objects.evidence(now)};
++    evidenceRecording=null;
++    if(!evidenceBaseline) {get("evidence-status").textContent="Detector run recorded, but a baseline is still required.";return;}
++    try {
++      const evidence=Core.objectRuntimeEvidence({baseline:evidenceBaseline,loaded,browser:view.navigator.userAgent,
++        device:view.navigator.platform||"not reported",capturedAt:new Date().toISOString()});
++      get("runtime-evidence").value=JSON.stringify(evidence,null,2);
++      const failed=evidence.gate.checks.filter(check=>!check.passed).map(check=>check.name);
++      get("evidence-status").textContent=evidence.gate.status==="passed"?"Runtime evidence meets the modeled Stage 5 thresholds. Copy the JSON into the build conversation.":`Runtime evidence recorded; failed: ${failed.join(", ")}.`;
++    } catch(error) {get("evidence-status").textContent=`Evidence validation failed: ${error.message}`;}
++  }
++
+   function render(now) {
+     rafId = null;
+     const state = controller.snapshot();
+@@ -1642,6 +2023,7 @@ function mountFramePipeline(doc, view) {
            samples.push({ timeMs: now, captureMs: captured - begin, analysisMs: analyzed - captured, paintMs: painted - analyzed });
            samples = samples.filter(sample => sample.timeMs >= now - CONSTANTS.metricsWindowMs.value).slice(-121);
            count++;
@@ -342,3 +459,12 @@ index e0276de..cf3e714 100644
          }
        } catch (error) {
          if (state.kind === "camera") controller.fail(state.requestId, error?.name || "CaptureError");
+@@ -1674,6 +2056,8 @@ function mountFramePipeline(doc, view) {
+     seed = candidate; frameIndex = 0; controller.synthetic();
+   });
+   get("freeze-scene").addEventListener("change", () => { frameIndex = 0; });
++  get("record-baseline").addEventListener("click",()=>beginRuntimeEvidence("baseline"));
++  get("record-detector").addEventListener("click",()=>beginRuntimeEvidence("loaded"));
+   motionPreference.addEventListener("change", event => { get("freeze-scene").checked = event.matches; frameIndex = 0; });
+   doc.addEventListener("visibilitychange", () => {
+     if (doc.hidden) { controller.stop(); get("source-status").textContent = "Feed stopped while page is hidden. Select a source to resume."; }

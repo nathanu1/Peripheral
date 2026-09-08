@@ -272,12 +272,12 @@
       "reportPath": ".github/peripheral/reports/stage-05.md",
       "testResults": {
         "scope": "Unapplied candidate patch; main application remains Stage 4",
-        "passed": 309,
+        "passed": 322,
         "failed": 0,
-        "newAssertions": 46,
+        "newAssertions": 59,
         "runtime": "Node v24.19.0, deterministic synthetic suite",
-        "sourceSha256": "8a0356ea81a9522735570a26ca4da4b7bf140ef60f19aea443ab94e68d3e548b",
-        "evidencePath": ".github/peripheral/reports/stage-05-repair-green.json",
+        "sourceSha256": "6dad4651080c270a71a9a88b98717b299a47c566fab1e34fedef03ee5c1423fd",
+        "evidencePath": ".github/peripheral/reports/stage-05-evidence-green.json",
         "redPhases": [
           {
             "passed": 263,
@@ -289,6 +289,12 @@
             "failed": 6,
             "reason": "Observation crop accepts mismatched frame metadata; null category crashes normalization",
             "evidencePath": ".github/peripheral/reports/stage-05-repair-red.json"
+          },
+          {
+            "passed": 309,
+            "failed": 1,
+            "reason": "Versioned runtime evidence evaluator absent before implementation",
+            "evidencePath": ".github/peripheral/reports/stage-05-evidence-red.json"
           }
         ]
       },
@@ -309,6 +315,13 @@
         "license": "Apache-2.0",
         "basis": "Upstream collaborator clarification specific to pretrained object-detection models",
         "source": "https://github.com/google-ai-edge/mediapipe/issues/4906#issuecomment-1778649604"
+      },
+      "evidenceWorkflow": {
+        "status": "implemented-in-candidate",
+        "schema": "peripheral.stage5.runtime.v1",
+        "baselineDurationMs": 10000,
+        "detectorDurationMs": 15000,
+        "reportPath": ".github/peripheral/reports/stage-05-evidence.md"
       }
     },
     {
