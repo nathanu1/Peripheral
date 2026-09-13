@@ -1,0 +1,147 @@
+{
+  "runtime": "v24.19.0",
+  "mode": "committed prerecorded-image evidence replay; no camera or inference",
+  "sourceSha256": "4665d855eb649213332cfd5daf26846901bb813736735ed3a9ca964a6b33908e",
+  "manifestSha256": "37889b1b2546609934579a9306f0efe1ad187e531d895be8fa9abd7e58b6267c",
+  "runSha256": "e301fcf83266a66d99724326d9abd240812246671b85688e395296520dbb9a37",
+  "modelSha256": "0720bf247bd76e6594ea28fa9c6f7c5242be774818997dbbeffc4da460c723bb",
+  "passed": 9,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "run schema",
+      "passed": true,
+      "actual": "peripheral.stage5.offline-run.v1",
+      "expected": "peripheral.stage5.offline-run.v1"
+    },
+    {
+      "name": "model artifact hash",
+      "passed": true,
+      "actual": "0720bf247bd76e6594ea28fa9c6f7c5242be774818997dbbeffc4da460c723bb",
+      "expected": "0720bf247bd76e6594ea28fa9c6f7c5242be774818997dbbeffc4da460c723bb"
+    },
+    {
+      "name": "manifest schema",
+      "passed": true,
+      "actual": "peripheral.stage5.fixtures.v1",
+      "expected": "peripheral.stage5.fixtures.v1"
+    },
+    {
+      "name": "manifest and run fixtures match",
+      "passed": true,
+      "actual": 30,
+      "expected": 30
+    },
+    {
+      "name": "per-image hashes and labels link to fixtures",
+      "passed": true,
+      "actual": 30,
+      "expected": 30
+    },
+    {
+      "name": "all observations are untiered evaluation data",
+      "passed": true,
+      "actual": 0,
+      "expected": 0
+    },
+    {
+      "name": "aggregate counts recompute from per-image records",
+      "passed": true,
+      "actual": {
+        "imagesProcessed": 30,
+        "imagesWithExpectedDetection": 28,
+        "expectedBoxes": 30,
+        "matchedAtIou50": 25,
+        "invalidBoxes": 0,
+        "liveTier1Count": 0
+      },
+      "expected": {
+        "imagesProcessed": 30,
+        "imagesWithExpectedDetection": 28,
+        "expectedBoxes": 30,
+        "matchedAtIou50": 25,
+        "invalidBoxes": 0,
+        "liveTier1Count": 0
+      }
+    },
+    {
+      "name": "latency statistics recompute from per-image records",
+      "passed": true,
+      "actual": {
+        "medianInferenceMs": 20.70865,
+        "p95InferenceMs": 25.1608
+      },
+      "expected": {
+        "medianInferenceMs": 20.7086,
+        "p95InferenceMs": 25.1608
+      }
+    },
+    {
+      "name": "exact app core accepts the offline gate",
+      "passed": true,
+      "actual": "passed",
+      "expected": "passed"
+    }
+  ],
+  "coreGate": {
+    "status": "passed",
+    "checks": [
+      {
+        "name": "evaluation-image provenance",
+        "passed": true
+      },
+      {
+        "name": "pretrained model executed",
+        "passed": true
+      },
+      {
+        "name": "exact EfficientDet artifact",
+        "passed": true
+      },
+      {
+        "name": "pinned MediaPipe runtime",
+        "passed": true
+      },
+      {
+        "name": "at least 30 fixtures",
+        "passed": true
+      },
+      {
+        "name": "unique fixture identifiers",
+        "passed": true
+      },
+      {
+        "name": "at least 10 classes",
+        "passed": true
+      },
+      {
+        "name": "compatible per-image licenses",
+        "passed": true
+      },
+      {
+        "name": "complete attribution and content hashes",
+        "passed": true
+      },
+      {
+        "name": "every fixture processed",
+        "passed": true
+      },
+      {
+        "name": "expected-label hit rate >= 0.6",
+        "passed": true
+      },
+      {
+        "name": "IoU50 match rate >= 0.5",
+        "passed": true
+      },
+      {
+        "name": "valid untiered evaluation observations",
+        "passed": true
+      },
+      {
+        "name": "p95 reference latency <= 500 ms",
+        "passed": true
+      }
+    ]
+  }
+}

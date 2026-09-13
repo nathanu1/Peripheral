@@ -108,3 +108,32 @@ Acceptance adds deterministic query-minimization and redaction tests, explicit o
 ## Dwell lifecycle integration contract
 
 Stage 4 repair: createDwellState({thresholdMs}) configures the default 1500 ms threshold. Every emitted dwell remains pending until finishDwellReveal(state, originatingEvent, removalTimeMs) acknowledges actual removal or policy refusal. Stages 11–12 must call this interface; the three-second refractory interval starts at that boundary, not request time. Missing acknowledgment keeps the anchor suppressed. Do not reuse an old completion for a new request. Configure a fresh dwell state at session start; never silently change the threshold during accumulation.
+
+## Stage 5 acceptance amendment — approved 2026-09-13
+
+Nathan approved completing Stage 5 without making real-camera capture a blocking
+gate. This changes the stage acceptance method, not the meaning of perception
+tiers or the product's camera path.
+
+The Stage 5 software gate is actual execution of the exact pinned
+EfficientDet-Lite0 int8 revision 1 artifact with MediaPipe 0.10.21 on a
+preselected, attributed, hash-pinned set of at least 30 licensed prerecorded
+photographs spanning at least 10 supported classes. The selection and thresholds
+must be fixed before inference. Completion requires:
+
+- expected-class detections in at least 60% of evaluated images;
+- a correct-class box at IoU 0.5 or higher for at least 50% of selected boxes;
+- every fixture processed with no structurally invalid boxes;
+- no prerecorded result labeled as live Tier 1;
+- native CPU reference-runtime p95 inference at or below 500 ms after disclosed
+  warm-up; and
+- the entire deterministic application suite, core boundaries, lifecycle and
+  injected browser-adapter tests passing.
+
+Prerecorded photographs use evaluation provenance and an empty perception tier.
+Tier 1 remains reserved for current real computation on current live
+world-camera frames. The browser camera path, 5–8 Hz scheduler and runtime
+evidence capture remain implemented, but live-camera output, sustained browser
+frame rate, wearable mounting and physical optics remain unverified and must be
+reported as such through final acceptance. A passing native evaluation does not
+establish browser or hardware performance.

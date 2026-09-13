@@ -1,0 +1,1656 @@
+{
+  "schema": "peripheral.stage5.offline-run.v1",
+  "generatedAt": "2026-09-13T17:39:10Z",
+  "provenance": "evaluation-image",
+  "claimBoundary": "Licensed prerecorded photographs in a native CPU reference runtime; not live camera input, browser throughput, or wearable hardware.",
+  "model": {
+    "executed": true,
+    "name": "efficientdet-lite0-int8-v1",
+    "sha256": "0720bf247bd76e6594ea28fa9c6f7c5242be774818997dbbeffc4da460c723bb",
+    "runtime": "mediapipe@0.10.21",
+    "runningMode": "IMAGE",
+    "delegate": "CPU",
+    "scoreThreshold": 0.25,
+    "maxResults": 20,
+    "warmupRunsExcluded": 3
+  },
+  "environment": {
+    "python": "3.12.14",
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+    "machine": "x86_64"
+  },
+  "fixtures": [
+    {
+      "id": "45fd09ada78c507d",
+      "sha256": "f7210028993c16f28c751f4bc573a6dbcf576cea69fc05e847cc9150c2f96e85",
+      "className": "Person",
+      "labelMid": "/m/01g317",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/45fd09ada78c507d.jpg",
+      "landingUrl": "https://www.flickr.com/photos/fiskfisk/614982137",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Mats Lindh",
+      "title": "Hands exchanging rings",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.4024024,
+        "xMax": 1.0,
+        "yMin": 0.22391304,
+        "yMax": 0.7847826
+      },
+      "selectionArea": 0.335174
+    },
+    {
+      "id": "d65d7e3d4d350b82",
+      "sha256": "4b1bb5c62b60b229fa2dd89d06ac85ecb18a4ab95bc765ed2020f9915b601386",
+      "className": "Person",
+      "labelMid": "/m/01g317",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/d65d7e3d4d350b82.jpg",
+      "landingUrl": "https://www.flickr.com/photos/qwrrty/149583330/",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Tim Pierce",
+      "title": "take the redheads bowling! #1",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.59375,
+        "xMax": 0.840625,
+        "yMin": 0.077083334,
+        "yMax": 0.92291665
+      },
+      "selectionArea": 0.208815
+    },
+    {
+      "id": "4c305b01b7b39337",
+      "sha256": "952fd2e4833ad25a88f5e125e87bc491f6805bd2a6778638328cabd5ccffbb73",
+      "className": "Person",
+      "labelMid": "/m/01g317",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/4c305b01b7b39337.jpg",
+      "landingUrl": "https://www.flickr.com/photos/enrique_aponte/7692822254",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Ricky  Aponte",
+      "title": "Willimantic",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.23746313,
+        "xMax": 0.68879056,
+        "yMin": 0.10619469,
+        "yMax": 0.78097343
+      },
+      "selectionArea": 0.304546
+    },
+    {
+      "id": "3c9dff5ae2047b8f",
+      "sha256": "c51b1d2ca1d9263a78d2414375484098a870ee624dd3776e720b0a3d0d8a2bac",
+      "className": "Dog",
+      "labelMid": "/m/0bt9lr",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/3c9dff5ae2047b8f.jpg",
+      "landingUrl": "https://www.flickr.com/photos/pixellou/16249052422",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Lisa Williams",
+      "title": "Goldendoodle At Golden Gate",
+      "rotation": "",
+      "expectedBox": {
+        "xMin": 0.10154525,
+        "xMax": 0.8543046,
+        "yMin": 0.22747415,
+        "yMax": 1.0
+      },
+      "selectionArea": 0.581526
+    },
+    {
+      "id": "aa7a920e45dfaf0a",
+      "sha256": "ac3b9c788ea1763089aa3d4ee3e397a2c9a983a7641ee48cf609f0bc7b9323ff",
+      "className": "Dog",
+      "labelMid": "/m/0bt9lr",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/aa7a920e45dfaf0a.jpg",
+      "landingUrl": "https://www.flickr.com/photos/lcledward/4548862114",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Edward Leung",
+      "title": "IMG_9324",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.28318584,
+        "xMax": 0.9882006,
+        "yMin": 0.21017699,
+        "yMax": 0.88274336
+      },
+      "selectionArea": 0.474169
+    },
+    {
+      "id": "5c4ed6811cedd1c4",
+      "sha256": "0181d05134f05cec1bb01e702702f518a1f94ce038863f557a072a2a755854e4",
+      "className": "Dog",
+      "labelMid": "/m/0bt9lr",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/5c4ed6811cedd1c4.jpg",
+      "landingUrl": "https://www.flickr.com/photos/ilovetoby8397/230973571",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "ilovetoby8397",
+      "title": "Untitled",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.36875,
+        "xMax": 0.89375,
+        "yMin": 0.020833334,
+        "yMax": 1.0
+      },
+      "selectionArea": 0.514062
+    },
+    {
+      "id": "446924d9efea3ada",
+      "sha256": "cee5b1a02393f49e7b07acb5890c98c2a333cecc3d835fe036a2c05060c8523a",
+      "className": "Cat",
+      "labelMid": "/m/01yrx",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/446924d9efea3ada.jpg",
+      "landingUrl": "https://www.flickr.com/photos/bethness/6143772065",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "beth h",
+      "title": "i swear this wasn't posed",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.032051284,
+        "xMax": 0.55288464,
+        "yMin": 0.11585366,
+        "yMax": 0.800813
+      },
+      "selectionArea": 0.35675
+    },
+    {
+      "id": "44221f31a243f493",
+      "sha256": "3e408b44ec41d149ace9a5aa88efc7346377a7bd10f79b24c046f3ad22c08cb1",
+      "className": "Cat",
+      "labelMid": "/m/01yrx",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/44221f31a243f493.jpg",
+      "landingUrl": "https://www.flickr.com/photos/103033299@N08/20163775150",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Alan O&#x27;Donovan",
+      "title": "goliath",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.21666667,
+        "xMax": 0.8333333,
+        "yMin": 0.1515625,
+        "yMax": 0.9046875
+      },
+      "selectionArea": 0.464427
+    },
+    {
+      "id": "a555d218a3e96740",
+      "sha256": "40f5b16366801c9ba89ca9add605b496f66ade7973bcfab60935702149b35c5f",
+      "className": "Cat",
+      "labelMid": "/m/01yrx",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/a555d218a3e96740.jpg",
+      "landingUrl": "https://www.flickr.com/photos/dgidsicki/1418319031",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Daniele Gidsicki",
+      "title": "Kanu\u00ed",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.240625,
+        "xMax": 0.6390625,
+        "yMin": 0.15833333,
+        "yMax": 0.99791664
+      },
+      "selectionArea": 0.334521
+    },
+    {
+      "id": "b86e8a8cdd9f9418",
+      "sha256": "eb46ad41fb4e4df09d9e4861ca230f0897661cd0f4f9218a223192393e57fa34",
+      "className": "Car",
+      "labelMid": "/m/0k4j",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/b86e8a8cdd9f9418.jpg",
+      "landingUrl": "https://www.flickr.com/photos/zapthedingbat/931800129",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Sam Greenhalgh",
+      "title": "Dover",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.24631268,
+        "xMax": 0.7787611,
+        "yMin": 0.30752212,
+        "yMax": 0.74115044
+      },
+      "selectionArea": 0.230885
+    },
+    {
+      "id": "a40d359d2a8b9229",
+      "sha256": "5b082a67379a2276f23b4d63d6820e3f7d38a84824c5ac729f47b8d1ccc24fa9",
+      "className": "Car",
+      "labelMid": "/m/0k4j",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/a40d359d2a8b9229.jpg",
+      "landingUrl": "https://www.flickr.com/photos/catsper/7093068",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "J c",
+      "title": "No Birds Corolla",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.16200295,
+        "xMax": 0.87628865,
+        "yMin": 0.33481154,
+        "yMax": 0.83813745
+      },
+      "selectionArea": 0.359518
+    },
+    {
+      "id": "9498d0aff8f9ff8c",
+      "sha256": "6b02f17930d720fc6033888beb92cd045d5339681e26b82a5a3a537ce48823d3",
+      "className": "Car",
+      "labelMid": "/m/0k4j",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/9498d0aff8f9ff8c.jpg",
+      "landingUrl": "https://www.flickr.com/photos/martindew/6786206480",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Martin de Witte",
+      "title": "Subaru WRC",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.029005526,
+        "xMax": 1.0,
+        "yMin": 0.250591,
+        "yMax": 0.8250591
+      },
+      "selectionArea": 0.557805
+    },
+    {
+      "id": "0792f8e4934b5cc0",
+      "sha256": "202775278e68a55633585f1c133954e16a610d486f52c92b13f0a23a366877e4",
+      "className": "Bicycle",
+      "labelMid": "/m/0199g",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/0792f8e4934b5cc0.jpg",
+      "landingUrl": "https://www.flickr.com/photos/jhritz/21376683791",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "John Hritz",
+      "title": "Collapsible",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.028880866,
+        "xMax": 0.9025271,
+        "yMin": 0.23826715,
+        "yMax": 0.900722
+      },
+      "selectionArea": 0.578751
+    },
+    {
+      "id": "a52d7879d01b7465",
+      "sha256": "ba65b197b62465954273426d1b9de87f841b863cd451e3e51b0504329b4a5acc",
+      "className": "Bicycle",
+      "labelMid": "/m/0199g",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/a52d7879d01b7465.jpg",
+      "landingUrl": "https://www.flickr.com/photos/lombardo-bikes-asia-pacific/14370076607",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Lombardo Bikes Asia Pacific",
+      "title": "Team Lombardo MTB at Int XC Open MASER, TV (4)",
+      "rotation": "",
+      "expectedBox": {
+        "xMin": 0.35176992,
+        "xMax": 0.88716817,
+        "yMin": 0.40855458,
+        "yMax": 0.9719764
+      },
+      "selectionArea": 0.301655
+    },
+    {
+      "id": "596536756964ecc1",
+      "sha256": "8182a0e79b85d561d244194d35537ed71a473967b98a24910b1c8ece7f2a0939",
+      "className": "Bicycle",
+      "labelMid": "/m/0199g",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/596536756964ecc1.jpg",
+      "landingUrl": "https://www.flickr.com/photos/igcameron/17083340106",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Iain Cameron",
+      "title": "My New Bicycle",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.15020297,
+        "xMax": 0.71583223,
+        "yMin": 0.004819277,
+        "yMax": 0.8048193
+      },
+      "selectionArea": 0.452503
+    },
+    {
+      "id": "c2ef45a1def60b10",
+      "sha256": "aa541530f2f55442196a07b62a9fa09c1740dc1e7e654880b9ad351348950f4a",
+      "className": "Bird",
+      "labelMid": "/m/015p6",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/c2ef45a1def60b10.jpg",
+      "landingUrl": "https://www.flickr.com/photos/phalinn/3952471067",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Phalinn Ooi",
+      "title": "Bird",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.21091445,
+        "xMax": 0.6814159,
+        "yMin": 0.28761062,
+        "yMax": 0.9579646
+      },
+      "selectionArea": 0.315403
+    },
+    {
+      "id": "5ea027bcc59ed9d0",
+      "sha256": "194a02b3d50de03659b26c89375af714b80f9f5a5987dae00011ff51e457d5c8",
+      "className": "Bird",
+      "labelMid": "/m/015p6",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/5ea027bcc59ed9d0.jpg",
+      "landingUrl": "https://www.flickr.com/photos/siamesepuppy/11164758503",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "siamesepuppy",
+      "title": "Western Scrub-Jay",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.0484375,
+        "xMax": 0.65625,
+        "yMin": 0.2672234,
+        "yMax": 1.0
+      },
+      "selectionArea": 0.445391
+    },
+    {
+      "id": "1aa6fde219456389",
+      "sha256": "7795ea16b36a70a2fff55396cbc8490b6ea2c3faff316955afdb512983cc6d78",
+      "className": "Bird",
+      "labelMid": "/m/015p6",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/1aa6fde219456389.jpg",
+      "landingUrl": "https://www.flickr.com/photos/burgui400d/8419851610",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "jose maria carretero palacios",
+      "title": "PETIRROJO",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.38565022,
+        "xMax": 0.94170403,
+        "yMin": 0.20915033,
+        "yMax": 0.95642704
+      },
+      "selectionArea": 0.415526
+    },
+    {
+      "id": "64b9dbca8f5c9269",
+      "sha256": "173e0f97bd5271852722d879f3fb917068f6de31e8bdd706e336344e5e6a8df4",
+      "className": "Horse",
+      "labelMid": "/m/03k3r",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/64b9dbca8f5c9269.jpg",
+      "landingUrl": "https://www.flickr.com/photos/solocosi/5959996529",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "solovastru cosi",
+      "title": "Untitled",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.30338734,
+        "xMax": 0.62886596,
+        "yMin": 0.15964523,
+        "yMax": 0.9223947
+      },
+      "selectionArea": 0.248259
+    },
+    {
+      "id": "ee38f9fdcc1e2cab",
+      "sha256": "c716a34122fadbe2aeea4ec3ae6b99e7ac0ea6b406dc5e8df1b0b4c8afbe76fc",
+      "className": "Horse",
+      "labelMid": "/m/03k3r",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/ee38f9fdcc1e2cab.jpg",
+      "landingUrl": "https://www.flickr.com/photos/blastphotos/6061326973",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Blast Brand",
+      "title": "Pre-race warmups.",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.31588447,
+        "xMax": 0.8501805,
+        "yMin": 0.32129964,
+        "yMax": 0.8953069
+      },
+      "selectionArea": 0.30669
+    },
+    {
+      "id": "335197067b30029e",
+      "sha256": "47ecf0ed19c9868a8b5f4c29d73ef4989c43b8072e3a9dabb9bda37c448e4bfd",
+      "className": "Horse",
+      "labelMid": "/m/03k3r",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/335197067b30029e.jpg",
+      "landingUrl": "https://www.flickr.com/photos/familymwr/4931395264",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "U.S. Army",
+      "title": "U.S. Army Wounded Warrior Sports Program - Team Roping - 10 May 2008 -  Las Cruces - New Mexico - FMWRC",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.39353892,
+        "xMax": 0.81791484,
+        "yMin": 0.36807096,
+        "yMax": 0.75388026
+      },
+      "selectionArea": 0.163728
+    },
+    {
+      "id": "d957035fd4b234d8",
+      "sha256": "85ae11fac9f0f2773a32f0c653388c68551227b4a44674b5d47ec3d2d78999a2",
+      "className": "Bus",
+      "labelMid": "/m/01bjv",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/d957035fd4b234d8.jpg",
+      "landingUrl": "https://www.flickr.com/photos/pics-by-mpd/5311700103",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Matt Davis",
+      "title": "N210 NNJ at North Street, Brighton",
+      "rotation": "",
+      "expectedBox": {
+        "xMin": 0.103125,
+        "xMax": 0.8609375,
+        "yMin": 0.11875,
+        "yMax": 0.81666666
+      },
+      "selectionArea": 0.52889
+    },
+    {
+      "id": "71df72bf0f7b67ca",
+      "sha256": "e0a45959a7473e50233cf72abcf10304fa4f80f042b1090ba3915af50e639ead",
+      "className": "Bus",
+      "labelMid": "/m/01bjv",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/71df72bf0f7b67ca.jpg",
+      "landingUrl": "https://www.flickr.com/photos/technoevangelist/10576848373",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Fee Plumley",
+      "title": "beautiful old lady spotted in Llandudno this morning #buspr0n",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.054151624,
+        "xMax": 0.9368231,
+        "yMin": 0.24909747,
+        "yMax": 0.8357401
+      },
+      "selectionArea": 0.517813
+    },
+    {
+      "id": "cc94d1513871c552",
+      "sha256": "1af67eeae01ff7a4be9f62fbe121aa9627117b588e041397b5f322dad999edc5",
+      "className": "Bus",
+      "labelMid": "/m/01bjv",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/cc94d1513871c552.jpg",
+      "landingUrl": "https://www.flickr.com/photos/compujeramey/3121120564/",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Jeramey Jannene",
+      "title": "Moving Again",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.25368732,
+        "xMax": 0.6578171,
+        "yMin": 0.17920354,
+        "yMax": 0.5707965
+      },
+      "selectionArea": 0.158254
+    },
+    {
+      "id": "45d25f290b3eff63",
+      "sha256": "755774354bf51319b2d2ead3a1d1c8946f29217710daa14af9553528480f9453",
+      "className": "Chair",
+      "labelMid": "/m/01mzpv",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/45d25f290b3eff63.jpg",
+      "landingUrl": "https://www.flickr.com/photos/jeffschwartz/47871000",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Jeffrey Schwartz",
+      "title": "work (chair)",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.12083333,
+        "xMax": 0.875,
+        "yMin": 0.1890625,
+        "yMax": 0.8890625
+      },
+      "selectionArea": 0.527917
+    },
+    {
+      "id": "7ab810236c12cb51",
+      "sha256": "2964914c6b52e2fdea658220cd34d53e5800556835a96abdf18e34dd8e198110",
+      "className": "Chair",
+      "labelMid": "/m/01mzpv",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/7ab810236c12cb51.jpg",
+      "landingUrl": "https://www.flickr.com/photos/vinofamily/4095412264",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Fabio Ingrosso",
+      "title": "Immagini della linea di sedie &quot;Le sedie del Torchio&quot;",
+      "rotation": "",
+      "expectedBox": {
+        "xMin": 0.0867347,
+        "xMax": 0.8214286,
+        "yMin": 0.0775,
+        "yMax": 0.95
+      },
+      "selectionArea": 0.64102
+    },
+    {
+      "id": "b499182ee39701e0",
+      "sha256": "defe28e786a8fa7d5b13595e4703d17d5df2e04c2edb5f9e557173fe99dfe348",
+      "className": "Chair",
+      "labelMid": "/m/01mzpv",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/b499182ee39701e0.jpg",
+      "landingUrl": "https://www.flickr.com/photos/moto_club4ag/5382050645",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Moto &quot;Club4AG&quot; Miwa",
+      "title": "A section of Mizuya Tansu used as end stand",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.70310193,
+        "xMax": 1.0,
+        "yMin": 0.34216335,
+        "yMax": 0.9072848
+      },
+      "selectionArea": 0.167783
+    },
+    {
+      "id": "50c0057044d205ff",
+      "sha256": "65deb47bb03ac6c7d665ed4addb50446d54572833d52d8eac8a8e2c7450ca4ac",
+      "className": "Bottle",
+      "labelMid": "/m/04dr76w",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/50c0057044d205ff.jpg",
+      "landingUrl": "https://www.flickr.com/photos/pavdw/16219970947",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Paul VanDerWerf",
+      "title": "Black Velvet Trio",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.09386282,
+        "xMax": 0.33393502,
+        "yMin": 0.12635379,
+        "yMax": 0.92960286
+      },
+      "selectionArea": 0.192838
+    },
+    {
+      "id": "03abc39ad2c14097",
+      "sha256": "5415c4f4b3519b38110cc42398ebaa262c7b904933f26aa2355e59c7e17ded7b",
+      "className": "Bottle",
+      "labelMid": "/m/04dr76w",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/03abc39ad2c14097.jpg",
+      "landingUrl": "https://www.flickr.com/photos/gtzecosan/5546714555",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "SuSanA Secretariat",
+      "title": "Wastewater samples before and after treatment in a VFB",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.061965812,
+        "xMax": 0.48076922,
+        "yMin": 0.03664122,
+        "yMax": 0.9832061
+      },
+      "selectionArea": 0.396425
+    },
+    {
+      "id": "9bd3e32a2337f9bc",
+      "sha256": "3aa7dd268de906d79bb21050f5212686147ea4dc9d41f6113a055288ea3c72e7",
+      "className": "Bottle",
+      "labelMid": "/m/04dr76w",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/9bd3e32a2337f9bc.jpg",
+      "landingUrl": "https://www.flickr.com/photos/feelingmyage/14956869955",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Feeling My Age",
+      "title": "#idiot #snail #milkbottle thinks: &quot;hmm... I'll just clamber in here for a nice snooze&quot;",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.25631768,
+        "xMax": 0.74187726,
+        "yMin": 0.032490976,
+        "yMax": 0.9620939
+      },
+      "selectionArea": 0.451378
+    }
+  ],
+  "results": {
+    "imagesProcessed": 30,
+    "imagesWithExpectedDetection": 28,
+    "expectedBoxes": 30,
+    "matchedAtIou50": 25,
+    "invalidBoxes": 0,
+    "liveTier1Count": 0,
+    "medianInferenceMs": 20.7086,
+    "p95InferenceMs": 25.1608
+  },
+  "perFixture": [
+    {
+      "id": "45fd09ada78c507d",
+      "expectedClass": "Person",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.46645256,
+      "inferenceMs": 25.1608,
+      "imageSha256": "f7210028993c16f28c751f4bc573a6dbcf576cea69fc05e847cc9150c2f96e85",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "person",
+          "score": 0.73828125,
+          "box": {
+            "xmin": 0.01367188,
+            "ymin": 0.09180791,
+            "xmax": 0.984375,
+            "ymax": 0.80367232
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "d65d7e3d4d350b82",
+      "expectedClass": "Person",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.7950913,
+      "inferenceMs": 23.2923,
+      "imageSha256": "4b1bb5c62b60b229fa2dd89d06ac85ecb18a4ab95bc765ed2020f9915b601386",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "person",
+          "score": 0.546875,
+          "box": {
+            "xmin": 0.625,
+            "ymin": 0.08072917,
+            "xmax": 0.83300781,
+            "ymax": 0.87890625
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "4c305b01b7b39337",
+      "expectedClass": "Person",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.9188934,
+      "inferenceMs": 19.8024,
+      "imageSha256": "952fd2e4833ad25a88f5e125e87bc491f6805bd2a6778638328cabd5ccffbb73",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "person",
+          "score": 0.91796875,
+          "box": {
+            "xmin": 0.23339844,
+            "ymin": 0.11420205,
+            "xmax": 0.68261719,
+            "ymax": 0.74816984
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "skateboard",
+          "score": 0.83203125,
+          "box": {
+            "xmin": 0.55175781,
+            "ymin": 0.54612006,
+            "xmax": 0.70117188,
+            "ymax": 0.77013177
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "3c9dff5ae2047b8f",
+      "expectedClass": "Dog",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.84489234,
+      "inferenceMs": 20.1826,
+      "imageSha256": "c51b1d2ca1d9263a78d2414375484098a870ee624dd3776e720b0a3d0d8a2bac",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "dog",
+          "score": 0.75390625,
+          "box": {
+            "xmin": 0.03357664,
+            "ymin": 0.25585938,
+            "xmax": 0.84817518,
+            "ymax": 0.96875
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "car",
+          "score": 0.28125,
+          "box": {
+            "xmin": 0.11094891,
+            "ymin": 0.31347656,
+            "xmax": 0.2919708,
+            "ymax": 0.46289062
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "aa7a920e45dfaf0a",
+      "expectedClass": "Dog",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.9171044,
+      "inferenceMs": 21.6756,
+      "imageSha256": "ac3b9c788ea1763089aa3d4ee3e397a2c9a983a7641ee48cf609f0bc7b9323ff",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "dog",
+          "score": 0.84375,
+          "box": {
+            "xmin": 0.26367188,
+            "ymin": 0.22401171,
+            "xmax": 0.99121094,
+            "ymax": 0.85944363
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "5c4ed6811cedd1c4",
+      "expectedClass": "Dog",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.90508759,
+      "inferenceMs": 21.3477,
+      "imageSha256": "0181d05134f05cec1bb01e702702f518a1f94ce038863f557a072a2a755854e4",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "dog",
+          "score": 0.8671875,
+          "box": {
+            "xmin": 0.36035156,
+            "ymin": 0.05208333,
+            "xmax": 0.87402344,
+            "ymax": 0.98697917
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "person",
+          "score": 0.5,
+          "box": {
+            "xmin": 0.32617188,
+            "ymin": 0.0,
+            "xmax": 0.7578125,
+            "ymax": 0.29947917
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "446924d9efea3ada",
+      "expectedClass": "Cat",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.93110223,
+      "inferenceMs": 26.8977,
+      "imageSha256": "cee5b1a02393f49e7b07acb5890c98c2a333cecc3d835fe036a2c05060c8523a",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "cat",
+          "score": 0.85546875,
+          "box": {
+            "xmin": 0.5546875,
+            "ymin": 0.23172243,
+            "xmax": 0.91796875,
+            "ymax": 0.91697646
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "cat",
+          "score": 0.76953125,
+          "box": {
+            "xmin": 0.03320312,
+            "ymin": 0.11895911,
+            "xmax": 0.53613281,
+            "ymax": 0.77942999
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "44221f31a243f493",
+      "expectedClass": "Cat",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.93929394,
+      "inferenceMs": 21.2115,
+      "imageSha256": "3e408b44ec41d149ace9a5aa88efc7346377a7bd10f79b24c046f3ad22c08cb1",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "cat",
+          "score": 0.8671875,
+          "box": {
+            "xmin": 0.23307292,
+            "ymin": 0.15722656,
+            "xmax": 0.82161458,
+            "ymax": 0.8984375
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "a555d218a3e96740",
+      "expectedClass": "Cat",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.84202252,
+      "inferenceMs": 20.0191,
+      "imageSha256": "40f5b16366801c9ba89ca9add605b496f66ade7973bcfab60935702149b35c5f",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "cat",
+          "score": 0.61328125,
+          "box": {
+            "xmin": 0.25976562,
+            "ymin": 0.13932292,
+            "xmax": 0.65136719,
+            "ymax": 0.93880208
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "b86e8a8cdd9f9418",
+      "expectedClass": "Car",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.93691767,
+      "inferenceMs": 20.1135,
+      "imageSha256": "eb46ad41fb4e4df09d9e4861ca230f0897661cd0f4f9218a223192393e57fa34",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "car",
+          "score": 0.61328125,
+          "box": {
+            "xmin": 0.23535156,
+            "ymin": 0.31378299,
+            "xmax": 0.79101562,
+            "ymax": 0.74486804
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "truck",
+          "score": 0.34375,
+          "box": {
+            "xmin": 0.921875,
+            "ymin": 0.21994135,
+            "xmax": 0.99121094,
+            "ymax": 0.49706745
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "person",
+          "score": 0.28125,
+          "box": {
+            "xmin": 0.58496094,
+            "ymin": 0.40322581,
+            "xmax": 0.640625,
+            "ymax": 0.46774194
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "a40d359d2a8b9229",
+      "expectedClass": "Car",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.82748893,
+      "inferenceMs": 20.3444,
+      "imageSha256": "5b082a67379a2276f23b4d63d6820e3f7d38a84824c5ac729f47b8d1ccc24fa9",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "car",
+          "score": 0.7890625,
+          "box": {
+            "xmin": 0.14648438,
+            "ymin": 0.38325991,
+            "xmax": 0.90136719,
+            "ymax": 0.85756241
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "9498d0aff8f9ff8c",
+      "expectedClass": "Car",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.90173811,
+      "inferenceMs": 20.7162,
+      "imageSha256": "6b02f17930d720fc6033888beb92cd045d5339681e26b82a5a3a537ce48823d3",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "car",
+          "score": 0.80078125,
+          "box": {
+            "xmin": 0.01367188,
+            "ymin": 0.28380634,
+            "xmax": 0.984375,
+            "ymax": 0.81803005
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "stop sign",
+          "score": 0.26171875,
+          "box": {
+            "xmin": 0.81835938,
+            "ymin": 0.48080134,
+            "xmax": 0.89746094,
+            "ymax": 0.58096828
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "0792f8e4934b5cc0",
+      "expectedClass": "Bicycle",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.94429367,
+      "inferenceMs": 22.1732,
+      "imageSha256": "202775278e68a55633585f1c133954e16a610d486f52c92b13f0a23a366877e4",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "bicycle",
+          "score": 0.83203125,
+          "box": {
+            "xmin": 0.02441406,
+            "ymin": 0.22851562,
+            "xmax": 0.88769531,
+            "ymax": 0.91503906
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "a52d7879d01b7465",
+      "expectedClass": "Bicycle",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.76365398,
+      "inferenceMs": 21.1597,
+      "imageSha256": "ba65b197b62465954273426d1b9de87f841b863cd451e3e51b0504329b4a5acc",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "person",
+          "score": 0.85546875,
+          "box": {
+            "xmin": 0.36456808,
+            "ymin": 0.12792969,
+            "xmax": 0.87847731,
+            "ymax": 0.66113281
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "person",
+          "score": 0.69921875,
+          "box": {
+            "xmin": 0.84187408,
+            "ymin": 0.13183594,
+            "xmax": 0.9795022,
+            "ymax": 0.44335938
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "bicycle",
+          "score": 0.63671875,
+          "box": {
+            "xmin": 0.4465593,
+            "ymin": 0.43359375,
+            "xmax": 0.87701318,
+            "ymax": 0.96875
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "bicycle",
+          "score": 0.26171875,
+          "box": {
+            "xmin": 0.00732064,
+            "ymin": 0.44628906,
+            "xmax": 0.28989751,
+            "ymax": 0.61425781
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "596536756964ecc1",
+      "expectedClass": "Bicycle",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.89055071,
+      "inferenceMs": 20.5208,
+      "imageSha256": "8182a0e79b85d561d244194d35537ed71a473967b98a24910b1c8ece7f2a0939",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "bicycle",
+          "score": 0.69921875,
+          "box": {
+            "xmin": 0.15234375,
+            "ymin": 0.06782609,
+            "xmax": 0.70800781,
+            "ymax": 0.79304348
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "c2ef45a1def60b10",
+      "expectedClass": "Bird",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.94752027,
+      "inferenceMs": 19.5443,
+      "imageSha256": "aa541530f2f55442196a07b62a9fa09c1740dc1e7e654880b9ad351348950f4a",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "bird",
+          "score": 0.90234375,
+          "box": {
+            "xmin": 0.20214844,
+            "ymin": 0.284041,
+            "xmax": 0.67773438,
+            "ymax": 0.94289898
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "5ea027bcc59ed9d0",
+      "expectedClass": "Bird",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.88230404,
+      "inferenceMs": 21.7032,
+      "imageSha256": "194a02b3d50de03659b26c89375af714b80f9f5a5987dae00011ff51e457d5c8",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "bird",
+          "score": 0.84375,
+          "box": {
+            "xmin": 0.06152344,
+            "ymin": 0.26302083,
+            "xmax": 0.70996094,
+            "ymax": 0.98958333
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "1aa6fde219456389",
+      "expectedClass": "Bird",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.89673715,
+      "inferenceMs": 19.706,
+      "imageSha256": "7795ea16b36a70a2fff55396cbc8490b6ea2c3faff316955afdb512983cc6d78",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "bird",
+          "score": 0.8671875,
+          "box": {
+            "xmin": 0.38671875,
+            "ymin": 0.2022792,
+            "xmax": 0.94238281,
+            "ymax": 0.88746439
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "64b9dbca8f5c9269",
+      "expectedClass": "Horse",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.96344905,
+      "inferenceMs": 20.2185,
+      "imageSha256": "173e0f97bd5271852722d879f3fb917068f6de31e8bdd706e336344e5e6a8df4",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "horse",
+          "score": 0.90234375,
+          "box": {
+            "xmin": 0.30371094,
+            "ymin": 0.16446402,
+            "xmax": 0.63378906,
+            "ymax": 0.9339207
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "person",
+          "score": 0.4296875,
+          "box": {
+            "xmin": 0.42871094,
+            "ymin": 0.13656388,
+            "xmax": 0.61425781,
+            "ymax": 0.55947137
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "person",
+          "score": 0.28125,
+          "box": {
+            "xmin": 0.71484375,
+            "ymin": 0.57562408,
+            "xmax": 0.75488281,
+            "ymax": 0.6886931
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "ee38f9fdcc1e2cab",
+      "expectedClass": "Horse",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.85531033,
+      "inferenceMs": 19.4673,
+      "imageSha256": "c716a34122fadbe2aeea4ec3ae6b99e7ac0ea6b406dc5e8df1b0b4c8afbe76fc",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "horse",
+          "score": 0.89453125,
+          "box": {
+            "xmin": 0.32291667,
+            "ymin": 0.31510417,
+            "xmax": 0.8671875,
+            "ymax": 0.83854167
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "person",
+          "score": 0.69921875,
+          "box": {
+            "xmin": 0.50651042,
+            "ymin": 0.13932292,
+            "xmax": 0.66796875,
+            "ymax": 0.58723958
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "335197067b30029e",
+      "expectedClass": "Horse",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.70552124,
+      "inferenceMs": 20.7011,
+      "imageSha256": "47ecf0ed19c9868a8b5f4c29d73ef4989c43b8072e3a9dabb9bda37c448e4bfd",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "cow",
+          "score": 0.83203125,
+          "box": {
+            "xmin": 0.05664062,
+            "ymin": 0.55309735,
+            "xmax": 0.42675781,
+            "ymax": 0.94542773
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "horse",
+          "score": 0.71875,
+          "box": {
+            "xmin": 0.40820312,
+            "ymin": 0.35988201,
+            "xmax": 0.71972656,
+            "ymax": 0.76696165
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "person",
+          "score": 0.546875,
+          "box": {
+            "xmin": 0.49902344,
+            "ymin": 0.28318584,
+            "xmax": 0.63769531,
+            "ymax": 0.63864307
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "person",
+          "score": 0.5234375,
+          "box": {
+            "xmin": 0.63964844,
+            "ymin": 0.33333333,
+            "xmax": 0.703125,
+            "ymax": 0.47345133
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "person",
+          "score": 0.4296875,
+          "box": {
+            "xmin": 0.45214844,
+            "ymin": 0.27876106,
+            "xmax": 0.515625,
+            "ymax": 0.40855457
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "person",
+          "score": 0.38671875,
+          "box": {
+            "xmin": 0.859375,
+            "ymin": 0.36430678,
+            "xmax": 0.921875,
+            "ymax": 0.47787611
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "d957035fd4b234d8",
+      "expectedClass": "Bus",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.97467024,
+      "inferenceMs": 19.9357,
+      "imageSha256": "85ae11fac9f0f2773a32f0c653388c68551227b4a44674b5d47ec3d2d78999a2",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "bus",
+          "score": 0.93359375,
+          "box": {
+            "xmin": 0.10742188,
+            "ymin": 0.12630208,
+            "xmax": 0.86328125,
+            "ymax": 0.8125
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "person",
+          "score": 0.76953125,
+          "box": {
+            "xmin": 0.84765625,
+            "ymin": 0.39583333,
+            "xmax": 0.91699219,
+            "ymax": 0.60677083
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "bus",
+          "score": 0.65625,
+          "box": {
+            "xmin": 0.00585938,
+            "ymin": 0.20182292,
+            "xmax": 0.21289062,
+            "ymax": 0.5859375
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "person",
+          "score": 0.61328125,
+          "box": {
+            "xmin": 0.93066406,
+            "ymin": 0.41536458,
+            "xmax": 0.99804688,
+            "ymax": 0.65625
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "71df72bf0f7b67ca",
+      "expectedClass": "Bus",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.95570395,
+      "inferenceMs": 20.1084,
+      "imageSha256": "e0a45959a7473e50233cf72abcf10304fa4f80f042b1090ba3915af50e639ead",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "bus",
+          "score": 0.92578125,
+          "box": {
+            "xmin": 0.04980469,
+            "ymin": 0.25097656,
+            "xmax": 0.94921875,
+            "ymax": 0.84960938
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "cc94d1513871c552",
+      "expectedClass": "Bus",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.85128744,
+      "inferenceMs": 22.2853,
+      "imageSha256": "1af67eeae01ff7a4be9f62fbe121aa9627117b588e041397b5f322dad999edc5",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "bus",
+          "score": 0.61328125,
+          "box": {
+            "xmin": 0.24902344,
+            "ymin": 0.22547584,
+            "xmax": 0.6640625,
+            "ymax": 0.57540264
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "car",
+          "score": 0.5703125,
+          "box": {
+            "xmin": 0.67578125,
+            "ymin": 0.38653001,
+            "xmax": 0.99902344,
+            "ymax": 0.57393851
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "car",
+          "score": 0.26171875,
+          "box": {
+            "xmin": 0.21484375,
+            "ymin": 0.38213763,
+            "xmax": 0.24902344,
+            "ymax": 0.40409956
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "45d25f290b3eff63",
+      "expectedClass": "Chair",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.94951141,
+      "inferenceMs": 20.921,
+      "imageSha256": "755774354bf51319b2d2ead3a1d1c8946f29217710daa14af9553528480f9453",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "chair",
+          "score": 0.83203125,
+          "box": {
+            "xmin": 0.12109375,
+            "ymin": 0.20019531,
+            "xmax": 0.87630208,
+            "ymax": 0.91308594
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "7ab810236c12cb51",
+      "expectedClass": "Chair",
+      "expectedLabelDetected": false,
+      "maxExpectedLabelIou": 0.0,
+      "inferenceMs": 21.019,
+      "imageSha256": "2964914c6b52e2fdea658220cd34d53e5800556835a96abdf18e34dd8e198110",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "person",
+          "score": 0.65625,
+          "box": {
+            "xmin": 0.27191235,
+            "ymin": 0.1875,
+            "xmax": 0.91932271,
+            "ymax": 0.83496094
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "skateboard",
+          "score": 0.4296875,
+          "box": {
+            "xmin": 0.16633466,
+            "ymin": 0.82421875,
+            "xmax": 0.37350598,
+            "ymax": 0.91699219
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "b499182ee39701e0",
+      "expectedClass": "Chair",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.88107714,
+      "inferenceMs": 20.8921,
+      "imageSha256": "defe28e786a8fa7d5b13595e4703d17d5df2e04c2edb5f9e557173fe99dfe348",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "chair",
+          "score": 0.73828125,
+          "box": {
+            "xmin": 0.71289062,
+            "ymin": 0.34890511,
+            "xmax": 0.984375,
+            "ymax": 0.89343066
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "potted plant",
+          "score": 0.61328125,
+          "box": {
+            "xmin": 0.34765625,
+            "ymin": 0.23649635,
+            "xmax": 0.56347656,
+            "ymax": 0.49343066
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "vase",
+          "score": 0.453125,
+          "box": {
+            "xmin": 0.45214844,
+            "ymin": 0.38540146,
+            "xmax": 0.50683594,
+            "ymax": 0.49489051
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "50c0057044d205ff",
+      "expectedClass": "Bottle",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.0,
+      "inferenceMs": 21.0271,
+      "imageSha256": "65deb47bb03ac6c7d665ed4addb50446d54572833d52d8eac8a8e2c7450ca4ac",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "vase",
+          "score": 0.71875,
+          "box": {
+            "xmin": 0.09375,
+            "ymin": 0.15136719,
+            "xmax": 0.32714844,
+            "ymax": 0.92089844
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "bottle",
+          "score": 0.61328125,
+          "box": {
+            "xmin": 0.69140625,
+            "ymin": 0.12890625,
+            "xmax": 0.9296875,
+            "ymax": 0.94335938
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "vase",
+          "score": 0.5703125,
+          "box": {
+            "xmin": 0.38964844,
+            "ymin": 0.14453125,
+            "xmax": 0.61914062,
+            "ymax": 0.92871094
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "dining table",
+          "score": 0.3203125,
+          "box": {
+            "xmin": 0.0,
+            "ymin": 0.13378906,
+            "xmax": 1.0,
+            "ymax": 0.97949219
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "03abc39ad2c14097",
+      "expectedClass": "Bottle",
+      "expectedLabelDetected": true,
+      "maxExpectedLabelIou": 0.0,
+      "inferenceMs": 20.6388,
+      "imageSha256": "5415c4f4b3519b38110cc42398ebaa262c7b904933f26aa2355e59c7e17ded7b",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "fire hydrant",
+          "score": 0.5703125,
+          "box": {
+            "xmin": 0.04638472,
+            "ymin": 0.02246094,
+            "xmax": 0.47066849,
+            "ymax": 0.97558594
+          },
+          "tier": null,
+          "source": "evaluation"
+        },
+        {
+          "label": "bottle",
+          "score": 0.4296875,
+          "box": {
+            "xmin": 0.49931787,
+            "ymin": 0.01660156,
+            "xmax": 0.93042292,
+            "ymax": 0.95019531
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    },
+    {
+      "id": "9bd3e32a2337f9bc",
+      "expectedClass": "Bottle",
+      "expectedLabelDetected": false,
+      "maxExpectedLabelIou": 0.0,
+      "inferenceMs": 19.9999,
+      "imageSha256": "3aa7dd268de906d79bb21050f5212686147ea4dc9d41f6113a055288ea3c72e7",
+      "invalidDetectionCount": 0,
+      "detections": [
+        {
+          "label": "vase",
+          "score": 0.7890625,
+          "box": {
+            "xmin": 0.265625,
+            "ymin": 0.03222656,
+            "xmax": 0.73242188,
+            "ymax": 0.96582031
+          },
+          "tier": null,
+          "source": "evaluation"
+        }
+      ]
+    }
+  ]
+}

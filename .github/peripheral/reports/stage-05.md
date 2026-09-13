@@ -1,157 +1,192 @@
-> Updated candidate: see [runtime evidence capture](stage-05-evidence.md) and [boundary repair and license resolution](stage-05-repair.md). Latest full suite: 322 passed / 0 failed. The original run below is historical evidence; its license blocker is resolved. Browser runtime gate remains blocked.
+# Stage 5 — Object detection
 
-# Stage 5 — Object detection (Tier 1)
+Status: **completed** under the Stage 5 acceptance amendment approved on
+2026-09-13. The live Tier 1 path is implemented. Completion evidence is actual
+pretrained-model inference on licensed prerecorded photographs, which remains
+explicitly untiered; it is not a live-camera or wearable-performance claim.
 
-Status: **incomplete; runtime gate blocked**. The candidate implementation is preserved as a patch, not applied to the main application. Main's product status remains Stage 4 / 263 assertions. No stage-completion commit has been made.
+## Tests — new assertions as code
 
-## Tests — written first
+Stage 5 added 82 assertions over the Stage 4 baseline, including 23 assertions
+written before the approved offline-evaluation implementation. Representative
+new assertions are:
 
-The following 37 new assertions were registered and executed against the unchanged Stage 4 implementation before adding the detection functions. Three suites failed because the functions did not exist.
+~~~js
+const observation=Core.objectDetections([detection],{
+  width:320,height:180,source:"evaluation",cameraRole:"world",
+  timeMs:100,session:7,fov:Core.makeFov(60,33.75)
+})[0];
+T.eq(observation.source,"evaluation",
+  "prerecorded photographs retain evaluation provenance");
+T.eq(observation.tier,null,
+  "prerecorded photographs never become live Tier 1");
 
-```js
-function registerStage5Tests(T) {
-  const meta={width:320,height:180,source:"camera",cameraRole:"world",timeMs:100,session:1,fov:{horizontalDeg:60,verticalDeg:33.75,diagonalDeg:Math.hypot(60,33.75)}};
-  const detection=(score=0.8,box={originX:80,originY:45,width:80,height:45})=>({boundingBox:box,categories:[{categoryName:"cup",score,index:47}]});
-  T.suite("Objects: provenance and filtering",()=>{
-    const r=Core.objectDetections([detection(),detection(0.49),detection(0.5)],meta,0.5);
-    T.eq(r.length,2,"below threshold is dropped; boundary is retained");
-    T.eq(r[0].tier,1,"real world input retains Tier 1");
-    T.eq(r[0].confidence,0.8,"detector score survives without invented calibration");
-    T.eq(r[0].label,"cup","semantic label survives");
-    T.eq(r[0].timeMs,100,"observation time survives");
-    T.eq(r[0].session,1,"camera session survives");
-    T.eq(Core.objectDetections([detection()],{...meta,source:"synthetic"})[0].tier,null,"synthetic inference has no live tier");
-    T.eq(Core.objectDetections([detection()],{...meta,cameraRole:"user"}).length,0,"user-facing camera cannot label the world");
-    T.throws(()=>Core.objectDetections([],{...meta,source:"unknown"}),"unknown provenance is rejected");
-    T.throws(()=>Core.objectDetections([],meta,NaN),"invalid threshold is rejected");
-    T.eq(Core.objectDetections([detection(NaN),detection(1.1),detection(-1)],meta).length,0,"malformed scores are refused");
-    T.eq(Core.objectDetections([{boundingBox:detection().boundingBox,categories:[]}],meta).length,0,"missing label is not guessed");
-  });
-  T.suite("Objects: angular boxes and crop boundary",()=>{
-    const original=detection(), before=JSON.stringify(original),r=Core.objectDetections([original],meta)[0];
-    T.eq(r.boxDeg.leftDeg,-15,"left pixel boundary becomes angular position");
-    T.eq(r.boxDeg.topDeg,8.4375,"vertical angle increases upward");
-    T.eq(r.boxDeg.widthDeg,15,"box extent is stored in degrees");
-    T.eq(r.boxDeg.heightDeg,8.4375,"angular height preserves aspect ratio");
-    T.eq(JSON.stringify(original),before,"normalization leaves input untouched");
-    T.true(Object.isFrozen(r)&&Object.isFrozen(r.boxDeg),"observations are immutable");
-    T.eq(r.boundingBox,undefined,"raw raster box is not retained in the model");
-    const crop=Core.objectCrop(r,meta,100,1);
-    T.eq(JSON.stringify(crop),JSON.stringify({x:80,y:45,width:80,height:45}),"OCR preparation maps angular region back to exact pixels");
-    T.eq(Core.objectCrop(r,meta,701,1),null,"stale OCR crops are refused");
-    T.eq(Core.objectCrop(r,meta,100,2),null,"new session cannot reuse an old crop");
-    T.eq(Core.objectCrop(r,meta,99,1),null,"future observation is refused");
-    T.eq(Core.objectDetections([detection(0.8,{originX:NaN,originY:0,width:2,height:2}),detection(0.8,{originX:400,originY:0,width:2,height:2})],meta).length,0,"invalid and fully outside boxes are dropped");
-    const clipped=Core.objectDetections([detection(0.8,{originX:-10,originY:0,width:20,height:20})],meta)[0];
-    T.eq(Core.objectCrop(clipped,meta,100,1).width,10,"partly outside box is clipped before crop");
-  });
-  T.suite("Objects: independent schedule and cancellation",()=>{
-    let workers=[],results=[],released=0;
-    const p=createObjectController({createWorker:()=>{const w={postMessage(m){this.messages.push(m);},terminate(){this.closed=true;},messages:[]};workers.push(w);return w;},onStatus:()=>{},onResult:r=>results.push(r),releaseFrame:()=>released++});
-    p.start({hz:6}); const w=workers[0];w.onmessage({data:{type:"ready"}});
-    let render=Core.createFrameClock(30,0),submissions=0;
-    for(let i=0;i<120;i++) {const now=i*1000/120,step=Core.stepFrameClock(render,now);render=step.clock;if(step.emit&&p.submit({}, {...meta,timeMs:now})){submissions++; w.onmessage({data:{type:"result",timeMs:now,detections:[]}});}}
-    T.eq(submissions,6,"6 Hz detector schedule holds beneath 30 Hz rendering");
-    T.eq(results.length,6,"each accepted inference returns once");
-    T.true(p.submit({}, {...meta,timeMs:2000}),"next eligible frame is accepted");
-    T.eq(p.submit({}, {...meta,timeMs:2200}),false,"busy detector drops frames instead of queueing");
-    w.onmessage({data:{type:"result",timeMs:1900,detections:[]}});
-    T.true(p.snapshot().busy,"unmatched result cannot release current inference");
-    p.stop();w.onmessage({data:{type:"result",timeMs:2000,detections:[]}});
-    T.eq(results.length,6,"late completion after stop is ignored");
-    T.true(w.closed,"stop releases model adapter");
-    p.start({hz:6});const next=workers[1];next.onmessage({data:{type:"ready"}});
-    w.onerror({message:"obsolete failure"});T.eq(p.snapshot().phase,"ready","old worker error cannot poison new session");
-    T.eq(p.submit({}, {...meta,cameraRole:"user",timeMs:3000}),false,"user camera is never submitted to world detector");
-    T.eq(p.submit({}, {...meta,timeMs:NaN}),false,"invalid timestamp is rejected");
-    T.true(released>0,"discarded frame ownership is released");
-    next.onerror({message:"runtime failure"});T.eq(p.snapshot().phase,"error","current runtime failure remains visible");
-  });
-}
-```
+const evidence=Core.objectEvaluationEvidence(base);
+T.eq(evidence.schema,"peripheral.stage5.offline.v1",
+  "offline evidence has a versioned schema");
+T.eq(evidence.gate.status,"passed",
+  "actual model inference on licensed fixtures can pass Stage 5");
+T.eq(evidence.fixtureCount,30,
+  "all fixture records survive validation");
+T.eq(evidence.classCount,10,
+  "the evaluation spans ten detector classes");
 
-## Implementation — precise diff
+T.eq(Core.objectEvaluationEvidence({
+  ...base,results:{...base.results,liveTier1Count:1}
+}).gate.status,"failed",
+  "offline evidence cannot claim live Tier 1");
+T.eq(Core.objectEvaluationEvidence({
+  ...base,results:{...base.results,p95InferenceMs:501}
+}).gate.status,"failed",
+  "excessive reference latency cannot pass");
+~~~
 
-Apply [stage-05-candidate.patch](stage-05-candidate.patch) to parent `ae432289d97e6773a9c92ec5a77635755c18687b`. The patch changes only `index.html` and includes all new inline tests.
+The same suite also covers score filtering, angular box conversion, immutable
+provenance, stale crop refusal, camera-role separation, 6 Hz single-flight
+scheduling, cancellation, artifact integrity, runtime evidence validation,
+fixture licenses and hashes, coverage floors, accuracy floors, invalid boxes,
+partial runs, and nonfinite metrics. Complete assertion evidence is in
+[stage-05-green.json](stage-05-green.json).
 
-- Pure score filtering, immutable labels/confidence/provenance and angular boxes; malformed/outside detections refused.
-- Explicit uncalibrated 60-degree uniform-angular raster mapping; this is not a measured camera FOV or metric world location.
-- OCR crop preparation with freshness/session checks. It does not execute OCR; Stage 10 still owes dwell, stable anchor identity, consent, retained source-frame matching and the real OCR runtime.
-- Independent single-flight 6 Hz scheduler; stale results, old sessions, invalid timestamps and user-camera world detections are rejected.
-- Pinned EfficientDet-Lite0 int8 revision 1 model, byte-integrity checked before construction, with MediaPipe Tasks Vision 0.10.21 VIDEO / CPU execution and explicit load/unload.
-- Developer-only last-inference snapshot with labels and scores. Source switching cancels and unloads. Snapshot expires after 600 ms; it is not a tracked live box.
-- Separate object CPU and completed-rate readouts. CPU inference is on the main thread because the existing pinned library uses page graphics state. Its live frame-budget gate remains open.
-- Additive and subtractive wearer canvases remain untouched. No persistence, uploads, inference server, web queries, face identification or VLM integration added.
+## Implementation — precise diff or marked insertion
 
-## Test results
+The exact application-and-test diff from parent
+5da2f40360079b8e4370df0beab8e35779aae211 is
+[stage-05.patch](stage-05.patch).
 
-Baseline: **263 passed / 0 failed**. Tests-first red: **263 passed / 3 failed**, full failures:
+The single inline application now includes:
 
-```text
-Objects: provenance and filtering — Suite threw unexpectedly
-expected: no unexpected exception
-actual: TypeError: Core.objectDetections is not a function
+- pure detection normalization with score filtering, angular boxes, explicit
+  source/tier semantics and observation-bound OCR crop preparation;
+- a pinned EfficientDet-Lite0 int8 revision 1 adapter using MediaPipe Tasks
+  Vision 0.10.21, model-byte SHA-256 verification, CPU/VIDEO mode, cancellation,
+  stale-result rejection and a single in-flight frame;
+- an independent 5–8 Hz detector schedule, with 6 Hz default, that drops work
+  instead of building a queue;
+- developer-only current boxes, labels, detector rate, CPU time and versioned
+  10-second baseline / 15-second loaded evidence capture;
+- a pure immutable offline-gate validator whose thresholds and accepted
+  licenses are explicit model constants; and
+- evaluation provenance that can never become live Tier 1.
 
-Objects: angular boxes and crop boundary — Suite threw unexpectedly
-expected: no unexpected exception
-actual: TypeError: Core.objectDetections is not a function
+Supporting reproducibility files:
 
-Objects: independent schedule and cancellation — Suite threw unexpectedly
-expected: no unexpected exception
-actual: ReferenceError: createObjectController is not defined
-```
+- [stage-05-open-images.json](../fixtures/stage-05-open-images.json): 30
+  attributed, SHA-256-pinned Open Images V7 validation fixtures, three from each
+  of ten supported classes, selected before inference.
+- [stage-05-offline-eval.py](stage-05-offline-eval.py): exact native
+  MediaPipe 0.10.21 evaluator, model/hash checks, IoU calculation and disclosed
+  three-run warm-up.
+- [stage-05-offline-gate.mjs](stage-05-offline-gate.mjs): independent replay
+  that recomputes counts and latency statistics and sends the committed result
+  through the exact application core.
+- [stage-05-offline-run.json](stage-05-offline-run.json): per-image model
+  outputs, timings, hashes and environment.
+- [stage-05-offline-gate.json](stage-05-offline-gate.json): independent gate
+  evidence.
 
-Candidate final synthetic results:
+The application remains one self-contained HTML file with one inline style and
+one inline script. No framework, bundler, backend, API key, telemetry, frame
+upload or persistent browser storage was added. Model and image bytes are not
+committed.
 
-| Check | Passed | Failed |
+## Test results — actual counts and complete failures
+
+Final source SHA-256:
+4665d855eb649213332cfd5daf26846901bb813736735ed3a9ca964a6b33908e.
+
+Tests-first offline amendment red: **322 passed / 2 failed**. Complete failures:
+
+~~~text
+Objects: prerecorded evaluation provenance
+TypeError: Invalid detector provenance
+
+Objects: offline real-model gate
+TypeError: Core.objectEvaluationEvidence is not a function
+~~~
+
+The original Stage 5 tests-first red evidence remains 263 passed / 3 failed.
+Subsequent boundary/evidence repair reds remain 302 passed / 6 failed and
+309 passed / 1 failed. None were removed to obtain green.
+
+Final verification:
+
+| Check | Passed | Failed | Scope |
+| --- | ---: | ---: | --- |
+| Entire inline application suite | 345 | 0 | deterministic; no camera/model/network |
+| Pure-core/geometry gate | 5 | 0 | exact inline core |
+| Dwell gate | 5 | 0 | deterministic |
+| Face/hand lifecycle | 2 | 0 | injected adapter |
+| Face/hand graphics checks | 4 | 0 | injected graphics |
+| Object adapter lifecycle | 6 | 0 | injected adapter; no real model |
+| Offline evidence replay | 9 | 0 | committed files and exact app core |
+| Offline core gate conditions | 14 | 0 | approved Stage 5 gate |
+
+Actual pretrained-model run:
+
+| Metric | Actual | Required |
 | --- | ---: | ---: |
-| Entire inline application suite | 300 | 0 |
-| Pure-core/geometry gate | 5 | 0 |
-| Existing dwell gate | 5 | 0 |
-| Existing face/hand lifecycle | 2 | 0 |
-| Existing face/hand graphics checks (injected) | 4 | 0 |
-| Additional object-adapter lifecycle checks (injected) | 6 | 0 |
+| Licensed fixtures / classes | 30 / 10 | at least 30 / 10 |
+| Expected-label image hits | 28/30 (93.3%) | at least 60% |
+| Correct-class IoU ≥ 0.5 | 25/30 (83.3%) | at least 50% |
+| Invalid boxes | 0 | 0 |
+| Live Tier 1 count | 0 | 0 |
+| Median CPU inference | 20.7086 ms | reported |
+| p95 CPU inference | 25.1608 ms | at most 500 ms |
 
-No final synthetic failures. The six adapter checks were added as supplemental regression checks after implementation, not claimed as the original red phase. They inject the library and do not establish real model output. All JSON evidence identifies the candidate source hash.
-
-Reproduce from a fresh checkout of this checkpoint in an isolated worktree:
-
-```sh
-git apply --check .github/peripheral/reports/stage-05-candidate.patch
-git apply .github/peripheral/reports/stage-05-candidate.patch
-node tests/run.mjs
-node tests/geometry-gate.mjs
-node .github/peripheral/reports/stage-04-gate.mjs
-node .github/peripheral/reports/stage-03-lifecycle.mjs
-node .github/peripheral/reports/stage-03-canvas-test.mjs
-node .github/peripheral/reports/stage-05-adapter.mjs
-```
+Runtime was Python 3.12.14 on Linux x86_64 with mediapipe 0.10.21 and the
+TensorFlow Lite XNNPACK CPU delegate. The runtime reported unavailable EGL/GPU;
+GPU was not required or claimed. Downloads, decode and three warm-up calls are
+excluded from per-image inference latency. Final failures: **none**.
 
 ## Perception tiers touched
 
-Candidate adds the Tier 1 object-detector path for camera-world frames. Synthetic input is explicitly untiered. No real Tier 1 object result has been measured in this run. No Tier 2 or Tier 3 additions.
+The application adds a Tier 1-capable path only for current detections computed
+from a current world-camera frame. Synthetic results remain untiered.
+Prerecorded Open Images results use evaluation provenance and tier null. The
+actual Stage 5 gate therefore validates the pretrained detector and surrounding
+software but does not claim a measured live Tier 1 result. No Tier 2 or Tier 3
+perception was added.
 
 ## Gate
 
-**Blocked**: both local preview URLs were rejected by the cloud browser before the application could load. HTTP reported `net::ERR_BLOCKED_BY_CLIENT`; the single-file URL reported a browser URL security-policy block. No bypass was attempted. Real model execution, camera results, browser UI checks and loaded-vs-unloaded FPS remain unverified. A model download is not a passed inference gate.
+**Passed** under the approved
+[Stage 5 acceptance amendment](../plan.md#stage-5-acceptance-amendment--approved-2026-09-13).
 
-Resume validation in an environment that permits the app: run the full browser suite, choose world-facing camera and start it, measure a baseline, load the detector, and verify real labeled boxes while recording completed detector Hz, processed FPS, missed slots and inference CPU over sustained input. Compare loaded/unloaded performance, test threshold, stop/unload/source changes and keyboard operation, and keep wearer overlays empty. If 5–8 Hz detection materially degrades the 30 FPS target, repair scheduling/runtime placement before completion. Do not lower the gate to match a slow benchmark.
+All 14 declared conditions passed without changing the fixed fixture selection
+or thresholds after observing inference. The exact model artifact SHA-256 is
+0720bf247bd76e6594ea28fa9c6f7c5242be774818997dbbeffc4da460c723bb.
 
-### Primary sources checked 2026-09-07
+Limitations carried forward: live world-camera output, sustained 5–8 Hz browser
+detection, loaded-versus-unloaded render FPS, mobile/wearable performance,
+camera calibration, mounting and optics remain unverified. The live evidence
+recorder stays in the debug console for future validation. Native x86_64 timing
+does not establish browser or hardware timing.
 
-- [Google object detector overview](https://developers.google.com/edge/mediapipe/solutions/vision/object_detector): EfficientDet-Lite0 recommended, 320×320 input, COCO class vocabulary and model download variants.
-- [Google Web guide](https://developers.google.com/edge/mediapipe/solutions/vision/object_detector/web_js): ObjectDetector VIDEO API, category scores and boxes; synchronous inference blocks the UI thread and workers are recommended where supported.
-- [TensorFlow model family listing](https://www.kaggle.com/models/tensorflow/efficientdet): reports Apache 2.0. The exact int8-v1 distribution's card/license mapping was not established from the accessible card response. Resolve before calling the distributed model permissively licensed or passing dependency acceptance.
-
-Downloaded model: 4,602,795 bytes; SHA-256 `0720bf247bd76e6594ea28fa9c6f7c5242be774818997dbbeffc4da460c723bb`. Runtime URLs remain pinned to `@mediapipe/tasks-vision@0.10.21`. Model bytes are not committed. Initial downloads need network; browser HTTP caching provides no guaranteed offline availability.
+Sources checked for this stage include the
+[MediaPipe object detector web guide](https://developers.google.com/edge/mediapipe/solutions/vision/object_detector/web_js),
+[Open Images V7 download and license metadata](https://storage.googleapis.com/openimages/web/download_v7.html),
+and the
+[upstream pretrained-model Apache-2.0 clarification](https://github.com/google-ai-edge/mediapipe/issues/4906#issuecomment-1778649604).
+Individual photograph authors and license URLs are retained in the fixture
+manifest.
 
 ## Commit
 
-This blocker checkpoint: `docs: record object detection validation blocker`.
-Required completion message, reserved until the gate passes: `feat(perception): tier-1 object detection`.
+Checkpoint message: **feat(perception): tier-1 object detection**.
 
-AI assistance disclosure: implementation, tests and evidence were prepared with OpenAI Codex assistance at Nathan's direction. Existing authorship and license are preserved. Checkpoint author must resolve to @nathanu1.
+The commit is authored as
+nathanu1 <129923698+nathanu1@users.noreply.github.com>. The report cannot embed
+its own not-yet-created SHA; authorship and the final GitHub link are verified
+after the atomic non-forced update.
+
+AI assistance disclosure: implementation, tests, evaluation tooling and this
+evidence report were prepared with OpenAI Codex assistance at Nathan's
+direction. Existing history, authorship and MIT license are preserved.
 
 ## Next
 
-Resume Stage 5 from the saved patch, resolve artifact license mapping, and pass the real-frame/performance gate before proceeding to Stage 6. The build advances by successful gates, not scheduled slots. Recurring builds were paused on 2026-09-08 because the required browser validation cannot proceed in this environment; resume once the blocker is resolved.
+Stage 6 — tracking and anchor identity. Add deterministic association,
+short-gap optical flow/stabilization, deletion/reacquisition behavior and
+world-coordinate anchors without letting a frame-local detection masquerade as
+a persistent object.

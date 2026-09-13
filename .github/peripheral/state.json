@@ -20,12 +20,12 @@
     ],
     "timingMode": "flexible_schedule",
     "plannedRuns": 21,
-    "status": "paused",
+    "status": "active",
     "taskTitle": "Build Peripheral",
     "nextRunVerified": false,
-    "pauseReason": "Stage 5 real-frame validation is blocked in the available browser."
+    "pauseReason": null
   },
-  "nextStage": 5,
+  "nextStage": 6,
   "stages": [
     {
       "stage": 0,
@@ -268,16 +268,17 @@
       "stage": 5,
       "name": "Object detection (Tier 1)",
       "commitMessage": "feat(perception): tier-1 object detection",
-      "status": "blocked",
+      "status": "completed",
       "reportPath": ".github/peripheral/reports/stage-05.md",
       "testResults": {
-        "scope": "Unapplied candidate patch; main application remains Stage 4",
-        "passed": 322,
+        "scope": "Committed Stage 5 implementation with deterministic regression and prerecorded real-model evaluation",
+        "passed": 345,
         "failed": 0,
-        "newAssertions": 59,
+        "newAssertions": 82,
+        "offlineAmendmentAssertions": 23,
         "runtime": "Node v24.19.0, deterministic synthetic suite",
-        "sourceSha256": "6dad4651080c270a71a9a88b98717b299a47c566fab1e34fedef03ee5c1423fd",
-        "evidencePath": ".github/peripheral/reports/stage-05-evidence-green.json",
+        "sourceSha256": "4665d855eb649213332cfd5daf26846901bb813736735ed3a9ca964a6b33908e",
+        "evidencePath": ".github/peripheral/reports/stage-05-green.json",
         "redPhases": [
           {
             "passed": 263,
@@ -295,18 +296,42 @@
             "failed": 1,
             "reason": "Versioned runtime evidence evaluator absent before implementation",
             "evidencePath": ".github/peripheral/reports/stage-05-evidence-red.json"
+          },
+          {
+            "passed": 322,
+            "failed": 2,
+            "reason": "Evaluation provenance and offline real-model evidence validator absent",
+            "evidencePath": ".github/peripheral/reports/stage-05-offline-red.json"
           }
         ]
       },
-      "implementationDiffPath": ".github/peripheral/reports/stage-05-candidate.patch",
-      "implementationBaseCommit": "ae432289d97e6773a9c92ec5a77635755c18687b",
+      "implementationDiffPath": ".github/peripheral/reports/stage-05.patch",
+      "implementationBaseCommit": "5da2f40360079b8e4370df0beab8e35779aae211",
       "gate": {
-        "status": "blocked",
-        "required": "Real boxes on real frames without tanking frame rate",
-        "evidencePath": ".github/peripheral/reports/stage-05-runtime.json",
+        "status": "passed",
+        "required": "Approved prerecorded real-model software gate with honest non-live provenance",
+        "mode": "Native CPU reference inference on licensed real images; live Tier 1 remains unverified",
+        "evidencePath": ".github/peripheral/reports/stage-05-offline-gate.json",
+        "runEvidencePath": ".github/peripheral/reports/stage-05-offline-run.json",
+        "fixturePath": ".github/peripheral/fixtures/stage-05-open-images.json",
+        "passed": 14,
+        "failed": 0,
+        "metrics": {
+          "fixtures": 30,
+          "classes": 10,
+          "expectedLabelHits": 28,
+          "expectedLabelHitRate": 0.9333333333333333,
+          "matchedAtIou50": 25,
+          "iou50MatchRate": 0.8333333333333334,
+          "medianInferenceMs": 20.7086,
+          "p95InferenceMs": 25.1608,
+          "invalidBoxes": 0,
+          "liveTier1Count": 0
+        },
         "limitations": [
-          "Cloud browser rejects local HTTP and single-file URLs; no real-frame inference or FPS benchmark executed.",
-          "Candidate uses scheduled main-thread CPU/WASM; acceptable live performance is not established."
+          "Prerecorded Open Images photographs are evaluation input with no live perception tier.",
+          "Live world-camera detection and sustained browser render performance remain unverified.",
+          "Native x86_64 CPU latency does not establish browser, mobile or wearable performance."
         ]
       },
       "licenseReview": {
@@ -317,11 +342,22 @@
         "source": "https://github.com/google-ai-edge/mediapipe/issues/4906#issuecomment-1778649604"
       },
       "evidenceWorkflow": {
-        "status": "implemented-in-candidate",
+        "status": "implemented",
         "schema": "peripheral.stage5.runtime.v1",
         "baselineDurationMs": 10000,
         "detectorDurationMs": 15000,
-        "reportPath": ".github/peripheral/reports/stage-05-evidence.md"
+        "reportPath": ".github/peripheral/reports/stage-05-evidence.md",
+        "liveValidationStatus": "unverified"
+      },
+      "offlineEvaluation": {
+        "status": "passed",
+        "approvedDate": "2026-09-13",
+        "schema": "peripheral.stage5.offline.v1",
+        "model": "efficientdet-lite0-int8-v1",
+        "modelSha256": "0720bf247bd76e6594ea28fa9c6f7c5242be774818997dbbeffc4da460c723bb",
+        "runtime": "mediapipe@0.10.21",
+        "provenance": "evaluation-image",
+        "tier": null
       }
     },
     {

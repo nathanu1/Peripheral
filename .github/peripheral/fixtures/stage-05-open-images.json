@@ -1,0 +1,594 @@
+{
+  "schema": "peripheral.stage5.fixtures.v1",
+  "dataset": "Open Images V7",
+  "split": "validation",
+  "selection": {
+    "seed": "peripheral-stage5-open-images-v1",
+    "classes": [
+      "Person",
+      "Dog",
+      "Cat",
+      "Car",
+      "Bicycle",
+      "Bird",
+      "Horse",
+      "Bus",
+      "Chair",
+      "Bottle"
+    ],
+    "perClass": 3,
+    "criteria": "CC BY 2.0; attributed; one deterministic non-occluded, non-truncated, non-group, non-depiction, non-inside box with normalized area 0.15-0.65; selected by SHA-256 order before inference"
+  },
+  "fixtures": [
+    {
+      "id": "45fd09ada78c507d",
+      "sha256": "f7210028993c16f28c751f4bc573a6dbcf576cea69fc05e847cc9150c2f96e85",
+      "className": "Person",
+      "labelMid": "/m/01g317",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/45fd09ada78c507d.jpg",
+      "landingUrl": "https://www.flickr.com/photos/fiskfisk/614982137",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Mats Lindh",
+      "title": "Hands exchanging rings",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.4024024,
+        "xMax": 1.0,
+        "yMin": 0.22391304,
+        "yMax": 0.7847826
+      },
+      "selectionArea": 0.335174
+    },
+    {
+      "id": "d65d7e3d4d350b82",
+      "sha256": "4b1bb5c62b60b229fa2dd89d06ac85ecb18a4ab95bc765ed2020f9915b601386",
+      "className": "Person",
+      "labelMid": "/m/01g317",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/d65d7e3d4d350b82.jpg",
+      "landingUrl": "https://www.flickr.com/photos/qwrrty/149583330/",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Tim Pierce",
+      "title": "take the redheads bowling! #1",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.59375,
+        "xMax": 0.840625,
+        "yMin": 0.077083334,
+        "yMax": 0.92291665
+      },
+      "selectionArea": 0.208815
+    },
+    {
+      "id": "4c305b01b7b39337",
+      "sha256": "952fd2e4833ad25a88f5e125e87bc491f6805bd2a6778638328cabd5ccffbb73",
+      "className": "Person",
+      "labelMid": "/m/01g317",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/4c305b01b7b39337.jpg",
+      "landingUrl": "https://www.flickr.com/photos/enrique_aponte/7692822254",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Ricky  Aponte",
+      "title": "Willimantic",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.23746313,
+        "xMax": 0.68879056,
+        "yMin": 0.10619469,
+        "yMax": 0.78097343
+      },
+      "selectionArea": 0.304546
+    },
+    {
+      "id": "3c9dff5ae2047b8f",
+      "sha256": "c51b1d2ca1d9263a78d2414375484098a870ee624dd3776e720b0a3d0d8a2bac",
+      "className": "Dog",
+      "labelMid": "/m/0bt9lr",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/3c9dff5ae2047b8f.jpg",
+      "landingUrl": "https://www.flickr.com/photos/pixellou/16249052422",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Lisa Williams",
+      "title": "Goldendoodle At Golden Gate",
+      "rotation": "",
+      "expectedBox": {
+        "xMin": 0.10154525,
+        "xMax": 0.8543046,
+        "yMin": 0.22747415,
+        "yMax": 1.0
+      },
+      "selectionArea": 0.581526
+    },
+    {
+      "id": "aa7a920e45dfaf0a",
+      "sha256": "ac3b9c788ea1763089aa3d4ee3e397a2c9a983a7641ee48cf609f0bc7b9323ff",
+      "className": "Dog",
+      "labelMid": "/m/0bt9lr",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/aa7a920e45dfaf0a.jpg",
+      "landingUrl": "https://www.flickr.com/photos/lcledward/4548862114",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Edward Leung",
+      "title": "IMG_9324",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.28318584,
+        "xMax": 0.9882006,
+        "yMin": 0.21017699,
+        "yMax": 0.88274336
+      },
+      "selectionArea": 0.474169
+    },
+    {
+      "id": "5c4ed6811cedd1c4",
+      "sha256": "0181d05134f05cec1bb01e702702f518a1f94ce038863f557a072a2a755854e4",
+      "className": "Dog",
+      "labelMid": "/m/0bt9lr",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/5c4ed6811cedd1c4.jpg",
+      "landingUrl": "https://www.flickr.com/photos/ilovetoby8397/230973571",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "ilovetoby8397",
+      "title": "Untitled",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.36875,
+        "xMax": 0.89375,
+        "yMin": 0.020833334,
+        "yMax": 1.0
+      },
+      "selectionArea": 0.514062
+    },
+    {
+      "id": "446924d9efea3ada",
+      "sha256": "cee5b1a02393f49e7b07acb5890c98c2a333cecc3d835fe036a2c05060c8523a",
+      "className": "Cat",
+      "labelMid": "/m/01yrx",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/446924d9efea3ada.jpg",
+      "landingUrl": "https://www.flickr.com/photos/bethness/6143772065",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "beth h",
+      "title": "i swear this wasn't posed",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.032051284,
+        "xMax": 0.55288464,
+        "yMin": 0.11585366,
+        "yMax": 0.800813
+      },
+      "selectionArea": 0.35675
+    },
+    {
+      "id": "44221f31a243f493",
+      "sha256": "3e408b44ec41d149ace9a5aa88efc7346377a7bd10f79b24c046f3ad22c08cb1",
+      "className": "Cat",
+      "labelMid": "/m/01yrx",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/44221f31a243f493.jpg",
+      "landingUrl": "https://www.flickr.com/photos/103033299@N08/20163775150",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Alan O&#x27;Donovan",
+      "title": "goliath",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.21666667,
+        "xMax": 0.8333333,
+        "yMin": 0.1515625,
+        "yMax": 0.9046875
+      },
+      "selectionArea": 0.464427
+    },
+    {
+      "id": "a555d218a3e96740",
+      "sha256": "40f5b16366801c9ba89ca9add605b496f66ade7973bcfab60935702149b35c5f",
+      "className": "Cat",
+      "labelMid": "/m/01yrx",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/a555d218a3e96740.jpg",
+      "landingUrl": "https://www.flickr.com/photos/dgidsicki/1418319031",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Daniele Gidsicki",
+      "title": "Kanuí",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.240625,
+        "xMax": 0.6390625,
+        "yMin": 0.15833333,
+        "yMax": 0.99791664
+      },
+      "selectionArea": 0.334521
+    },
+    {
+      "id": "b86e8a8cdd9f9418",
+      "sha256": "eb46ad41fb4e4df09d9e4861ca230f0897661cd0f4f9218a223192393e57fa34",
+      "className": "Car",
+      "labelMid": "/m/0k4j",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/b86e8a8cdd9f9418.jpg",
+      "landingUrl": "https://www.flickr.com/photos/zapthedingbat/931800129",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Sam Greenhalgh",
+      "title": "Dover",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.24631268,
+        "xMax": 0.7787611,
+        "yMin": 0.30752212,
+        "yMax": 0.74115044
+      },
+      "selectionArea": 0.230885
+    },
+    {
+      "id": "a40d359d2a8b9229",
+      "sha256": "5b082a67379a2276f23b4d63d6820e3f7d38a84824c5ac729f47b8d1ccc24fa9",
+      "className": "Car",
+      "labelMid": "/m/0k4j",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/a40d359d2a8b9229.jpg",
+      "landingUrl": "https://www.flickr.com/photos/catsper/7093068",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "J c",
+      "title": "No Birds Corolla",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.16200295,
+        "xMax": 0.87628865,
+        "yMin": 0.33481154,
+        "yMax": 0.83813745
+      },
+      "selectionArea": 0.359518
+    },
+    {
+      "id": "9498d0aff8f9ff8c",
+      "sha256": "6b02f17930d720fc6033888beb92cd045d5339681e26b82a5a3a537ce48823d3",
+      "className": "Car",
+      "labelMid": "/m/0k4j",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/9498d0aff8f9ff8c.jpg",
+      "landingUrl": "https://www.flickr.com/photos/martindew/6786206480",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Martin de Witte",
+      "title": "Subaru WRC",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.029005526,
+        "xMax": 1.0,
+        "yMin": 0.250591,
+        "yMax": 0.8250591
+      },
+      "selectionArea": 0.557805
+    },
+    {
+      "id": "0792f8e4934b5cc0",
+      "sha256": "202775278e68a55633585f1c133954e16a610d486f52c92b13f0a23a366877e4",
+      "className": "Bicycle",
+      "labelMid": "/m/0199g",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/0792f8e4934b5cc0.jpg",
+      "landingUrl": "https://www.flickr.com/photos/jhritz/21376683791",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "John Hritz",
+      "title": "Collapsible",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.028880866,
+        "xMax": 0.9025271,
+        "yMin": 0.23826715,
+        "yMax": 0.900722
+      },
+      "selectionArea": 0.578751
+    },
+    {
+      "id": "a52d7879d01b7465",
+      "sha256": "ba65b197b62465954273426d1b9de87f841b863cd451e3e51b0504329b4a5acc",
+      "className": "Bicycle",
+      "labelMid": "/m/0199g",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/a52d7879d01b7465.jpg",
+      "landingUrl": "https://www.flickr.com/photos/lombardo-bikes-asia-pacific/14370076607",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Lombardo Bikes Asia Pacific",
+      "title": "Team Lombardo MTB at Int XC Open MASER, TV (4)",
+      "rotation": "",
+      "expectedBox": {
+        "xMin": 0.35176992,
+        "xMax": 0.88716817,
+        "yMin": 0.40855458,
+        "yMax": 0.9719764
+      },
+      "selectionArea": 0.301655
+    },
+    {
+      "id": "596536756964ecc1",
+      "sha256": "8182a0e79b85d561d244194d35537ed71a473967b98a24910b1c8ece7f2a0939",
+      "className": "Bicycle",
+      "labelMid": "/m/0199g",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/596536756964ecc1.jpg",
+      "landingUrl": "https://www.flickr.com/photos/igcameron/17083340106",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Iain Cameron",
+      "title": "My New Bicycle",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.15020297,
+        "xMax": 0.71583223,
+        "yMin": 0.004819277,
+        "yMax": 0.8048193
+      },
+      "selectionArea": 0.452503
+    },
+    {
+      "id": "c2ef45a1def60b10",
+      "sha256": "aa541530f2f55442196a07b62a9fa09c1740dc1e7e654880b9ad351348950f4a",
+      "className": "Bird",
+      "labelMid": "/m/015p6",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/c2ef45a1def60b10.jpg",
+      "landingUrl": "https://www.flickr.com/photos/phalinn/3952471067",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Phalinn Ooi",
+      "title": "Bird",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.21091445,
+        "xMax": 0.6814159,
+        "yMin": 0.28761062,
+        "yMax": 0.9579646
+      },
+      "selectionArea": 0.315403
+    },
+    {
+      "id": "5ea027bcc59ed9d0",
+      "sha256": "194a02b3d50de03659b26c89375af714b80f9f5a5987dae00011ff51e457d5c8",
+      "className": "Bird",
+      "labelMid": "/m/015p6",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/5ea027bcc59ed9d0.jpg",
+      "landingUrl": "https://www.flickr.com/photos/siamesepuppy/11164758503",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "siamesepuppy",
+      "title": "Western Scrub-Jay",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.0484375,
+        "xMax": 0.65625,
+        "yMin": 0.2672234,
+        "yMax": 1.0
+      },
+      "selectionArea": 0.445391
+    },
+    {
+      "id": "1aa6fde219456389",
+      "sha256": "7795ea16b36a70a2fff55396cbc8490b6ea2c3faff316955afdb512983cc6d78",
+      "className": "Bird",
+      "labelMid": "/m/015p6",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/1aa6fde219456389.jpg",
+      "landingUrl": "https://www.flickr.com/photos/burgui400d/8419851610",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "jose maria carretero palacios",
+      "title": "PETIRROJO",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.38565022,
+        "xMax": 0.94170403,
+        "yMin": 0.20915033,
+        "yMax": 0.95642704
+      },
+      "selectionArea": 0.415526
+    },
+    {
+      "id": "64b9dbca8f5c9269",
+      "sha256": "173e0f97bd5271852722d879f3fb917068f6de31e8bdd706e336344e5e6a8df4",
+      "className": "Horse",
+      "labelMid": "/m/03k3r",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/64b9dbca8f5c9269.jpg",
+      "landingUrl": "https://www.flickr.com/photos/solocosi/5959996529",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "solovastru cosi",
+      "title": "Untitled",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.30338734,
+        "xMax": 0.62886596,
+        "yMin": 0.15964523,
+        "yMax": 0.9223947
+      },
+      "selectionArea": 0.248259
+    },
+    {
+      "id": "ee38f9fdcc1e2cab",
+      "sha256": "c716a34122fadbe2aeea4ec3ae6b99e7ac0ea6b406dc5e8df1b0b4c8afbe76fc",
+      "className": "Horse",
+      "labelMid": "/m/03k3r",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/ee38f9fdcc1e2cab.jpg",
+      "landingUrl": "https://www.flickr.com/photos/blastphotos/6061326973",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Blast Brand",
+      "title": "Pre-race warmups.",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.31588447,
+        "xMax": 0.8501805,
+        "yMin": 0.32129964,
+        "yMax": 0.8953069
+      },
+      "selectionArea": 0.30669
+    },
+    {
+      "id": "335197067b30029e",
+      "sha256": "47ecf0ed19c9868a8b5f4c29d73ef4989c43b8072e3a9dabb9bda37c448e4bfd",
+      "className": "Horse",
+      "labelMid": "/m/03k3r",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/335197067b30029e.jpg",
+      "landingUrl": "https://www.flickr.com/photos/familymwr/4931395264",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "U.S. Army",
+      "title": "U.S. Army Wounded Warrior Sports Program - Team Roping - 10 May 2008 -  Las Cruces - New Mexico - FMWRC",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.39353892,
+        "xMax": 0.81791484,
+        "yMin": 0.36807096,
+        "yMax": 0.75388026
+      },
+      "selectionArea": 0.163728
+    },
+    {
+      "id": "d957035fd4b234d8",
+      "sha256": "85ae11fac9f0f2773a32f0c653388c68551227b4a44674b5d47ec3d2d78999a2",
+      "className": "Bus",
+      "labelMid": "/m/01bjv",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/d957035fd4b234d8.jpg",
+      "landingUrl": "https://www.flickr.com/photos/pics-by-mpd/5311700103",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Matt Davis",
+      "title": "N210 NNJ at North Street, Brighton",
+      "rotation": "",
+      "expectedBox": {
+        "xMin": 0.103125,
+        "xMax": 0.8609375,
+        "yMin": 0.11875,
+        "yMax": 0.81666666
+      },
+      "selectionArea": 0.52889
+    },
+    {
+      "id": "71df72bf0f7b67ca",
+      "sha256": "e0a45959a7473e50233cf72abcf10304fa4f80f042b1090ba3915af50e639ead",
+      "className": "Bus",
+      "labelMid": "/m/01bjv",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/71df72bf0f7b67ca.jpg",
+      "landingUrl": "https://www.flickr.com/photos/technoevangelist/10576848373",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Fee Plumley",
+      "title": "beautiful old lady spotted in Llandudno this morning #buspr0n",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.054151624,
+        "xMax": 0.9368231,
+        "yMin": 0.24909747,
+        "yMax": 0.8357401
+      },
+      "selectionArea": 0.517813
+    },
+    {
+      "id": "cc94d1513871c552",
+      "sha256": "1af67eeae01ff7a4be9f62fbe121aa9627117b588e041397b5f322dad999edc5",
+      "className": "Bus",
+      "labelMid": "/m/01bjv",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/cc94d1513871c552.jpg",
+      "landingUrl": "https://www.flickr.com/photos/compujeramey/3121120564/",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Jeramey Jannene",
+      "title": "Moving Again",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.25368732,
+        "xMax": 0.6578171,
+        "yMin": 0.17920354,
+        "yMax": 0.5707965
+      },
+      "selectionArea": 0.158254
+    },
+    {
+      "id": "45d25f290b3eff63",
+      "sha256": "755774354bf51319b2d2ead3a1d1c8946f29217710daa14af9553528480f9453",
+      "className": "Chair",
+      "labelMid": "/m/01mzpv",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/45d25f290b3eff63.jpg",
+      "landingUrl": "https://www.flickr.com/photos/jeffschwartz/47871000",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Jeffrey Schwartz",
+      "title": "work (chair)",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.12083333,
+        "xMax": 0.875,
+        "yMin": 0.1890625,
+        "yMax": 0.8890625
+      },
+      "selectionArea": 0.527917
+    },
+    {
+      "id": "7ab810236c12cb51",
+      "sha256": "2964914c6b52e2fdea658220cd34d53e5800556835a96abdf18e34dd8e198110",
+      "className": "Chair",
+      "labelMid": "/m/01mzpv",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/7ab810236c12cb51.jpg",
+      "landingUrl": "https://www.flickr.com/photos/vinofamily/4095412264",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Fabio Ingrosso",
+      "title": "Immagini della linea di sedie &quot;Le sedie del Torchio&quot;",
+      "rotation": "",
+      "expectedBox": {
+        "xMin": 0.0867347,
+        "xMax": 0.8214286,
+        "yMin": 0.0775,
+        "yMax": 0.95
+      },
+      "selectionArea": 0.64102
+    },
+    {
+      "id": "b499182ee39701e0",
+      "sha256": "defe28e786a8fa7d5b13595e4703d17d5df2e04c2edb5f9e557173fe99dfe348",
+      "className": "Chair",
+      "labelMid": "/m/01mzpv",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/b499182ee39701e0.jpg",
+      "landingUrl": "https://www.flickr.com/photos/moto_club4ag/5382050645",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Moto &quot;Club4AG&quot; Miwa",
+      "title": "A section of Mizuya Tansu used as end stand",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.70310193,
+        "xMax": 1.0,
+        "yMin": 0.34216335,
+        "yMax": 0.9072848
+      },
+      "selectionArea": 0.167783
+    },
+    {
+      "id": "50c0057044d205ff",
+      "sha256": "65deb47bb03ac6c7d665ed4addb50446d54572833d52d8eac8a8e2c7450ca4ac",
+      "className": "Bottle",
+      "labelMid": "/m/04dr76w",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/50c0057044d205ff.jpg",
+      "landingUrl": "https://www.flickr.com/photos/pavdw/16219970947",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Paul VanDerWerf",
+      "title": "Black Velvet Trio",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.09386282,
+        "xMax": 0.33393502,
+        "yMin": 0.12635379,
+        "yMax": 0.92960286
+      },
+      "selectionArea": 0.192838
+    },
+    {
+      "id": "03abc39ad2c14097",
+      "sha256": "5415c4f4b3519b38110cc42398ebaa262c7b904933f26aa2355e59c7e17ded7b",
+      "className": "Bottle",
+      "labelMid": "/m/04dr76w",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/03abc39ad2c14097.jpg",
+      "landingUrl": "https://www.flickr.com/photos/gtzecosan/5546714555",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "SuSanA Secretariat",
+      "title": "Wastewater samples before and after treatment in a VFB",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.061965812,
+        "xMax": 0.48076922,
+        "yMin": 0.03664122,
+        "yMax": 0.9832061
+      },
+      "selectionArea": 0.396425
+    },
+    {
+      "id": "9bd3e32a2337f9bc",
+      "sha256": "3aa7dd268de906d79bb21050f5212686147ea4dc9d41f6113a055288ea3c72e7",
+      "className": "Bottle",
+      "labelMid": "/m/04dr76w",
+      "sourceUrl": "https://open-images-dataset.s3.amazonaws.com/validation/9bd3e32a2337f9bc.jpg",
+      "landingUrl": "https://www.flickr.com/photos/feelingmyage/14956869955",
+      "license": "https://creativecommons.org/licenses/by/2.0/",
+      "author": "Feeling My Age",
+      "title": "#idiot #snail #milkbottle thinks: &quot;hmm... I'll just clamber in here for a nice snooze&quot;",
+      "rotation": "0.0",
+      "expectedBox": {
+        "xMin": 0.25631768,
+        "xMax": 0.74187726,
+        "yMin": 0.032490976,
+        "yMax": 0.9620939
+      },
+      "selectionArea": 0.451378
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "runtime": "v24.19.0",
+  "sourceSha256": "bf16da86e52bf7d9970d29499dfa28f5af6450cf50deea5669a890d01fb226fc",
+  "passed": 322,
+  "failed": 2,
+  "failures": [
+    {
+      "suite": "Objects: prerecorded evaluation provenance",
+      "passed": false,
+      "message": "Suite threw unexpectedly",
+      "expected": "no unexpected exception",
+      "actual": "TypeError: Invalid detector provenance"
+    },
+    {
+      "suite": "Objects: offline real-model gate",
+      "passed": false,
+      "message": "Suite threw unexpectedly",
+      "expected": "no unexpected exception",
+      "actual": "TypeError: Core.objectEvaluationEvidence is not a function"
+    }
+  ]
+}

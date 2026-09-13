@@ -1,5 +1,8 @@
 # Stage 5 — Object detection runtime evidence
 
+> Historical live-validation checkpoint. Stage 5 was later completed through
+> the approved prerecorded real-model gate; see [stage-05.md](stage-05.md).
+
 Stage 5 remains incomplete. This checkpoint improves the unapplied candidate and its validation path; the root application remains the completed Stage 4 build.
 
 ## Tests — written first

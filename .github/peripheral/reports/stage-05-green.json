@@ -1,7 +1,7 @@
 {
   "runtime": "v24.19.0",
-  "sourceSha256": "25311ed7b0612a2d73f95ba247741fe228c9bbad18ef446d549d646438317c95",
-  "passed": 300,
+  "sourceSha256": "4665d855eb649213332cfd5daf26846901bb813736735ed3a9ca964a6b33908e",
+  "passed": 345,
   "failed": 0,
   "results": [
     {
@@ -2184,6 +2184,321 @@
       "message": "current runtime failure remains visible",
       "expected": "error",
       "actual": "error"
+    },
+    {
+      "suite": "Objects: observation-bound crops",
+      "passed": true,
+      "message": "crop rejects a different observation frame",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Objects: observation-bound crops",
+      "passed": true,
+      "message": "camera observation cannot crop synthetic input",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Objects: observation-bound crops",
+      "passed": true,
+      "message": "crop metadata must share the observation session",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Objects: observation-bound crops",
+      "passed": true,
+      "message": "world crop cannot use user-camera metadata",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Objects: observation-bound crops",
+      "passed": true,
+      "message": "changed angular projection invalidates crop",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Objects: observation-bound crops",
+      "passed": true,
+      "message": "invalid crop raster is refused",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Objects: observation-bound crops",
+      "passed": true,
+      "message": "matching observation still crops normally",
+      "expected": 80,
+      "actual": 80
+    },
+    {
+      "suite": "Objects: malformed categories",
+      "passed": true,
+      "message": "null category cannot crash perception",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Objects: malformed categories",
+      "passed": true,
+      "message": "non-array categories cannot crash perception",
+      "expected": 0,
+      "actual": 0
+    },
+    {
+      "suite": "Objects: runtime gate evidence",
+      "passed": true,
+      "message": "evidence has a versioned schema",
+      "expected": "peripheral.stage5.runtime.v1",
+      "actual": "peripheral.stage5.runtime.v1"
+    },
+    {
+      "suite": "Objects: runtime gate evidence",
+      "passed": true,
+      "message": "sustained real detections can pass the gate",
+      "expected": "passed",
+      "actual": "passed"
+    },
+    {
+      "suite": "Objects: runtime gate evidence",
+      "passed": true,
+      "message": "every runtime condition is explicit",
+      "expected": 7,
+      "actual": 7
+    },
+    {
+      "suite": "Objects: runtime gate evidence",
+      "passed": true,
+      "message": "labels are normalized and deterministic",
+      "expected": "chair,cup",
+      "actual": "chair,cup"
+    },
+    {
+      "suite": "Objects: runtime gate evidence",
+      "passed": true,
+      "message": "measured Tier 1 count survives export",
+      "expected": 4,
+      "actual": 4
+    },
+    {
+      "suite": "Objects: runtime gate evidence",
+      "passed": true,
+      "message": "runtime evidence is immutable",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Objects: runtime gate evidence",
+      "passed": true,
+      "message": "synthetic input cannot pass",
+      "expected": "failed",
+      "actual": "failed"
+    },
+    {
+      "suite": "Objects: runtime gate evidence",
+      "passed": true,
+      "message": "below-schedule detector cannot pass",
+      "expected": "failed",
+      "actual": "failed"
+    },
+    {
+      "suite": "Objects: runtime gate evidence",
+      "passed": true,
+      "message": "render regression cannot pass",
+      "expected": "failed",
+      "actual": "failed"
+    },
+    {
+      "suite": "Objects: runtime gate evidence",
+      "passed": true,
+      "message": "no real boxes cannot pass",
+      "expected": "failed",
+      "actual": "failed"
+    },
+    {
+      "suite": "Objects: runtime gate evidence",
+      "passed": true,
+      "message": "short baseline is rejected",
+      "expected": "exception",
+      "actual": "RangeError: Baseline capture must last at least 10 seconds"
+    },
+    {
+      "suite": "Objects: runtime gate evidence",
+      "passed": true,
+      "message": "short loaded capture is rejected",
+      "expected": "exception",
+      "actual": "RangeError: Loaded capture must last at least 15 seconds"
+    },
+    {
+      "suite": "Objects: runtime gate evidence",
+      "passed": true,
+      "message": "nonfinite metrics are rejected",
+      "expected": "exception",
+      "actual": "RangeError: inferenceCpuMs must be a nonnegative finite number"
+    },
+    {
+      "suite": "Objects: prerecorded evaluation provenance",
+      "passed": true,
+      "message": "prerecorded photographs retain evaluation provenance",
+      "expected": "evaluation",
+      "actual": "evaluation"
+    },
+    {
+      "suite": "Objects: prerecorded evaluation provenance",
+      "passed": true,
+      "message": "prerecorded photographs never become live Tier 1",
+      "expected": null,
+      "actual": null
+    },
+    {
+      "suite": "Objects: prerecorded evaluation provenance",
+      "passed": true,
+      "message": "evaluation observations retain the crop boundary",
+      "expected": 80,
+      "actual": 80
+    },
+    {
+      "suite": "Objects: offline real-model gate",
+      "passed": true,
+      "message": "offline evidence has a versioned schema",
+      "expected": "peripheral.stage5.offline.v1",
+      "actual": "peripheral.stage5.offline.v1"
+    },
+    {
+      "suite": "Objects: offline real-model gate",
+      "passed": true,
+      "message": "actual model inference on licensed fixtures can pass Stage 5",
+      "expected": "passed",
+      "actual": "passed"
+    },
+    {
+      "suite": "Objects: offline real-model gate",
+      "passed": true,
+      "message": "every amended gate condition is explicit",
+      "expected": 14,
+      "actual": 14
+    },
+    {
+      "suite": "Objects: offline real-model gate",
+      "passed": true,
+      "message": "all fixture records survive validation",
+      "expected": 30,
+      "actual": 30
+    },
+    {
+      "suite": "Objects: offline real-model gate",
+      "passed": true,
+      "message": "the evaluation spans ten detector classes",
+      "expected": 10,
+      "actual": 10
+    },
+    {
+      "suite": "Objects: offline real-model gate",
+      "passed": true,
+      "message": "offline evidence is immutable",
+      "expected": true,
+      "actual": true
+    },
+    {
+      "suite": "Objects: offline real-model gate",
+      "passed": true,
+      "message": "an unexecuted model cannot pass",
+      "expected": "failed",
+      "actual": "failed"
+    },
+    {
+      "suite": "Objects: offline real-model gate",
+      "passed": true,
+      "message": "a different model artifact cannot pass",
+      "expected": "failed",
+      "actual": "failed"
+    },
+    {
+      "suite": "Objects: offline real-model gate",
+      "passed": true,
+      "message": "offline evidence must identify its provenance",
+      "expected": "failed",
+      "actual": "failed"
+    },
+    {
+      "suite": "Objects: offline real-model gate",
+      "passed": true,
+      "message": "fewer than thirty fixtures cannot pass",
+      "expected": "failed",
+      "actual": "failed"
+    },
+    {
+      "suite": "Objects: offline real-model gate",
+      "passed": true,
+      "message": "incompatible image licensing cannot pass",
+      "expected": "failed",
+      "actual": "failed"
+    },
+    {
+      "suite": "Objects: offline real-model gate",
+      "passed": true,
+      "message": "missing attribution cannot pass",
+      "expected": "failed",
+      "actual": "failed"
+    },
+    {
+      "suite": "Objects: offline real-model gate",
+      "passed": true,
+      "message": "narrow class coverage cannot pass",
+      "expected": "failed",
+      "actual": "failed"
+    },
+    {
+      "suite": "Objects: offline real-model gate",
+      "passed": true,
+      "message": "partial fixture execution cannot pass",
+      "expected": "failed",
+      "actual": "failed"
+    },
+    {
+      "suite": "Objects: offline real-model gate",
+      "passed": true,
+      "message": "low expected-label hit rate cannot pass",
+      "expected": "failed",
+      "actual": "failed"
+    },
+    {
+      "suite": "Objects: offline real-model gate",
+      "passed": true,
+      "message": "low IoU match rate cannot pass",
+      "expected": "failed",
+      "actual": "failed"
+    },
+    {
+      "suite": "Objects: offline real-model gate",
+      "passed": true,
+      "message": "invalid detector boxes cannot pass",
+      "expected": "failed",
+      "actual": "failed"
+    },
+    {
+      "suite": "Objects: offline real-model gate",
+      "passed": true,
+      "message": "offline evidence cannot claim live Tier 1",
+      "expected": "failed",
+      "actual": "failed"
+    },
+    {
+      "suite": "Objects: offline real-model gate",
+      "passed": true,
+      "message": "excessive reference latency cannot pass",
+      "expected": "failed",
+      "actual": "failed"
+    },
+    {
+      "suite": "Objects: offline real-model gate",
+      "passed": true,
+      "message": "nonfinite evaluation metrics are rejected",
+      "expected": "exception",
+      "actual": "RangeError: medianInferenceMs must be a nonnegative finite number"
     }
   ]
 }
