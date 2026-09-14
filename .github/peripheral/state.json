@@ -25,7 +25,7 @@
     "nextRunVerified": false,
     "pauseReason": null
   },
-  "nextStage": 6,
+  "nextStage": 7,
   "stages": [
     {
       "stage": 0,
@@ -364,9 +364,39 @@
       "stage": 6,
       "name": "Tracking + anchor identity",
       "commitMessage": "feat(perception): anchor tracking and association",
-      "status": "pending",
+      "status": "completed",
       "reportPath": ".github/peripheral/reports/stage-06.md",
-      "testResults": null
+      "testResults": {
+        "passed": 375,
+        "failed": 0,
+        "newAssertions": 30,
+        "runtime": "Node v24.19.0 deterministic synthetic suite",
+        "sourceSha256": "ae522cb97b477584d3d9342a26e60c0592e67243841f04950cf8515f1cf018b7",
+        "evidencePath": ".github/peripheral/reports/stage-06-green.json",
+        "redPhases": [
+          {
+            "passed": 345,
+            "failed": 3,
+            "evidencePath": ".github/peripheral/reports/stage-06-red.json"
+          },
+          {
+            "passed": 374,
+            "failed": 1,
+            "evidencePath": ".github/peripheral/reports/stage-06-integration-red.json"
+          }
+        ]
+      },
+      "gate": {
+        "status": "passed",
+        "mode": "deterministic occlusion and pixel-flow traces",
+        "limitations": [
+          "Live tracking/browser performance unverified",
+          "Coordinates remain view-angular; no physical world-lock claim",
+          "OpenCV unavailable in current single-inline-script packaging; inline block matcher used"
+        ]
+      },
+      "implementationBaseCommit": "21fc7f05c354946676b9caf675574b88442e5ed7",
+      "implementationDiffPath": ".github/peripheral/reports/stage-06.patch"
     },
     {
       "stage": 7,

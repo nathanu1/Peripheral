@@ -155,6 +155,8 @@
         </dl>
         <canvas id="object-preview" width="320" height="180" role="img" aria-label="Developer detection snapshot; labels are listed below" style="max-width:100%;background:#111"></canvas>
         <pre id="object-list" aria-label="Detected object labels">No current observations</pre>
+        <pre id="anchor-list" aria-label="Tracked object identities">No tracked anchors</pre>
+        <p class="muted">Tracked IDs use angular box association and pixel flow. Occluded tracks expire after 800 ms without a detector observation. Positions are relative to the view; metric world anchoring is not available yet. Tracking CPU includes inline block matching; OpenCV is not loaded.</p>
         <div class="feed-controls">
           <button id="record-baseline" type="button" class="secondary">Record 10 s baseline</button>
           <button id="record-detector" type="button" class="secondary">Record 15 s detector run</button>
@@ -283,6 +285,111 @@ function sha256Hex(bytes) {
 }
 
 const Core = Object.freeze({
+  // Stage 6 choices: 800 ms detector expiry, 0.2 IoU association floor,
+  // 0.05 ambiguity margin, 20 tracks. These are prototype model parameters.
+  boxIou(a,b) {
+    for(const box of [a,b]) if(!box||!Object.values(box).every(Number.isFinite)||
+      ![box.leftDeg,box.topDeg,box.widthDeg,box.heightDeg].every(Number.isFinite)||
+      box.widthDeg<=0||box.heightDeg<=0) throw new RangeError("Invalid angular box");
+    const w=Math.max(0,Math.min(a.leftDeg+a.widthDeg,b.leftDeg+b.widthDeg)-Math.max(a.leftDeg,b.leftDeg));
+    const h=Math.max(0,Math.min(a.topDeg,b.topDeg)-Math.max(a.topDeg-a.heightDeg,b.topDeg-b.heightDeg));
+    const area=w*h;return area/(a.widthDeg*a.heightDeg+b.widthDeg*b.heightDeg-area);
+  },
+  kalmanPosition(state,measurement,processVariance=0.1,measurementVariance=1) {
+    if(![state.value,state.variance,measurement,processVariance,measurementVariance].every(Number.isFinite)||
+      state.variance<0||processVariance<0||measurementVariance<=0) throw new RangeError("Invalid Kalman input");
+    const p=state.variance+processVariance,k=p/(p+measurementVariance);
+    return Object.freeze({value:state.value+k*(measurement-state.value),variance:(1-k)*p});
+  },
+  createTracker() {
+    return Object.freeze({timeMs:null,session:null,source:null,nextId:1,tracks:Object.freeze([])});
+  },
+  trackObjects(state,{timeMs,session,source,detections=null,flow={}}) {
+    if(!Number.isFinite(timeMs)||timeMs<0||!Number.isInteger(session)||
+      !["camera","synthetic","evaluation"].includes(source)||
+      (detections!==null&&!Array.isArray(detections))) throw new TypeError("Invalid tracker input");
+    if(state.timeMs!==null&&timeMs<state.timeMs) throw new RangeError("Tracker time moved backward");
+    const same=state.session===session&&state.source===source;
+    if(same&&timeMs===state.timeMs&&detections===null) return state;
+    const dt=same&&state.timeMs!==null?timeMs-state.timeMs:0;
+    let nextId=state.nextId;
+    let tracks=(same?state.tracks:[]).filter(t=>timeMs-t.lastDetectionMs<=800).map(t=>{
+      const f=flow[t.id],valid=dt<=100&&f&&[f.dxDeg,f.dyDeg,f.confidence].every(Number.isFinite)&&
+        f.confidence>=0.8&&Math.abs(f.dxDeg)<=5&&Math.abs(f.dyDeg)<=5;
+      return {...t,boxDeg:{...t.boxDeg,leftDeg:t.boxDeg.leftDeg+(valid?f.dxDeg:0),
+        topDeg:t.boxDeg.topDeg+(valid?f.dyDeg:0)},status:valid?"flow":"occluded",
+        tier:source==="camera"?2:null,confidence:t.confidence*Math.exp(-dt/800),
+        variance:t.variance+dt/1000,updatedMs:timeMs};
+    });
+    const observations=(detections||[]).slice(0,20);
+    for(const o of observations) {
+      Core.boxIou(o.boxDeg,o.boxDeg);
+      if(o.source!==source||typeof o.label!=="string"||!o.label.trim()||
+        !Number.isFinite(o.confidence)||o.confidence<0||o.confidence>1) throw new TypeError("Invalid tracked observation");
+    }
+    const candidates=[];
+    for(let i=0;i<tracks.length;i++)for(let j=0;j<observations.length;j++) {
+      if(tracks[i].label!==observations[j].label) continue;
+      const score=Core.boxIou(tracks[i].boxDeg,observations[j].boxDeg);
+      if(score>=0.2)candidates.push({i,j,score});
+    }
+    // Refuse ambiguous overlap instead of asserting identity through a crossing.
+    const unambiguous=candidates.filter(c=>!candidates.some(other=>other!==c&&
+      (other.i===c.i||other.j===c.j)&&other.score>=c.score-0.05));
+    const used=new Set();
+    for(const c of unambiguous.sort((a,b)=>b.score-a.score||a.i-b.i||a.j-b.j)) {
+      const t=tracks[c.i],o=observations[c.j],box={};
+      let variance=t.variance;
+      for(const key of ["leftDeg","topDeg","widthDeg","heightDeg"]) {
+        const k=Core.kalmanPosition({value:t.boxDeg[key],variance:t.variance},o.boxDeg[key],0,0.25);
+        box[key]=k.value;variance=k.variance;
+      }
+      tracks[c.i]={...t,boxDeg:box,variance,confidence:o.confidence,status:"detected",lastDetectionMs:timeMs};
+      used.add(c.j);
+    }
+    for(let j=0;j<observations.length&&tracks.length<20;j++) if(!used.has(j)) {
+      // An ambiguous observation must not spawn a duplicate identity.
+      if(candidates.some(c=>c.j===j))continue;
+      const o=observations[j];
+      tracks.push({id:"anchor-"+nextId++,label:o.label,boxDeg:{...o.boxDeg},variance:1,
+        confidence:o.confidence,confidenceKind:"association-model",source,tier:source==="camera"?2:null,
+        status:"detected",lastDetectionMs:timeMs,updatedMs:timeMs,
+        coordinateFrame:"view-angular",worldPosition:null});
+    }
+    tracks=tracks.map(t=>Object.freeze({...t,boxDeg:Object.freeze(t.boxDeg)}));
+    return Object.freeze({timeMs,session,source,nextId,tracks:Object.freeze(tracks)});
+  },
+  // Bounded integer block-matching optical flow on actual pixels. No OpenCV
+  // dependency or claim of Lucas-Kanade. Reject flat/ambiguous/disagreeing patches.
+  patchFlow(previous,current,region) {
+    for(const frame of [previous,current]) {
+      validateRaster(frame.width,frame.height);
+      if(!frame.data||frame.data.length!==frame.width*frame.height*4)throw new TypeError("Incomplete flow pixels");
+    }
+    if(previous.width!==current.width||previous.height!==current.height||previous.source!==current.source)
+      throw new TypeError("Flow frames must share raster and source");
+    const {x,y,width,height}=region;
+    if(![x,y,width,height].every(Number.isInteger)||width<5||height<5) return null;
+    const cx=Math.floor(x+width/2),cy=Math.floor(y+height/2),w=previous.width,h=previous.height;
+    if(cx<6||cy<6||cx>=w-6||cy>=h-6)return null;
+    const gray=(f,x,y)=>{const i=(y*w+x)*4;return (f.data[i]+f.data[i+1]+f.data[i+2])/3;};
+    let sum=0,square=0;
+    for(let yy=-2;yy<=2;yy++)for(let xx=-2;xx<=2;xx++){
+      const v=gray(previous,cx+xx,cy+yy);sum+=v;square+=v*v;
+    }
+    if(square/25-(sum/25)**2<100)return null;
+    const matches=[];
+    for(let dy=-4;dy<=4;dy++)for(let dx=-4;dx<=4;dx++){
+      let error=0;
+      for(let yy=-2;yy<=2;yy++)for(let xx=-2;xx<=2;xx++)
+        error+=Math.abs(gray(previous,cx+xx,cy+yy)-gray(current,cx+xx+dx,cy+yy+dy));
+      matches.push({dx,dy,error:error/25});
+    }
+    matches.sort((a,b)=>a.error-b.error);
+    const best=matches[0];
+    if(best.error>20||matches[1].error-best.error<5)return null;
+    return Object.freeze({dx:best.dx,dy:best.dy,confidence:1-best.error/100,confidenceKind:"photometric-model"});
+  },
   objectEvaluationEvidence({provenance,model,fixtures,results}) {
     if(!model||!Array.isArray(fixtures)||!results) throw new TypeError("Offline evidence requires model, fixtures and results");
     const counts=["imagesProcessed","imagesWithExpectedDetection","expectedBoxes","matchedAtIou50","invalidBoxes","liveTier1Count"];
@@ -1664,7 +1771,72 @@ function registerStage5OfflineEvaluationTests(T) {
   });
 }
 
+function registerStage6Tests(T) {
+  const box=(x=0)=>({leftDeg:x,topDeg:4,widthDeg:4,heightDeg:4});
+  const obs=(x=0,label="cup")=>({boxDeg:box(x),label,confidence:0.8,source:"synthetic",tier:null});
+  const step=(s,timeMs,detections=[],flow={})=>Core.trackObjects(s,{timeMs,source:"synthetic",session:1,detections,flow});
+  T.suite("Tracking: overlap and Kalman uncertainty",()=>{
+    T.eq(Core.boxIou(box(),box()),1,"identical boxes overlap fully");
+    T.eq(Core.boxIou(box(),box(5)),0,"disjoint boxes do not associate");
+    T.approx(Core.boxIou(box(),box(2)),1/3,1e-10,"partial IoU is geometric");
+    T.throws(()=>Core.boxIou(box(),{...box(),widthDeg:0}),"invalid box rejected");
+    const k=Core.kalmanPosition({value:0,variance:1},2,0.1,1);
+    T.true(k.value>0&&k.value<2,"Kalman update smooths jitter");
+    T.true(k.variance<1,"observation reduces uncertainty");
+    T.throws(()=>Core.kalmanPosition({value:0,variance:1},2,0,-1),"negative measurement noise rejected");
+  });
+  T.suite("Tracking: identity and bounded occlusion",()=>{
+    const prepared=step(Core.createTracker(),0,null);
+    T.eq(step(prepared,0,[obs()]).tracks.length,1,"detector may finish at its reserved frame timestamp");
+    let s=step(Core.createTracker(),0,[obs(),obs(12,"chair")]);
+    const id=s.tracks[0].id, before=JSON.stringify(s);
+    let next=step(s,100,[obs(12.2,"chair"),obs(0.2)]);
+    T.eq(next.tracks.find(t=>t.label==="cup").id,id,"reordered detections preserve identity");
+    T.eq(JSON.stringify(s),before,"tracker does not mutate prior state");
+    T.true(Object.isFrozen(next.tracks[0].boxDeg),"anchor geometry is immutable");
+    next=step(next,200,[]);
+    T.eq(next.tracks[0].status,"occluded","missing detection is explicitly occluded");
+    T.eq(next.tracks[0].tier,null,"synthetic tracking never gains a tier");
+    next=step(next,400,[obs(0.3)]);
+    T.eq(next.tracks.find(t=>t.label==="cup").id,id,"brief occlusion retains identity");
+    T.eq(step(next,1301,[]).tracks.length,0,"expired tracks are removed");
+    const later=step(step(next,1301,[]),1400,[obs()]);
+    T.true(later.tracks[0].id!==id,"expired identity is not silently resurrected");
+    T.throws(()=>step(next,399,[]),"backward time rejected");
+    const reset=Core.trackObjects(next,{timeMs:500,session:2,source:"synthetic",detections:[obs()]});
+    T.true(reset.tracks[0].id!==id,"session reset cannot reuse identity");
+    const different=step(s,100,[obs(0,"bottle")]);
+    T.true(different.tracks.find(t=>t.label==="bottle").id!==id,"class mismatch cannot steal an anchor");
+    const ambiguous=step(step(Core.createTracker(),0,[obs(0),obs(2)]),100,[obs(1)]);
+    T.eq(ambiguous.tracks.filter(t=>t.status==="detected").length,0,"ambiguous overlap refuses identity");
+    T.eq(ambiguous.tracks.length,2,"ambiguity never duplicates an anchor");
+  });
+  T.suite("Tracking: pixel flow between detections",()=>{
+    const image=(shift=0,flat=false)=>{
+      const data=new Uint8ClampedArray(40*30*4);
+      for(let y=0;y<30;y++)for(let x=0;x<40;x++){
+        const v=flat?80:((x-shift)*73+y*97+(x-shift)*y*17)&255;
+        const i=(y*40+x)*4;data[i]=data[i+1]=data[i+2]=v;data[i+3]=255;
+      }
+      return {width:40,height:30,data,source:"synthetic"};
+    };
+    const f=Core.patchFlow(image(),image(2),{x:10,y:8,width:12,height:12});
+    T.eq(f.dx,2,"pixel matching recovers translation");
+    T.eq(f.dy,0,"horizontal movement invents no vertical flow");
+    T.eq(Core.patchFlow(image(0,true),image(0,true),{x:10,y:8,width:12,height:12}),null,"textureless flow abstains");
+    T.throws(()=>Core.patchFlow(image(),{...image(),source:"camera"},{x:10,y:8,width:12,height:12}),"mixed sources cannot form flow");
+    let s=step(Core.createTracker(),0,[obs()]);
+    const id=s.tracks[0].id;
+    s=step(s,33,null,{[id]:{dxDeg:0.5,dyDeg:0,confidence:1}});
+    T.eq(s.tracks[0].id,id,"flow retains anchor identity");
+    T.approx(s.tracks[0].boxDeg.leftDeg,0.5,1e-9,"flow advances angular position");
+    T.eq(s.tracks[0].status,"flow","flow support is distinct from detection");
+    T.eq(s.tracks[0].lastDetectionMs,0,"flow never refreshes detector evidence");
+    T.eq(step(s,901,null,{[id]:{dxDeg:0.5,dyDeg:0,confidence:1}}).tracks.length,0,"flow cannot immortalize an object");
+  });
+}
 const T = createHarness();
+registerStage6Tests(T);
 registerStage0Tests(T, createHarness, Core);
 registerStage1Tests(T);
 registerStage2Tests(T);
@@ -1876,6 +2048,14 @@ function mountObjectPipeline(doc,view) {
   const get=id=>doc.getElementById(id),canvas=get("object-preview"),ctx=canvas.getContext("2d");
   let epoch=0,latest=null,captured=null,creating=false,lastSubmit=-Infinity,completed=[],cpuMs=null,phase="stopped";
   let evidenceStart=0,evidenceCompleted=0,evidenceCpuTotal=0,evidenceDetections=0,evidenceTier1=0,evidenceLabels=new Set();
+  let tracker=Core.createTracker(),previousFrame=null,previousTime=null,trackingCpuMs=0;
+  function showTracks() {
+    get("anchor-list").textContent=tracker.tracks.map(t=>
+      t.id+" · "+t.label+" · "+t.status+" · "+t.source+" · "+
+      (t.tier===2?"Tier 2 association":"no live tier")+" · score "+t.confidence.toFixed(2)
+    ).join("\n")||"No tracked anchors";
+    get("anchor-list").textContent+="\nTracking CPU: "+trackingCpuMs.toFixed(2)+" ms";
+  }
   const pipeline=createObjectController({createWorker:()=>createObjectAdapter(view),releaseFrame:frame=>frame.close(),
     onStatus(status) {
       phase=status.phase;get("load-objects").disabled=["loading","ready"].includes(phase);
@@ -1885,13 +2065,23 @@ function mountObjectPipeline(doc,view) {
       const now=view.performance.now();
       if(!captured||result.metadata.session!==epoch||now-result.timeMs>600) {captured=null;return;}
       latest={metadata:result.metadata,observations:Core.objectDetections(result.detections,result.metadata,get("object-threshold").valueAsNumber),image:captured};
+      // An older detector result cannot rewind the every-frame tracker.
+      // Skip it conservatively; a later eligible detection will refresh identity.
+      if(tracker.timeMs===null||result.timeMs>=tracker.timeMs) {
+        tracker=Core.trackObjects(tracker,{timeMs:result.timeMs,session:epoch,
+          source:result.metadata.source,detections:latest.observations});
+        previousFrame={width:captured.width,height:captured.height,data:captured.data,source:result.metadata.source};
+        previousTime=result.timeMs;showTracks();
+      }
       captured=null;cpuMs=result.cpuMs;completed.push(now);completed=completed.filter(t=>now-t<=2000);
       evidenceCompleted++;evidenceCpuTotal+=result.cpuMs;evidenceDetections+=latest.observations.length;
       evidenceTier1+=latest.observations.filter(item=>item.tier===1).length;
       for(const item of latest.observations) evidenceLabels.add(item.label);
       paint(now);
     }});
-  function reset() {epoch++;creating=false;lastSubmit=-Infinity;pipeline.stop();}
+  function reset() {epoch++;creating=false;lastSubmit=-Infinity;pipeline.stop();
+    tracker=Object.freeze({...Core.createTracker(),nextId:tracker.nextId});
+    previousFrame=null;previousTime=null;trackingCpuMs=0;showTracks();}
   function paint(now) {
     if(!ctx) return;
     ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -1917,6 +2107,28 @@ function mountObjectPipeline(doc,view) {
       inferenceCpuMs:evidenceCompleted?evidenceCpuTotal/evidenceCompleted:0,detectionCount:evidenceDetections,
       tier1Count:evidenceTier1,labels:[...evidenceLabels]};
   },capture(frame,now) {
+    const started=view.performance.now(),flow={};
+    if(tracker.tracks.length&&previousFrame&&previousFrame.source===frame.source&&
+      previousFrame.width===frame.width&&previousFrame.height===frame.height&&now-previousTime<=100) {
+      const fov=Core.makeFov(60,60*frame.height/frame.width);
+      for(const t of tracker.tracks) {
+        const b=t.boxDeg;
+        const region={x:Math.round((b.leftDeg/fov.horizontalDeg+0.5)*frame.width),
+          y:Math.round((0.5-b.topDeg/fov.verticalDeg)*frame.height),
+          width:Math.round(b.widthDeg/fov.horizontalDeg*frame.width),
+          height:Math.round(b.heightDeg/fov.verticalDeg*frame.height)};
+        const motion=Core.patchFlow(previousFrame,frame,region);
+        if(motion)flow[t.id]={dxDeg:motion.dx/frame.width*fov.horizontalDeg,
+          dyDeg:-motion.dy/frame.height*fov.verticalDeg,confidence:motion.confidence};
+      }
+    }
+    // While a detector frame is pending, retain its timestamp boundary so its
+    // eventual result can be applied without retroactive identity changes.
+    if(!creating&&!pipeline.snapshot().busy) {
+      tracker=Core.trackObjects(tracker,{timeMs:now,session:epoch,source:frame.source,flow});
+      previousFrame={...frame,data:new Uint8ClampedArray(frame.data)};previousTime=now;
+    }
+    trackingCpuMs=view.performance.now()-started;showTracks();
     if(!ctx||creating||pipeline.snapshot().phase!=="ready"||pipeline.snapshot().busy||now-lastSubmit<1000/6) return;
     const id=epoch,image=new view.ImageData(new Uint8ClampedArray(frame.data),frame.width,frame.height);
     creating=true;lastSubmit=now;
@@ -1928,6 +2140,10 @@ function mountObjectPipeline(doc,view) {
       if(!pipeline.submit(bitmap,metadata)) captured=null;
     },error=>{if(id===epoch){creating=false;reset();get("object-status").textContent=`Detector frame capture failed: ${error.message}`;}});
   },diagnostics(now) {
+    if(tracker.tracks.some(t=>now-t.lastDetectionMs>800)) {
+      tracker=Core.trackObjects(tracker,{timeMs:now,session:epoch,source:tracker.source});
+      showTracks();
+    }
     completed=completed.filter(t=>now-t<=2000);
     const hz=completed.length>1?(completed.length-1)*1000/(completed.at(-1)-completed[0]):0;
     get("object-rate").textContent=`${hz.toFixed(1)} / 6 Hz target · ${phase}`;
