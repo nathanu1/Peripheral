@@ -1,0 +1,148 @@
+[
+  {
+    "command": "node tests/geometry-gate.mjs",
+    "exitCode": 0,
+    "evidence": {
+      "runtime": "v24.19.0",
+      "sourceSha256": "88c8e4eab7f6334d68b3dac3360a459ce9cf20ab3a929a4a10ae06abbd14d3c1",
+      "passed": 5,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Reference scan distinguishes text from executable browser identifiers",
+          "passed": true
+        },
+        {
+          "name": "Core boundaries are explicit and present",
+          "passed": true
+        },
+        {
+          "name": "Core contains zero browser, DOM, network, or storage references",
+          "passed": true
+        },
+        {
+          "name": "Core contains no ambient time or random source",
+          "passed": true
+        },
+        {
+          "name": "Standalone core executes with frozen inputs and repeatable output",
+          "passed": true
+        }
+      ]
+    }
+  },
+  {
+    "command": "node .github/peripheral/reports/stage-04-gate.mjs",
+    "exitCode": 0,
+    "evidence": {
+      "runtime": "v24.19.0",
+      "sourceSha256": "88c8e4eab7f6334d68b3dac3360a459ce9cf20ab3a929a4a10ae06abbd14d3c1",
+      "passed": 5,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "Exact inline application initializes for synthetic dwell traces",
+          "passed": true
+        },
+        {
+          "name": "Dwell constants are explicit model choices",
+          "passed": true
+        },
+        {
+          "name": "Pure synthetic 1.5 second trace emits exactly one dwell event",
+          "passed": true
+        },
+        {
+          "name": "Dwell implementation has no browser, clock, network, or storage dependency",
+          "passed": true
+        },
+        {
+          "name": "Wearer view contains no dwell progress element",
+          "passed": true
+        }
+      ]
+    }
+  },
+  {
+    "command": "node .github/peripheral/reports/stage-03-lifecycle.mjs",
+    "exitCode": 0,
+    "evidence": {
+      "sourceSha256": "88c8e4eab7f6334d68b3dac3360a459ce9cf20ab3a929a4a10ae06abbd14d3c1",
+      "passed": 2,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "cancelled load closes every task created after termination",
+          "passed": true
+        },
+        {
+          "name": "cancelled load emits no ready event",
+          "passed": true
+        }
+      ]
+    }
+  },
+  {
+    "command": "node .github/peripheral/reports/stage-03-canvas-test.mjs",
+    "exitCode": 0,
+    "evidence": {
+      "passed": 4,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "both tasks receive an explicit canvas",
+          "passed": true
+        },
+        {
+          "name": "face and hand use distinct canvases",
+          "passed": true
+        },
+        {
+          "name": "unsupported graphics fails before downloads",
+          "passed": true
+        },
+        {
+          "name": "unsupported graphics reports explicit WebGL requirement",
+          "passed": true
+        }
+      ]
+    }
+  },
+  {
+    "command": "node .github/peripheral/reports/stage-05-adapter.mjs",
+    "exitCode": 0,
+    "evidence": {
+      "runtime": "v24.19.0",
+      "mode": "synthetic injected runtime; no real model",
+      "sourceSha256": "88c8e4eab7f6334d68b3dac3360a459ce9cf20ab3a929a4a10ae06abbd14d3c1",
+      "passed": 6,
+      "failed": 0,
+      "checks": [
+        {
+          "name": "missing graphics fails before download",
+          "passed": true
+        },
+        {
+          "name": "integrity mismatch refuses model creation",
+          "passed": true
+        },
+        {
+          "name": "late-created task closes after cancellation and never becomes ready",
+          "passed": true
+        },
+        {
+          "name": "video task uses CPU and exact frame timestamp",
+          "passed": true
+        },
+        {
+          "name": "inference executes once and releases its frame",
+          "passed": true
+        },
+        {
+          "name": "cancelled queued frame closes without inference",
+          "passed": true
+        }
+      ]
+    }
+  }
+]

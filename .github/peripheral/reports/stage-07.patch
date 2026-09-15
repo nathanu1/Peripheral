@@ -1,0 +1,322 @@
+diff --git a/index.html b/index.html
+index 730c779..c4f8c2a 100644
+--- a/index.html
++++ b/index.html
+@@ -155,6 +155,12 @@
+         </dl>
+         <canvas id="object-preview" width="320" height="180" role="img" aria-label="Developer detection snapshot; labels are listed below" style="max-width:100%;background:#111"></canvas>
+         <pre id="object-list" aria-label="Detected object labels">No current observations</pre>
++        <div class="feed-controls">
++          <button id="load-embeddings" type="button" class="secondary">Load object appearance model</button>
++          <button id="stop-embeddings" type="button" class="secondary">Clear appearance memory</button>
++        </div>
++        <p id="embedding-status" role="status">Appearance model unloaded. Optional 89 MB download; no people matching.</p>
++        <p class="muted">CLIP appearance matching runs in a worker on newly detected object anchors. Similar objects may be indistinguishable; ambiguous matches are refused. Memory expires after 30 seconds and clears with the feed. Confidence is a cosine model score, not a measured probability.</p>
+         <pre id="anchor-list" aria-label="Tracked object identities">No tracked anchors</pre>
+         <p class="muted">Tracked IDs use angular box association and pixel flow. Occluded tracks expire after 800 ms without a detector observation. Positions are relative to the view; metric world anchoring is not available yet. Tracking CPU includes inline block matching; OpenCV is not loaded.</p>
+         <div class="feed-controls">
+@@ -285,6 +291,50 @@ function sha256Hex(bytes) {
+ }
+
+ const Core = Object.freeze({
++  bindEmbedding(memory,tracker,result,now) {
++    const m=result.metadata,t=tracker.tracks.find(t=>t.id===m.id);
++    if(!Number.isFinite(now)||now<m.timeMs||now-m.timeMs>1500||!t||
++      tracker.session!==m.session||tracker.source!==m.source||t.label!==m.label||
++      now-t.lastDetectionMs>800)return {memory,tracker,outcome:null};
++    const outcome=Core.reidentify(memory,{...m,timeMs:now,embedding:result.embedding},tracker.tracks.map(t=>t.id));
++    const tracks=tracker.tracks.map(track=>track.id!==m.id?track:Object.freeze({...track,id:outcome.id,
++      reidentification:Object.freeze({confidence:outcome.confidence,confidenceKind:outcome.confidenceKind,
++        tier:outcome.tier,reason:outcome.reason,revision:m.revision,observationMs:m.timeMs})}));
++    return {memory:outcome.memory,tracker:Object.freeze({...tracker,tracks:Object.freeze(tracks)}),outcome};
++  },
++  cosineSimilarity(a,b) {
++    if(!a||!b||a.length!==b.length||!a.length||a.length>4096||
++      !Array.from(a).every(Number.isFinite)||!Array.from(b).every(Number.isFinite))
++      throw new TypeError("Invalid embedding dimensions or values");
++    const na=Math.hypot(...a),nb=Math.hypot(...b);
++    if(!Number.isFinite(na)||!Number.isFinite(nb)||na===0||nb===0)throw new RangeError("Invalid embedding norm");
++    return Math.max(-1,Math.min(1,Array.from(a).reduce((sum,v,i)=>sum+(v/na)*(b[i]/nb),0)));
++  },
++  // Model choices: cosine >= .92, runner-up gap >= .04, memory <= 30 s / 64 objects.
++  // Appearance similarity is not proof of instance identity. No people or faces.
++  reidentify(memory,observation,activeIds) {
++    const {id,label,embedding,timeMs,session,source,revision}=observation;
++    if(!Array.isArray(memory)||!Array.isArray(activeIds)||typeof id!=="string"||!id||
++      typeof label!=="string"||!label||typeof revision!=="string"||!revision||
++      !Number.isFinite(timeMs)||timeMs<0||!Number.isInteger(session)||
++      !["camera","synthetic","evaluation"].includes(source))throw new TypeError("Invalid re-ID observation");
++    Core.cosineSimilarity(embedding,embedding);
++    let eligible=memory.filter(m=>m.session===session&&m.source===source&&m.revision===revision&&
++      timeMs>=m.timeMs&&timeMs-m.timeMs<=30000);
++    const freeze=items=>Object.freeze(items.map(m=>Object.freeze({...m,embedding:Object.freeze(Array.from(m.embedding))})));
++    const base={id,confidence:0,confidenceKind:"cosine-model",tier:source==="camera"?2:null};
++    if(/person|face|human/i.test(label)) return Object.freeze({...base,reason:"excluded",memory:freeze(eligible)});
++    const scores=eligible.filter(m=>m.id!==id&&m.label===label&&!activeIds.includes(m.id)&&m.embedding.length===embedding.length)
++      .map(m=>({m,score:Core.cosineSimilarity(m.embedding,embedding)})).sort((a,b)=>b.score-a.score||a.m.id.localeCompare(b.m.id));
++    const best=scores[0],ambiguous=best&&best.score>=0.92&&scores[1]&&best.score-scores[1].score<0.04;
++    const match=best&&best.score>=0.92&&!ambiguous?best:null;
++    const resolved=match?match.m.id:id;
++    // Ambiguous crops are not enrolled; otherwise they could poison later matches.
++    if(!ambiguous)eligible=[...eligible.filter(m=>m.id!==resolved&&m.id!==id),
++      {id:resolved,label,embedding:Array.from(embedding),timeMs,session,source,revision}].slice(-64);
++    return Object.freeze({...base,id:resolved,confidence:match?Math.max(0,match.score):0,
++      reason:ambiguous?"ambiguous":match?"matched":"new",memory:freeze(eligible)});
++  },
+   // Stage 6 choices: 800 ms detector expiry, 0.2 IoU association floor,
+   // 0.05 ambiguity margin, 20 tracks. These are prototype model parameters.
+   boxIou(a,b) {
+@@ -932,6 +982,89 @@ function createObjectController({createWorker,onStatus,onResult,releaseFrame}) {
+   }});
+ }
+
++const EMBEDDING_ASSETS=Object.freeze({
++  library:"https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2/dist/transformers.web.min.js",
++  wasm:"https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2/dist/",
++  model:"Xenova/clip-vit-base-patch32",revision:"d15189d7028b43f1d3e65039190477f6af591c2a",
++  hashes:Object.freeze({
++    "config.json":"493ef57ff783e42d1530c91b53469b7fdf8db8a9c1408e86998fcb7899a4f495",
++    "preprocessor_config.json":"6f638fb9401a6d6296feff533ee7efe657b787c49f954f82f5906b36ef2a1b1f",
++    "onnx/vision_model_quantized.onnx":"583fd1110a514667812fee7d684952aaf82a99b959760c8d7dca7e0ab9839299"
++  })
++});
++function createEmbeddingController({createWorker,onResult,onStatus}) {
++  let worker=null,phase="stopped",pending=null;
++  function stop(){worker?.terminate();worker=null;pending=null;phase="stopped";onStatus(phase);}
++  function fail(message){stop();phase="error";onStatus("error: "+message);}
++  return {stop,start(){stop();phase="loading";onStatus(phase);
++    try {
++      const w=createWorker();worker=w;
++      w.onmessage=({data})=>{
++        if(worker!==w)return;
++        if(data.type==="ready"){phase="ready";onStatus(phase);}
++        if(data.type==="error")fail(data.message);
++        if(data.type==="result"&&pending){const metadata=pending;pending=null;onResult({...data,metadata});}
++      };
++      w.onerror=e=>{if(worker===w)fail(e.message||"Embedding worker failed");};
++      w.postMessage({type:"load",assets:EMBEDDING_ASSETS});
++    }catch(error){fail(error.message);}
++  },submit(crop,metadata){
++    if(phase!=="ready"||pending)return false;
++    pending=metadata;
++    try{worker.postMessage({type:"embed",crop},[crop.data.buffer]);return true;}
++    catch(error){fail(error.message);return false;}
++  }};
++}
++// Serialized into an in-memory module Worker; model computation never enters
++// the render loop. Terminating the worker releases its model, buffers and heap.
++function embeddingWorkerMain() {
++  let model=null,processor=null,lib=null;
++  self.onmessage=async({data:m})=>{
++    try {
++      if(m.type==="load") {
++        lib=await import(m.assets.library);
++        lib.env.useBrowserCache=false;lib.env.useFSCache=false;
++        lib.env.allowLocalModels=false;lib.env.useCustomCache=true;
++        lib.env.backends.onnx.wasm.numThreads=1;
++        lib.env.backends.onnx.wasm.proxy=false;
++        lib.env.backends.onnx.wasm.wasmPaths=m.assets.wasm;
++        const memory=new Map();
++        for(const [name,expected] of Object.entries(m.assets.hashes)) {
++          const url="https://huggingface.co/"+m.assets.model+"/resolve/"+m.assets.revision+"/"+name;
++          const response=await fetch(url,{credentials:"omit",referrerPolicy:"no-referrer"});
++          if(!response.ok)throw new Error("Embedding asset HTTP "+response.status);
++          const bytes=new Uint8Array(await response.arrayBuffer());
++          if(sha256Hex(bytes)!==expected)throw new Error("Embedding integrity mismatch: "+name);
++          memory.set(name,bytes);
++        }
++        // All model/config requests are served from integrity-checked memory.
++        // Unknown optional config returns 404 rather than fetching an unpinned file.
++        lib.env.customCache={async match(key){
++          const name=[...memory.keys()].find(n=>String(key).endsWith("/"+n));
++          return name?new Response(memory.get(name)):new Response(null,{status:404});
++        },async put(){throw new Error("Persistent model caching is disabled");}};
++        const options={revision:m.assets.revision,device:"wasm",dtype:"q8"};
++        processor=await lib.AutoProcessor.from_pretrained(m.assets.model,options);
++        model=await lib.CLIPVisionModelWithProjection.from_pretrained(m.assets.model,options);
++        memory.clear();self.postMessage({type:"ready"});
++      } else if(m.type==="embed") {
++        if(!model)throw new Error("Embedding model unavailable");
++        const start=performance.now(),{data,width,height}=m.crop;
++        if(width<1||height<1||width>224||height>224||data.length!==width*height*4)throw new Error("Invalid embedding crop");
++        const inputs=await processor(new lib.RawImage(data,width,height,4));
++        const output=await model(inputs),embedding=Array.from(output.image_embeds.data);
++        if(embedding.length!==512||!embedding.every(Number.isFinite))throw new Error("Invalid model embedding");
++        self.postMessage({type:"result",embedding,cpuMs:performance.now()-start});
++      }
++    } catch(error){self.postMessage({type:"error",message:error.name+": "+error.message});}
++  };
++}
++function createEmbeddingWorker(view) {
++  const source=sha256Hex.toString()+"\n("+embeddingWorkerMain.toString()+")();";
++  const url=view.URL.createObjectURL(new view.Blob([source],{type:"text/javascript"}));
++  try{return new view.Worker(url,{type:"module"});}finally{view.URL.revokeObjectURL(url);}
++}
++
+ const OBJECT_ASSETS=Object.freeze({
+   ...VISION_ASSETS,
+   model:"https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/int8/1/efficientdet_lite0.tflite",
+@@ -1835,7 +1968,84 @@ function registerStage6Tests(T) {
+     T.eq(step(s,901,null,{[id]:{dxDeg:0.5,dyDeg:0,confidence:1}}).tracks.length,0,"flow cannot immortalize an object");
+   });
+ }
++function registerStage7Tests(T) {
++  const sample=(id,embedding=[1,0,0],extra={})=>({id,label:"bottle",embedding,
++    timeMs:0,session:1,source:"synthetic",revision:"fixture-v1",...extra});
++  T.suite("Re-ID: single-flight worker lifetime",()=>{
++    const workers=[],results=[];let status="";
++    const make=()=>{const w={messages:[],postMessage(m){this.messages.push(m);},terminate(){this.stopped=true;}};workers.push(w);return w;};
++    const controller=createEmbeddingController({createWorker:make,onResult:r=>results.push(r),onStatus:s=>status=s});
++    T.eq(controller.submit({},{}),false,"unloaded embeddings reject crops");
++    controller.start();const worker=workers[0];
++    T.eq(status,"loading","model loading is explicit");
++    worker.onmessage({data:{type:"ready"}});
++    T.eq(controller.submit({data:new Uint8Array(4),width:1,height:1},{id:"a"}),true,"ready worker accepts one crop");
++    T.eq(controller.submit({},{}),false,"busy worker drops work instead of queueing");
++    worker.onmessage({data:{type:"result",embedding:[1,0],cpuMs:10}});
++    T.eq(results[0].metadata.id,"a","result stays bound to submitted anchor");
++    T.eq(controller.submit({data:new Uint8Array(4),width:1,height:1},{id:"b"}),true,"next anchor may run after completion");
++    controller.stop();worker.onmessage({data:{type:"result",embedding:[1,0],cpuMs:10}});
++    T.eq(results.length,1,"late result cannot restore a stopped session");
++    T.eq(worker.stopped,true,"stop terminates model worker");
++    controller.start();worker.onmessage({data:{type:"error",message:"old failure"}});
++    T.eq(status,"loading","old failure cannot poison new worker");
++    workers[1].onerror({message:"load failed"});
++    T.eq(status,"error: load failed","current failure is visible");
++    T.eq(workers[1].stopped,true,"failed worker releases models");
++  });
++  T.suite("Re-ID: apply only to current anchors",()=>{
++    const box={leftDeg:0,topDeg:2,widthDeg:2,heightDeg:2};
++    const tracked=Core.trackObjects(Core.createTracker(),{timeMs:2000,session:1,source:"synthetic",
++      detections:[{boxDeg:box,label:"bottle",confidence:.8,source:"synthetic"}]});
++    const meta={id:tracked.tracks[0].id,label:"bottle",session:1,source:"synthetic",timeMs:2000,revision:"fixture-v1"};
++    const memory=Core.reidentify([],sample("departed"),[]).memory;
++    const result={metadata:meta,embedding:[1,0,0]};
++    const bound=Core.bindEmbedding(memory,tracked,result,2100);
++    T.eq(bound.tracker.tracks[0].id,"departed","real result rebinds the tracker identity");
++    T.eq(bound.tracker.nextId,tracked.nextId,"rebind preserves monotonic allocation");
++    const newerMemory=[...memory,{...memory[0],id:"other",label:"chair",timeMs:2050}];
++    T.true(Core.bindEmbedding(newerMemory,tracked,result,2100).memory.some(m=>m.id==="other"),
++      "in-flight embedding cannot erase more recent memory");
++    T.eq(bound.tracker.tracks[0].reidentification.confidence,1,"anchor exposes re-ID confidence");
++    for(const r of [{...result,metadata:{...meta,session:2}},{...result,metadata:{...meta,label:"chair"}},
++      {...result,metadata:{...meta,source:"camera"}},{...result,metadata:{...meta,id:"gone"}}])
++      T.eq(Core.bindEmbedding(memory,tracked,r,2100).tracker,tracked,"stale or rebound result is discarded");
++    T.eq(Core.bindEmbedding(memory,tracked,result,4000).tracker,tracked,"late computation cannot revive a stale crop");
++    T.eq(Core.bindEmbedding(memory,tracked,result,1900).tracker,tracked,"future crop cannot bind");
++  });
++  T.suite("Re-ID: cosine and invalid evidence",()=>{
++    T.eq(Core.cosineSimilarity([1,0],[2,0]),1,"cosine is magnitude invariant");
++    T.eq(Core.cosineSimilarity([1,0],[0,1]),0,"different appearance has zero similarity");
++    T.throws(()=>Core.cosineSimilarity([0,0],[1,0]),"zero vector rejected");
++    T.throws(()=>Core.cosineSimilarity([1],[1,2]),"dimension mismatch rejected");
++    T.throws(()=>Core.cosineSimilarity([NaN,1],[1,0]),"nonfinite embedding rejected");
++  });
++  T.suite("Re-ID: departure and cautious return",()=>{
++    const first=Core.reidentify([],sample("anchor-1"),["anchor-1"]);
++    const before=JSON.stringify(first.memory);
++    const back=Core.reidentify(first.memory,sample("anchor-2",[0.99,0.01,0],{timeMs:2000}),["anchor-2"]);
++    T.eq(back.id,"anchor-1","departed anchor rebinds by appearance");
++    T.true(back.confidence>=0&&back.confidence<=1,"every match carries bounded confidence");
++    T.eq(back.confidenceKind,"cosine-model","confidence is not a detector probability");
++    T.eq(back.tier,null,"synthetic appearance never gains live tier");
++    T.eq(JSON.stringify(first.memory),before,"prior memory is immutable");
++    T.true(Object.isFrozen(back.memory[0].embedding),"embedding is immutable");
++    const other=Core.reidentify(first.memory,sample("anchor-2",[0,1,0],{timeMs:2000}),["anchor-2"]);
++    T.eq(other.id,"anchor-2","different object cannot steal identity");
++    T.eq(Core.reidentify(first.memory,sample("anchor-2",[1,0,0],{timeMs:2000}),["anchor-1","anchor-2"]).id,"anchor-2","visible identity cannot bind twice");
++    T.eq(Core.reidentify(first.memory,sample("anchor-2",[1,0,0],{timeMs:30001}),[]).id,"anchor-2","memory expires after thirty seconds");
++    for(const extra of [{session:2},{source:"evaluation"},{revision:"other"},{label:"chair"}])
++      T.eq(Core.reidentify(first.memory,sample("anchor-2",[1,0,0],{timeMs:2000,...extra}),[]).id,"anchor-2","incompatible evidence cannot match: "+JSON.stringify(extra));
++    const twins=[...first.memory,{...first.memory[0],id:"twin"}];
++    T.eq(Core.reidentify(twins,sample("anchor-2",[1,0,0],{timeMs:2000}),[]).reason,"ambiguous","similar candidates abstain");
++    T.eq(Core.reidentify([],sample("person-1",[1,0,0],{label:"person"}),[]).memory.length,0,"people excluded from appearance memory");
++    T.throws(()=>Core.reidentify(first.memory,sample("anchor-2",[1,0,0],{timeMs:-1}),[]),"invalid time rejected");
++    const live=Core.reidentify([],sample("a",[1,0,0],{source:"camera"}),["a"]);
++    T.eq(Core.reidentify(live.memory,sample("b",[1,0,0],{source:"camera",timeMs:2000}),["b"]).tier,2,"camera re-ID remains inferred Tier 2");
++  });
++}
+ const T = createHarness();
++registerStage7Tests(T);
+ registerStage6Tests(T);
+ registerStage0Tests(T, createHarness, Core);
+ registerStage1Tests(T);
+@@ -2049,10 +2259,51 @@ function mountObjectPipeline(doc,view) {
+   let epoch=0,latest=null,captured=null,creating=false,lastSubmit=-Infinity,completed=[],cpuMs=null,phase="stopped";
+   let evidenceStart=0,evidenceCompleted=0,evidenceCpuTotal=0,evidenceDetections=0,evidenceTier1=0,evidenceLabels=new Set();
+   let tracker=Core.createTracker(),previousFrame=null,previousTime=null,trackingCpuMs=0;
++  let appearanceMemory=[],attempted=new Set(),embeddingPhase="stopped";
++  const embedding=createEmbeddingController({createWorker:()=>createEmbeddingWorker(view),
++    onStatus(status){embeddingPhase=status;get("load-embeddings").disabled=["loading","ready"].includes(status);
++      get("embedding-status").textContent=status==="ready"?"CLIP ready · worker CPU/WASM · browser quality unverified":status;},
++    onResult(result){
++      const bound=Core.bindEmbedding(appearanceMemory,tracker,result,view.performance.now());
++      appearanceMemory=bound.memory;tracker=bound.tracker;
++      if(bound.outcome){attempted.add(bound.outcome.id);get("embedding-status").textContent=
++        "CLIP · "+bound.outcome.reason+" · "+bound.outcome.confidence.toFixed(3)+" cosine-model · "+result.cpuMs.toFixed(1)+" ms";}
++      showTracks();
++    }});
++  function clearAppearance(){embedding.stop();appearanceMemory=[];attempted.clear();}
++  function scheduleAppearance(image,metadata) {
++    if(embeddingPhase!=="ready")return;
++    const ids=new Set(tracker.tracks.map(t=>t.id));
++    attempted=new Set([...attempted].filter(id=>ids.has(id)));
++    appearanceMemory=appearanceMemory.filter(m=>metadata.timeMs-m.timeMs<=30000).map(m=>{
++      const t=tracker.tracks.find(t=>t.id===m.id&&t.status==="detected");
++      return t?{...m,timeMs:metadata.timeMs}:m;
++    });
++    const t=tracker.tracks.find(t=>t.status==="detected"&&!attempted.has(t.id)&&
++      !appearanceMemory.some(m=>m.id===t.id)&&!/person|face|human/i.test(t.label));
++    if(!t)return;
++    const fov=metadata.fov,b=t.boxDeg;
++    const x=Math.max(0,Math.floor((b.leftDeg/fov.horizontalDeg+.5)*image.width));
++    const y=Math.max(0,Math.floor((.5-b.topDeg/fov.verticalDeg)*image.height));
++    const width=Math.min(image.width-x,Math.ceil(b.widthDeg/fov.horizontalDeg*image.width));
++    const height=Math.min(image.height-y,Math.ceil(b.heightDeg/fov.verticalDeg*image.height));
++    if(width<4||height<4)return;
++    const scratch=doc.createElement("canvas");scratch.width=image.width;scratch.height=image.height;
++    scratch.getContext("2d").putImageData(image,0,0);
++    const crop=doc.createElement("canvas"),scale=Math.min(1,224/Math.max(width,height));
++    crop.width=Math.max(1,Math.round(width*scale));crop.height=Math.max(1,Math.round(height*scale));
++    const c=crop.getContext("2d");c.drawImage(scratch,x,y,width,height,0,0,crop.width,crop.height);
++    const pixels=c.getImageData(0,0,crop.width,crop.height);
++    if(embedding.submit({data:pixels.data,width:crop.width,height:crop.height},
++      {id:t.id,label:t.label,timeMs:metadata.timeMs,session:epoch,source:metadata.source,revision:EMBEDDING_ASSETS.revision}))attempted.add(t.id);
++  }
++  get("load-embeddings").addEventListener("click",()=>{clearAppearance();embedding.start();});
++  get("stop-embeddings").addEventListener("click",clearAppearance);
+   function showTracks() {
+     get("anchor-list").textContent=tracker.tracks.map(t=>
+       t.id+" · "+t.label+" · "+t.status+" · "+t.source+" · "+
+-      (t.tier===2?"Tier 2 association":"no live tier")+" · score "+t.confidence.toFixed(2)
++      (t.tier===2?"Tier 2 association":"no live tier")+" · score "+t.confidence.toFixed(2)+
++      (t.reidentification?" · appearance "+t.reidentification.reason+" "+t.reidentification.confidence.toFixed(3):"")
+     ).join("\n")||"No tracked anchors";
+     get("anchor-list").textContent+="\nTracking CPU: "+trackingCpuMs.toFixed(2)+" ms";
+   }
+@@ -2071,7 +2322,7 @@ function mountObjectPipeline(doc,view) {
+         tracker=Core.trackObjects(tracker,{timeMs:result.timeMs,session:epoch,
+           source:result.metadata.source,detections:latest.observations});
+         previousFrame={width:captured.width,height:captured.height,data:captured.data,source:result.metadata.source};
+-        previousTime=result.timeMs;showTracks();
++        previousTime=result.timeMs;showTracks();scheduleAppearance(captured,result.metadata);
+       }
+       captured=null;cpuMs=result.cpuMs;completed.push(now);completed=completed.filter(t=>now-t<=2000);
+       evidenceCompleted++;evidenceCpuTotal+=result.cpuMs;evidenceDetections+=latest.observations.length;
+@@ -2079,7 +2330,7 @@ function mountObjectPipeline(doc,view) {
+       for(const item of latest.observations) evidenceLabels.add(item.label);
+       paint(now);
+     }});
+-  function reset() {epoch++;creating=false;lastSubmit=-Infinity;pipeline.stop();
++  function reset() {epoch++;creating=false;lastSubmit=-Infinity;pipeline.stop();clearAppearance();
+     tracker=Object.freeze({...Core.createTracker(),nextId:tracker.nextId});
+     previousFrame=null;previousTime=null;trackingCpuMs=0;showTracks();}
+   function paint(now) {
+@@ -2140,6 +2391,7 @@ function mountObjectPipeline(doc,view) {
+       if(!pipeline.submit(bitmap,metadata)) captured=null;
+     },error=>{if(id===epoch){creating=false;reset();get("object-status").textContent=`Detector frame capture failed: ${error.message}`;}});
+   },diagnostics(now) {
++    appearanceMemory=appearanceMemory.filter(m=>now-m.timeMs<=30000);
+     if(tracker.tracks.some(t=>now-t.lastDetectionMs>800)) {
+       tracker=Core.trackObjects(tracker,{timeMs:now,session:epoch,source:tracker.source});
+       showTracks();

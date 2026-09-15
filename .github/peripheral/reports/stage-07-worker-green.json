@@ -1,0 +1,35 @@
+{
+  "mode": "injected worker dependencies; no actual model",
+  "passed": 7,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "integrity failure prevents model creation",
+      "passed": true
+    },
+    {
+      "name": "all persistent caches disabled",
+      "passed": true
+    },
+    {
+      "name": "single-thread WASM runtime pinned",
+      "passed": true
+    },
+    {
+      "name": "vision model uses exact revision and q8",
+      "passed": true
+    },
+    {
+      "name": "unknown cache asset refuses network fallback",
+      "passed": true
+    },
+    {
+      "name": "crop reaches processor and real adapter calls model",
+      "passed": true
+    },
+    {
+      "name": "oversize or incomplete pixels rejected",
+      "passed": true
+    }
+  ]
+}

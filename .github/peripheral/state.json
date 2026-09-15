@@ -25,7 +25,7 @@
     "nextRunVerified": false,
     "pauseReason": null
   },
-  "nextStage": 7,
+  "nextStage": 8,
   "stages": [
     {
       "stage": 0,
@@ -402,9 +402,52 @@
       "stage": 7,
       "name": "Re-identification (Tier 2)",
       "commitMessage": "feat(perception): embedding-based re-identification",
-      "status": "pending",
+      "status": "completed",
       "reportPath": ".github/peripheral/reports/stage-07.md",
-      "testResults": null
+      "testResults": {
+        "passed": 418,
+        "failed": 0,
+        "newAssertions": 43,
+        "runtime": "v24.19.0",
+        "sourceSha256": "88c8e4eab7f6334d68b3dac3360a459ce9cf20ab3a929a4a10ae06abbd14d3c1",
+        "evidencePath": ".github/peripheral/reports/stage-07-green.json",
+        "redPhases": [
+          {
+            "passed": 375,
+            "failed": 2,
+            "evidencePath": ".github/peripheral/reports/stage-07-red.json"
+          },
+          {
+            "passed": 397,
+            "failed": 1,
+            "evidencePath": ".github/peripheral/reports/stage-07-worker-red.json"
+          },
+          {
+            "passed": 408,
+            "failed": 1,
+            "evidencePath": ".github/peripheral/reports/stage-07-binding-red.json"
+          },
+          {
+            "passed": 417,
+            "failed": 1,
+            "evidencePath": ".github/peripheral/reports/stage-07-freshness-red.json"
+          }
+        ]
+      },
+      "gate": {
+        "status": "passed",
+        "mode": "actual CLIP ONNX embeddings on licensed prerecorded crops, deterministic tracker departure/re-entry",
+        "passed": 24,
+        "failed": 0,
+        "evidencePath": ".github/peripheral/reports/stage-07-gate.json",
+        "limitations": [
+          "Brightness-only revisit on six crops; novel viewpoints and indistinguishable instances not validated",
+          "Cloud browser blocks preview; model loading, sustained browser FPS and wearable hardware unverified",
+          "Camera re-ID is inferred Tier 2; prerecorded and synthetic results carry no live tier"
+        ]
+      },
+      "implementationBaseCommit": "8b20893800ea851aec21db0c0157a2c887272f05",
+      "implementationDiffPath": ".github/peripheral/reports/stage-07.patch"
     },
     {
       "stage": 8,
@@ -517,11 +560,11 @@
     },
     {
       "stage": 5,
-      "status": "open",
-      "reason": "Real-frame browser gate unavailable; implementation retained as an unapplied tested patch.",
+      "status": "resolved",
+      "reason": "Stage 5 passed the approved prerecorded-image gate at 21fc7f05c354946676b9caf675574b88442e5ed7; stale blocker reconciled against main.",
       "reportPath": ".github/peripheral/reports/stage-05.md",
-      "scheduleImpact": "Next run resumes Stage 5; Stage 6 cannot begin until the gate passes."
+      "scheduleImpact": "Stages 5\u20137 completed; Stage 8 next. Live browser validation remains unverified."
     }
   ],
-  "lastUpdated": "2026-09-08"
+  "lastUpdated": "2026-09-15"
 }

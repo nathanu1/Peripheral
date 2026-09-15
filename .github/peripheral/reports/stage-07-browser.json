@@ -1,0 +1,8 @@
+{
+  "status": "unverified",
+  "attemptedUrl": "http://127.0.0.1:5173",
+  "actualFailure": "Browser Use cannot open local preview: net::ERR_BLOCKED_BY_CLIENT",
+  "modelLoading": "not tested in browser",
+  "liveCamera": "not tested",
+  "wearableHardware": "not tested"
+}

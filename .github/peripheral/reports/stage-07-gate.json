@@ -1,0 +1,103 @@
+{
+  "mode": "actual native model vectors; deterministic departure/re-entry",
+  "passed": 24,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "45d25f290b3eff63 leaves view",
+      "passed": true
+    },
+    {
+      "name": "45d25f290b3eff63 enters with new tracker ID",
+      "passed": true
+    },
+    {
+      "name": "45d25f290b3eff63 restores departed identity",
+      "passed": true
+    },
+    {
+      "name": "45d25f290b3eff63 honest score and provenance",
+      "passed": true
+    },
+    {
+      "name": "7ab810236c12cb51 leaves view",
+      "passed": true
+    },
+    {
+      "name": "7ab810236c12cb51 enters with new tracker ID",
+      "passed": true
+    },
+    {
+      "name": "7ab810236c12cb51 restores departed identity",
+      "passed": true
+    },
+    {
+      "name": "7ab810236c12cb51 honest score and provenance",
+      "passed": true
+    },
+    {
+      "name": "b499182ee39701e0 leaves view",
+      "passed": true
+    },
+    {
+      "name": "b499182ee39701e0 enters with new tracker ID",
+      "passed": true
+    },
+    {
+      "name": "b499182ee39701e0 restores departed identity",
+      "passed": true
+    },
+    {
+      "name": "b499182ee39701e0 honest score and provenance",
+      "passed": true
+    },
+    {
+      "name": "50c0057044d205ff leaves view",
+      "passed": true
+    },
+    {
+      "name": "50c0057044d205ff enters with new tracker ID",
+      "passed": true
+    },
+    {
+      "name": "50c0057044d205ff restores departed identity",
+      "passed": true
+    },
+    {
+      "name": "50c0057044d205ff honest score and provenance",
+      "passed": true
+    },
+    {
+      "name": "03abc39ad2c14097 leaves view",
+      "passed": true
+    },
+    {
+      "name": "03abc39ad2c14097 enters with new tracker ID",
+      "passed": true
+    },
+    {
+      "name": "03abc39ad2c14097 restores departed identity",
+      "passed": true
+    },
+    {
+      "name": "03abc39ad2c14097 honest score and provenance",
+      "passed": true
+    },
+    {
+      "name": "9bd3e32a2337f9bc leaves view",
+      "passed": true
+    },
+    {
+      "name": "9bd3e32a2337f9bc enters with new tracker ID",
+      "passed": true
+    },
+    {
+      "name": "9bd3e32a2337f9bc restores departed identity",
+      "passed": true
+    },
+    {
+      "name": "9bd3e32a2337f9bc honest score and provenance",
+      "passed": true
+    }
+  ]
+}

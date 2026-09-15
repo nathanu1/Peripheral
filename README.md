@@ -22,7 +22,7 @@ An optional local preview is available with `npm run dev`. It uses Node’s buil
 
 ## Status
 
-Implemented: a single-file shell, separate world/additive/subtractive canvas layers, optional camera capture with synthetic fallback, deterministic frame scheduling, pixel brightness and neighboring-contrast proxies, angular geometry, swappable gaze sources, on-device face/hand and object-model adapters, a developer direction gauge, a pure dwell state machine, and keyboard-accessible debug controls. The suite currently has **375 passing assertions**.
+Implemented: a single-file shell, separate world/additive/subtractive canvas layers, optional camera capture with synthetic fallback, deterministic frame scheduling, pixel brightness and neighboring-contrast proxies, angular geometry, swappable gaze sources, on-device face/hand and object-model adapters, a developer direction gauge, a pure dwell state machine, and keyboard-accessible debug controls. The suite currently has **418 passing assertions**.
 
 Geometry uses degrees for model positions and converts to pixels at an explicit paint boundary. It includes visual-angle calculations, display bounds, and an immutable horizontal/vertical/diagonal FOV triple. The nominal 600×600 / 42 PPD display fixture uses a uniform-angular approximation; it does not calibrate the camera or validate wearable optics. Its independent core check runs with `node tests/geometry-gate.mjs`.
 
@@ -41,6 +41,10 @@ For head tracking, select **Face pose · user camera**, click **Use camera**, th
 Models load on request from exact-version URLs and execute locally. Initial downloads require network; browser HTTP caching does not guarantee offline availability. No camera frames are uploaded. This is a browser prototype, not a validated wearable device.
 
 Tracking now assigns stable IDs to angular object boxes, smooths jitter, and uses pixel block matching between detections. The debug console distinguishes detections, flow estimates and occluded tracks. IDs expire after 800 ms without detection; ambiguous overlap is left unresolved. Positions are relative to the view, and live tracking quality remains unverified.
+
+Object appearance memory is optional: load the detector first, then **Load object appearance model**. Pinned CLIP image embeddings run in a separate worker on new object anchors; no people matching is performed. Memory lasts up to 30 seconds, is limited to 64 objects, and clears when the feed stops or changes. **Clear appearance memory** unloads the model. A matched ID and cosine-model score appear only in the debug console. The model needs an approximately 89 MB initial weights download plus its runtime; browser HTTP caching is best effort.
+
+The re-identification reference check passed six licensed object crops with brightness-adjusted revisits and same-class distractors. These results demonstrate appearance persistence on those inputs; novel viewpoints, similar instances, browser model loading and sustained device performance remain unverified.
 
 ## Design
 
