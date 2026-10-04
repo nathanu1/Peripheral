@@ -14,7 +14,7 @@ const {mountFramePipeline}=context.Peripheral;
 let now=0,serial=0,allowCamera=true,objectsPresent=true,modelAvailable=true;
 // Raster-pixel box of the injected cup; the centred variant covers the view centre.
 const offCentre={originX:32,originY:36,width:64,height:72},centred={originX:130,originY:60,width:60,height:60};
-let detectionBox=offCentre,detectorDelayMs=0;
+let detectionBox=offCentre,detectorDelayMs=0,workerFails=false,workersCreated=0;
 const raf=new Map(),timers=new Map(),streams=[],requests=[],checks=[],canvasCalls=[];
 function check(name,condition){checks.push({name,passed:!!condition});}
 class Element {
@@ -65,10 +65,13 @@ const view={document:doc,isSecureContext:true,performance:{now:()=>now},
   setTimeout(fn,delay){const id=++serial;timers.set(id,{fn,time:now+delay});return id;},clearTimeout:id=>timers.delete(id),
   ImageData:class {constructor(data,width,height){Object.assign(this,{data,width,height});}},
   createImageBitmap:async image=>({...image,close(){}}),
-  testObjectAdapter(){let onmessage=()=>{},dead=false;return {
+  // Detector worker double: same protocol as the page-thread adapter; can fail like a worker without WebGL.
+  Worker:function(){workersCreated++;return view.testObjectAdapter(workerFails?'WebGL is unavailable in this worker':null);},
+  OffscreenCanvas:class {},Blob:class {},URL:{createObjectURL:()=>'blob:detector',revokeObjectURL(){}},
+  testObjectAdapter(loadError=null){let onmessage=()=>{},dead=false;return {
     set onmessage(fn){onmessage=fn;},set onerror(fn){},terminate(){dead=true;},
     postMessage(message){Promise.resolve().then(()=>{if(dead){message.frame?.close();return;}
-      if(message.type==='load')onmessage({data:modelAvailable?{type:'ready'}:{type:'error',message:'Injected graphics failure'}});
+      if(message.type==='load')onmessage({data:loadError?{type:'error',message:loadError}:modelAvailable?{type:'ready'}:{type:'error',message:'Injected graphics failure'}});
       if(message.type==='frame'){
         const respond=()=>{if(dead){message.frame.close();return;}
           message.frame.close();onmessage({data:{type:'result',timeMs:message.timeMs,cpuMs:4,
@@ -89,6 +92,7 @@ try {
   get('welcome-start').click();await settle();await advance(240);
   check('Mirror start requests front-camera video without audio',requests[0].video.facingMode.ideal==='user'&&requests[0].audio===false);
   check('Mirror start automatically loads requested object recognition',get('object-status').textContent.includes('Detector ready'));
+  check('Detection runs in a worker, off the page thread',workersCreated===1&&get('object-status').textContent.includes('worker'));
   check('Live pixels are presented by the native video element, not repainted per frame',
     get('camera-video').srcObject===streams[0]&&get('wearer-view').dataset.liveVideo==='true'&&
     !canvasCalls.some(c=>c.canvas===get('world-layer')&&c.args[0]===get('camera-video')));
@@ -155,6 +159,10 @@ try {
   detectorDelayMs=950;get('welcome-start').click();await settle();await advance(6000);
   check('A ~1 Hz detector keeps object identity, so objects still confirm and get a marker',marker()?.className==='scene-marker');
   get('scene-stop').click();detectorDelayMs=0;await advance(1000);
+  workerFails=true;get('welcome-start').click();await settle();await advance(700);
+  check('A worker that cannot run detection falls back to the page thread',get('object-status').textContent.includes('Detector ready')&&
+    get('object-status').textContent.includes('page thread')&&marker()?.className==='scene-marker');
+  get('scene-stop').click();workerFails=false;await advance(200);
   modeButtons[0].click();allowCamera=false;get('start-camera').click();await settle();await advance(34);
   check('Denied permission falls back with explicit synthetic provenance',get('source-label').textContent.includes('Synthetic')&&get('scene-message').textContent.includes('denied')&&get('scene-labels').children.length===0);
   allowCamera=true;modelAvailable=false;get('start-camera').click();await settle();await advance(240);

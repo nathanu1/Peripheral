@@ -315,7 +315,7 @@
         <label for="runtime-evidence">Stage 5 runtime evidence JSON</label>
         <textarea id="runtime-evidence" rows="12" readonly spellcheck="false" style="width:100%;font:12px ui-monospace,monospace"></textarea>
         <p class="muted">Boxes mark the last analyzed world frame, not tracked objects. Snapshots expire after 600 ms. Camera detections carry Tier 1; synthetic-world results never do. Scores are model outputs, not calibrated certainty. This 80-class model cannot name every object or establish its state. Angular boxes use an uncalibrated 60° raster projection.</p>
-        <p class="muted">Choose a camera role and start the feed before loading. Source changes unload the detector. EfficientDet-Lite0 int8 revision 1 runs on-device with MediaPipe 0.10.21. CPU/WASM inference blocks the page thread; compare processed FPS with the detector unloaded and loaded. Initial model downloads need network; offline caching is best effort. No image is uploaded. OCR crop preparation is present; text recognition is not active yet.</p>
+        <p class="muted">Choose a camera role and start the feed before loading. Source changes unload the detector. EfficientDet-Lite0 int8 revision 1 runs on-device with MediaPipe 0.10.21. Detection runs in a worker where the browser offers OffscreenCanvas, otherwise on the page thread (the status says which); compare processed FPS with the detector unloaded and loaded. Initial model downloads need network; offline caching is best effort. No image is uploaded. OCR crop preparation is present; text recognition is not active yet.</p>
       </fieldset>
       <button id="run-tests" type="button" aria-controls="test-summary test-results">Run Tests</button>
       <p id="test-summary" role="status" aria-live="polite">Tests have not run.</p>
@@ -529,6 +529,11 @@ const Core = Object.freeze({
     const floor=CONSTANTS.entityPresenceMs.value;
     const expiryMs=Math.min(CONSTANTS.trackExpiryMaxMs.value,Math.max(floor,interval*CONSTANTS.trackExpiryPeriods.value));
     return Object.freeze({expiryMs,staleMs:expiryMs*CONSTANTS.entityStaleMs.value/floor});
+  },
+  // Object detection leaves the page thread when Worker and OffscreenCanvas exist;
+  // a worker that cannot run it (for example, no WebGL there) falls back once.
+  detectorPlacement({worker,offscreenCanvas,workerFailed=false}) {
+    return worker===true&&offscreenCanvas===true&&!workerFailed?"worker":"page";
   },
   createEntityModel() {
     return Object.freeze({session:null,source:null,entities:Object.freeze([]),departed:Object.freeze([])});
@@ -1449,8 +1454,48 @@ const OBJECT_ASSETS=Object.freeze({
   sha256:"0720bf247bd76e6594ea28fa9c6f7c5242be774818997dbbeffc4da460c723bb"
 });
 
-// Same pinned Tasks revision as face/hand. Its page-graphics dependency is
-// explicit: CPU/WASM here blocks the main thread, so actual FPS is a live gate.
+// Preferred detector placement: a classic worker (MediaPipe's WASM loader uses
+// importScripts) with an OffscreenCanvas for its WebGL preprocessing, so CPU/WASM
+// inference never blocks rendering. Model bytes are integrity-checked inside the
+// worker; frames arrive as transferred bitmaps and are always closed.
+function objectWorkerMain() {
+  let task=null;
+  self.onmessage=async({data:m})=>{
+    try {
+      if(m.type==="load") {
+        const canvas=new OffscreenCanvas(1,1);
+        if(!(canvas.getContext("webgl2")||canvas.getContext("webgl")))throw new Error("WebGL is unavailable in this worker");
+        const vision=await import(m.assets.library);
+        const files=await vision.FilesetResolver.forVisionTasks(m.assets.wasm);
+        const response=await fetch(m.assets.model,{credentials:"omit",referrerPolicy:"no-referrer"});
+        if(!response.ok)throw new Error("Detector model HTTP "+response.status);
+        const bytes=new Uint8Array(await response.arrayBuffer());
+        if(sha256Hex(bytes)!==m.assets.sha256)throw new Error("Detector model integrity mismatch");
+        task=await vision.ObjectDetector.createFromOptions(files,{canvas,baseOptions:{modelAssetBuffer:bytes,delegate:"CPU"},
+          runningMode:"VIDEO",scoreThreshold:0.25,maxResults:20});
+        self.postMessage({type:"ready"});
+      } else if(m.type==="frame") {
+        try {
+          if(!task)throw new Error("Detector unavailable");
+          const begin=performance.now(),result=task.detectForVideo(m.frame,m.timeMs);
+          // Plain values only, so the result always survives structured cloning.
+          const detections=result.detections.map(d=>({boundingBox:d.boundingBox&&{originX:d.boundingBox.originX,
+            originY:d.boundingBox.originY,width:d.boundingBox.width,height:d.boundingBox.height},
+            categories:(d.categories||[]).map(c=>({categoryName:c.categoryName,score:c.score}))}));
+          self.postMessage({type:"result",timeMs:m.timeMs,detections,cpuMs:performance.now()-begin});
+        } finally {m.frame.close();}
+      }
+    } catch(error) {task?.close();task=null;self.postMessage({type:"error",message:error.name+": "+error.message});}
+  };
+}
+function createObjectWorker(view) {
+  const source=sha256Hex.toString()+"\n("+objectWorkerMain.toString()+")();";
+  const url=view.URL.createObjectURL(new view.Blob([source],{type:"text/javascript"}));
+  try{return new view.Worker(url);}finally{view.URL.revokeObjectURL(url);}
+}
+
+// Page-thread fallback with the same protocol. MediaPipe needs graphics state, so
+// CPU/WASM here blocks rendering; actual FPS is a live gate.
 function createObjectAdapter(view) {
   let generation=0,task=null,abort=null,onmessage=()=>{},onerror=()=>{};
   const send=data=>onmessage({data});
@@ -2209,6 +2254,12 @@ function registerObjectBoundaryTests(T) {
     T.eq(Core.objectCrop(o,{...meta,fov:Core.makeFov(80,45)},110,1),null,"changed angular projection invalidates crop");
     T.eq(Core.objectCrop(o,{...meta,width:0},110,1),null,"invalid crop raster is refused");
     T.eq(Core.objectCrop(o,meta,110,1)?.width,80,"matching observation still crops normally");
+  });
+  T.suite("Objects: detector placement",()=>{
+    T.eq(Core.detectorPlacement({worker:true,offscreenCanvas:true}),"worker","detection leaves the page thread when the browser allows it");
+    T.eq(Core.detectorPlacement({worker:true,offscreenCanvas:false}),"page","no OffscreenCanvas keeps detection on the page thread");
+    T.eq(Core.detectorPlacement({worker:false,offscreenCanvas:true}),"page","no Worker keeps detection on the page thread");
+    T.eq(Core.detectorPlacement({worker:true,offscreenCanvas:true,workerFailed:true}),"page","a failed worker falls back to the page thread");
   });
   T.suite("Objects: malformed categories",()=>{
     const meta={width:320,height:180,source:"synthetic",cameraRole:"world",timeMs:100,session:1,fov:Core.makeFov(60,33.75)};
@@ -3002,10 +3053,24 @@ function mountObjectPipeline(doc,view) {
     ).join("\n")||"No tracked anchors";
     get("anchor-list").textContent+="\nTracking CPU: "+trackingCpuMs.toFixed(2)+" ms · identity window "+timing().expiryMs.toFixed(0)+" ms";
   }
-  const pipeline=createObjectController({createWorker:()=>createObjectAdapter(view),releaseFrame:frame=>frame.close(),
+  let placement=null,workerFailed=false;
+  const pipeline=createObjectController({releaseFrame:frame=>frame.close(),
+    createWorker(){
+      placement=Core.detectorPlacement({worker:typeof view.Worker==="function",offscreenCanvas:typeof view.OffscreenCanvas==="function",workerFailed});
+      return placement==="worker"?createObjectWorker(view):createObjectAdapter(view);
+    },
     onStatus(status) {
+      if(status.phase==="error"&&placement==="worker"&&!workerFailed) {
+        // One automatic retry on the page thread; a source change (new epoch) cancels it.
+        workerFailed=true;const id=epoch;phase="loading";
+        get("object-status").textContent=`Detector worker unavailable (${status.message}); retrying on the page thread…`;
+        view.setTimeout(()=>{if(id===epoch)pipeline.start({hz:6,assets:OBJECT_ASSETS});},0);
+        return;
+      }
       phase=status.phase;get("load-objects").disabled=["loading","ready"].includes(phase);
-      get("object-status").textContent=status.message||({loading:"Loading EfficientDet-Lite0…",ready:"Detector ready · scheduled CPU/WASM · live camera performance unverified",stopped:"Detector unloaded. Downloads begin only on request."}[phase]||phase);
+      get("object-status").textContent=status.message||({loading:"Loading EfficientDet-Lite0…",
+        ready:`Detector ready · CPU/WASM ${placement==="worker"?"in a worker":"on the page thread"} · live camera performance unverified`,
+        stopped:"Detector unloaded. Downloads begin only on request."}[phase]||phase);
       if(phase!=="ready") {latest=null;captured=null;completed=[];cpuMs=null;ctx?.clearRect(0,0,canvas.width,canvas.height);get("object-list").textContent="No current observations";}
     },onResult(result) {
       const now=view.performance.now();

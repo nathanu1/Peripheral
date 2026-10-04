@@ -70,9 +70,12 @@ in degrees; pixels appear only at paint (brief L5).
   existing tests green; port (don't drop) intents when replacing an API.
 - Privacy: on-device only; no storage APIs, analytics, backends or keys; models
   are pinned and integrity-checked; never commit camera captures or datasets.
-- Performance: render target 30 fps; detector 6 Hz single-flight (CPU/WASM on
-  the main thread — MediaPipe 0.10.21 needs page graphics); embeddings only on
-  new anchors. Benchmark before/after with the browser harness.
+- Performance: render target 30 fps; detector 6 Hz single-flight, CPU/WASM in a
+  classic worker with OffscreenCanvas (`objectWorkerMain`), falling back once
+  to the page thread (`createObjectAdapter`); face/hand models still run on the
+  page thread; embeddings only on new anchors. Identity window adapts to the
+  detector cadence (`Core.trackTiming`). Benchmark before/after with the
+  browser harness.
 - Git: work on the assigned `claude/…` branch; commits authored as
   `nathanu1 <129923698+nathanu1@users.noreply.github.com>` (repo convention)
   with a `Co-Authored-By: Claude` trailer; conventional messages
