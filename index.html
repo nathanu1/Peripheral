@@ -372,6 +372,9 @@ const CONSTANTS = Object.freeze({
   entityScoreSmoothing: Object.freeze({ value: 0.4, kind: "model", source: "Exponential smoothing weight for new detector scores" }),
   trackExpiryPeriods: Object.freeze({ value: 2.5, kind: "model", source: "Identity window in detector periods, so one missed result never ends an identity" }),
   trackExpiryMaxMs: Object.freeze({ value: 2500, kind: "model", source: "Identity window cap for very slow detector cadence" }),
+  entityContinuityMs: Object.freeze({ value: 3000, kind: "model", source: "Gap within which a re-formed track at the same place continues an entity" }),
+  entityContinuityIou: Object.freeze({ value: 0.2, kind: "model", source: "Overlap needed to continue an entity; matches the tracker association floor" }),
+  entityContinuityMargin: Object.freeze({ value: 0.05, kind: "model", source: "Overlap margin below which continuity is ambiguous and refused" }),
   entityMemoryMs: Object.freeze({ value: 30000, kind: "model", source: "Short-term recall of departed entities; matches appearance memory" }),
   entityMemoryMax: Object.freeze({ value: 64, kind: "model", source: "Departed-entity memory bound" }),
   revealDwellMs: Object.freeze({ value: 4000, kind: "model", source: "Dwell-revealed detail lifetime" }),
@@ -556,45 +559,64 @@ const Core = Object.freeze({
     return Core.focusTarget(entities.filter(e=>!/person|face|human/i.test(e.label)),tipDeg)?.anchorId??null;
   },
   createEntityModel() {
-    return Object.freeze({session:null,source:null,entities:Object.freeze([]),departed:Object.freeze([])});
+    return Object.freeze({session:null,source:null,entities:Object.freeze([]),departed:Object.freeze([]),nextId:1});
   },
-  // Tracks become persistent entities. Presence and position status use hysteresis
-  // so labels hold steady between detector results; evidence counts detector
-  // results, never render frames. Departed entities are recalled briefly so a
-  // re-identified anchor keeps its history. Only live camera evidence qualifies.
+  // Tracks become persistent entities with their own IDs. Presence and position
+  // status use hysteresis so labels hold steady between detector results; evidence
+  // counts detector results, never render frames. An entity follows its track; if
+  // the tracker re-forms (a stall outlasted the identity window), a new track of
+  // the same class overlapping a just-departed entity continues it unless that is
+  // ambiguous. Departed entities are recalled for 30 s so a re-identified track
+  // (CLIP restores its old track ID) keeps its history. Only live camera evidence.
   updateEntities(model,tracker,{now,session,source,threshold=0.5,
     presenceMs=CONSTANTS.entityPresenceMs.value,staleMs=CONSTANTS.entityStaleMs.value}) {
     if(!Number.isFinite(now)||now<0||!Number.isInteger(session)||!Number.isFinite(threshold)||threshold<0||threshold>1)
       throw new TypeError("Invalid entity update boundary");
     const value=name=>CONSTANTS[name].value;
     if(source!=="camera"||tracker?.source!==source||tracker.session!==session)
-      return Object.freeze({session,source,entities:Object.freeze([]),departed:Object.freeze([])});
+      return Object.freeze({session,source,entities:Object.freeze([]),departed:Object.freeze([]),nextId:1});
     const same=model.session===session&&model.source===source;
-    const previous=new Map((same?model.entities:[]).map(e=>[e.id,e]));
-    const remembered=same?model.departed:[];
-    const entities=[];
+    const previous=same?model.entities:[],remembered=same?model.departed:[];
+    let nextId=same?model.nextId:1;
+    const claimed=new Set(),entities=[],pending=[];
+    const make=(t,prior)=>{
+      const age=now-t.lastDetectionMs,b=t.boxDeg,latest=t.detectionConfidence??t.confidence;
+      const fresh=!prior||t.lastDetectionMs>prior.lastDetectionMs;
+      const detections=(prior?.detections??0)+(fresh?1:0),firstSeenMs=prior?.firstSeenMs??t.lastDetectionMs;
+      const score=!prior?latest:fresh?prior.score+value("entityScoreSmoothing")*(latest-prior.score):prior.score;
+      if(prior)claimed.add(prior.id);
+      entities.push(Object.freeze({id:prior?.id??"entity-"+nextId++,trackId:t.id,label:t.label,firstSeenMs,
+        lastDetectionMs:t.lastDetectionMs,detections,score,
+        boxDeg:Object.freeze({leftDeg:b.leftDeg,topDeg:b.topDeg,widthDeg:b.widthDeg,heightDeg:b.heightDeg}),
+        status:age<=staleMs?"tracking":"stale",
+        confirmed:detections>=value("entityConfirmDetections")&&t.lastDetectionMs-firstSeenMs>=value("entityConfirmMs"),
+        labelTier:1,trackingTier:t.tier,source,session}));
+    };
+    // 1. Same track, or a track ID restored by re-identification.
     for(const t of tracker.tracks) {
       const age=now-t.lastDetectionMs,b=t.boxDeg,latest=t.detectionConfidence??t.confidence;
       if(t.source!==source||!Number.isFinite(age)||age<0||age>presenceMs||
         !["detected","flow","occluded"].includes(t.status)||typeof t.label!=="string"||!t.label||
         !Number.isFinite(latest)||latest<threshold||latest>1||
         !b||![b.leftDeg,b.topDeg,b.widthDeg,b.heightDeg].every(Number.isFinite)||b.widthDeg<=0||b.heightDeg<=0)continue;
-      const prior=[previous.get(t.id),...remembered.filter(m=>m.id===t.id)].find(m=>m?.label===t.label);
-      const fresh=!prior||t.lastDetectionMs>prior.lastDetectionMs;
-      const detections=(prior?.detections??0)+(fresh?1:0),firstSeenMs=prior?.firstSeenMs??t.lastDetectionMs;
-      const score=!prior?latest:fresh?prior.score+value("entityScoreSmoothing")*(latest-prior.score):prior.score;
-      entities.push(Object.freeze({id:t.id,label:t.label,firstSeenMs,lastDetectionMs:t.lastDetectionMs,detections,score,
-        boxDeg:Object.freeze({leftDeg:b.leftDeg,topDeg:b.topDeg,widthDeg:b.widthDeg,heightDeg:b.heightDeg}),
-        status:age<=staleMs?"tracking":"stale",
-        confirmed:detections>=value("entityConfirmDetections")&&t.lastDetectionMs-firstSeenMs>=value("entityConfirmMs"),
-        labelTier:1,trackingTier:t.tier,source,session}));
+      const prior=[...previous,...remembered].find(e=>e.trackId===t.id&&e.label===t.label&&!claimed.has(e.id));
+      if(prior)make(t,prior);else pending.push(t);
     }
-    const live=new Set(entities.map(e=>e.id));
-    const departed=[...remembered.filter(m=>!live.has(m.id)&&!previous.has(m.id)),...[...previous.values()].filter(e=>!live.has(e.id))]
-      .filter(m=>now-m.lastDetectionMs<=value("entityMemoryMs")).slice(-value("entityMemoryMax"))
-      .map(m=>Object.freeze({id:m.id,label:m.label,firstSeenMs:m.firstSeenMs,lastDetectionMs:m.lastDetectionMs,
-        detections:m.detections,score:m.score,boxDeg:m.boxDeg}));
-    return Object.freeze({session,source,entities:Object.freeze(entities),departed:Object.freeze(departed)});
+    // 2. Re-formed tracks continue an overlapping, recently departed entity of the same class.
+    const orphans=[...previous,...remembered].filter(e=>!claimed.has(e.id)&&now-e.lastDetectionMs<=value("entityContinuityMs"));
+    for(const t of pending) {
+      const candidates=orphans.filter(e=>e.label===t.label&&!claimed.has(e.id))
+        .map(e=>({e,iou:Core.boxIou(e.boxDeg,t.boxDeg)})).filter(c=>c.iou>=value("entityContinuityIou"))
+        .sort((a,b)=>b.iou-a.iou||a.e.id.localeCompare(b.e.id));
+      const ambiguous=candidates[1]&&candidates[0].iou-candidates[1].iou<value("entityContinuityMargin");
+      make(t,candidates.length&&!ambiguous?candidates[0].e:null);
+    }
+    const departed=[...remembered,...previous].filter(e=>!claimed.has(e.id))
+      .filter((e,i,all)=>all.findIndex(other=>other.id===e.id)===i&&now-e.lastDetectionMs<=value("entityMemoryMs"))
+      .slice(-value("entityMemoryMax"))
+      .map(e=>Object.freeze({id:e.id,trackId:e.trackId,label:e.label,firstSeenMs:e.firstSeenMs,lastDetectionMs:e.lastDetectionMs,
+        detections:e.detections,score:e.score,boxDeg:e.boxDeg}));
+    return Object.freeze({session,source,entities:Object.freeze(entities),departed:Object.freeze(departed),nextId});
   },
   // Perception-space entities → display-normal boxes and visible-centre markers.
   projectEntities(entities,{fov,display}) {
@@ -2655,7 +2677,7 @@ function registerEntityTests(T) {
     m=Core.updateEntities(m,tracker([cup(400)]),opts(400));
     m=Core.updateEntities(m,tracker([]),opts(1300));
     T.eq(m.entities.length,0,"a departed object leaves the live view");
-    T.eq(m.departed[0]?.id,"anchor-1","a departed object is remembered");
+    T.eq(m.departed[0]?.trackId,"anchor-1","a departed object is remembered with its last track");
     T.eq(m.departed[0]?.lastDetectionMs,400,"memory keeps when it was last seen");
     m=Core.updateEntities(m,tracker([cup(5000)]),opts(5000));
     T.eq(m.entities[0].firstSeenMs,100,"a re-identified object keeps its history");
@@ -2668,6 +2690,36 @@ function registerEntityTests(T) {
     other=Core.updateEntities(other,tracker([]),opts(1000));
     other=Core.updateEntities(other,tracker([track("anchor-1","bowl",cupBox,1200)]),opts(1200));
     T.eq(other.entities[0].detections,1,"memory never transfers to a different class");
+  });
+  T.suite("Entities: identity survives tracker re-formation",()=>{
+    let m=Core.createEntityModel();
+    m=Core.updateEntities(m,tracker([track("anchor-1","cup",cupBox,100)]),opts(100));
+    m=Core.updateEntities(m,tracker([track("anchor-1","cup",cupBox,400)]),opts(400));
+    const id=m.entities[0].id;
+    T.true(typeof id==="string"&&id!=="anchor-1","entities have their own identifiers, not tracker IDs");
+    T.eq(m.entities[0].trackId,"anchor-1","the current track is recorded");
+    const reformed=Core.updateEntities(m,tracker([track("anchor-2","cup",{...cupBox,leftDeg:cupBox.leftDeg+0.5},1500)]),opts(1500));
+    T.eq(reformed.entities[0].id,id,"a re-formed track at the same place keeps the entity");
+    T.eq(reformed.entities[0].trackId,"anchor-2","the entity follows its new track");
+    T.eq(reformed.entities[0].firstSeenMs,100,"history survives re-formation");
+    T.eq(reformed.entities[0].confirmed,true,"confirmation survives re-formation");
+    let gap=Core.updateEntities(m,tracker([]),opts(1300));
+    gap=Core.updateEntities(gap,tracker([track("anchor-3","cup",cupBox,2600)]),opts(2600));
+    T.eq(gap.entities[0].id,id,"a short absence at the same place keeps the entity");
+    T.eq(gap.departed.length,0,"the continued entity leaves departed memory");
+    const elsewhere=Core.updateEntities(m,tracker([track("anchor-2","cup",box(15,-5,8,6),1500)]),opts(1500));
+    T.true(elsewhere.entities[0].id!==id,"a same-class object elsewhere is a new entity");
+    let late=Core.updateEntities(m,tracker([]),opts(1300));
+    late=Core.updateEntities(late,tracker([track("anchor-4","cup",cupBox,3500)]),opts(3500));
+    T.true(late.entities[0].id!==id,"continuity by position expires after 3 s");
+    const other=Core.updateEntities(m,tracker([track("anchor-2","bowl",cupBox,1500)]),opts(1500));
+    T.true(other.entities[0].id!==id,"continuity never crosses classes");
+    let pair=Core.updateEntities(Core.createEntityModel(),tracker([track("a","cup",box(-10,0,8,8),100),track("b","cup",box(-6,0,8,8),100)]),opts(100));
+    pair=Core.updateEntities(pair,tracker([track("c","cup",box(-8,0,8,8),300)]),opts(300));
+    T.true(pair.entities.every(e=>e.trackId==="c")&&!["a","b"].some(t=>pair.entities[0].id===pair.departed.find(d=>d.trackId===t)?.id),
+      "an ambiguous re-formation does not guess which entity it continues");
+    const twice=Core.updateEntities(m,tracker([track("anchor-2","cup",cupBox,1500),track("anchor-3","cup",cupBox,1500)]),opts(1500));
+    T.eq(new Set(twice.entities.map(e=>e.id)).size,2,"one entity is never continued by two tracks");
   });
   T.suite("Entities: display projection",()=>{
     const m=Core.updateEntities(Core.createEntityModel(),
