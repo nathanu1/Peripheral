@@ -3,7 +3,7 @@
 // Every network request is intercepted; only the pinned model assets are served
 // (from a local, integrity-checked cache), and anything else fails the run.
 //
-// Usage: node tests/browser-qa.mjs [--scenario name] [--seconds 8]
+// Usage: node tests/browser-qa.mjs [--scenario desk|desk43|centre|portrait] [--seconds 8] [--viewport 1024x640]
 // Needs Playwright with Chromium (PLAYWRIGHT_BROWSERS_PATH) and network on the
 // first run to fill .cache/browser-qa. Not part of `npm test`: it depends on a
 // browser, graphics emulation and downloads. Screenshots stay in the ignored
@@ -172,7 +172,10 @@ async function run() {
   const { chromium } = loadPlaywright();
   const scenarioName = option('scenario', 'desk');
   const seconds = Number(option('seconds', '8'));
-  const viewport = option('viewport', '1440x900').split('x').map(Number);
+  // Software compositing cost here scales with stage area: at 1440x900 the detector
+  // falls to ~2.5 Hz and identities churn. 1024x640 keeps behaviour checks meaningful;
+  // pass --viewport for layout screenshots at other sizes.
+  const viewport = option('viewport', '1024x640').split('x').map(Number);
   const pkg = mediapipePackage();
   const model = cached('efficientdet_lite0.tflite', MODEL_URL, MODEL_SHA);
   log('preparing fake camera');
