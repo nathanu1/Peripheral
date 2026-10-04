@@ -43,10 +43,12 @@
   .stage-dock .view-modes button[aria-pressed="true"] { color:#f2fbf5; background:#ffffff1c; }
   .stage-dock .label-modes button[aria-pressed="true"] { color:var(--accent); background:#bdffd817; }
   .stage-dock #start-camera { display:flex; gap:8px; background:var(--accent); color:#11261a; border-color:var(--accent); font-weight:650; }
-  .stage-dock #scene-stop { display:flex; align-items:center; padding:8px 11px; background:#ffffff12; border-color:transparent; }
+  .stage-dock #scene-stop, .stage-dock #hand-toggle { display:flex; align-items:center; padding:8px 11px; background:#ffffff12; border-color:transparent; }
+  .stage-dock #hand-toggle[aria-pressed="true"] { color:var(--accent); background:#bdffd81f; }
   #scene-stop:disabled, #wearer-view[data-source="camera"] #start-camera,
   #wearer-view[data-source="stopped"]:not([data-mode="glasses"]) #start-camera,
-  #wearer-view[data-mode="glasses"] .label-modes { display:none !important; }
+  #wearer-view[data-mode="glasses"] .label-modes, #wearer-view[data-mode="glasses"] #hand-toggle,
+  #wearer-view[data-labels="off"] #hand-toggle { display:none !important; }
   .stage-status { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:4px 18px; min-height:58px; padding:12px 4px 0; }
   #scene-message { margin:0; font-size:13px; color:#c3d6ca; line-height:1.5; }
   .stage-meta { font-size:11px; color:var(--muted); }
@@ -71,6 +73,8 @@
   .scene-marker button:hover::after { transform:scale(1.35); }
   .scene-marker[data-stale="true"] button::after { opacity:.4; }
   .scene-marker[data-revealed="true"] { display:none; }
+  .scene-marker[data-aimed="true"] button::after { transform:scale(1.7); background:var(--accent); box-shadow:0 0 0 3px #0b1510a0, 0 0 18px #bdffd8aa; }
+  .scene-object[data-aimed="true"] { border-color:var(--accent); }
   .reveal-frame { position:absolute; pointer-events:none; border-radius:9px; }
   .reveal-frame::before,.reveal-frame::after { content:""; position:absolute; width:18px; height:18px; border:2px solid var(--accent); }
   .reveal-frame::before { top:-2px; left:-2px; border-width:2px 0 0 2px; border-radius:9px 0 0; }
@@ -190,6 +194,7 @@
           <button type="button" data-label-mode="focus" aria-pressed="true" title="Quiet markers; details when you ask or keep an object centred">Focus</button>
           <button type="button" data-label-mode="all" aria-pressed="false" title="Label every recognized object">All</button>
         </div>
+        <button id="hand-toggle" type="button" class="secondary" aria-pressed="false" aria-label="Point and pinch to select" title="Point and pinch to select (loads a hand model)"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M7 10V4.5a1.2 1.2 0 0 1 2.4 0V9m0-1.5V3.6a1.2 1.2 0 0 1 2.4 0V9m0-4a1.2 1.2 0 0 1 2.4 0v5.5c0 3.3-2 5.5-5 5.5-2.2 0-3.4-1-4.6-3L3.3 11.4a1.2 1.2 0 0 1 2-1.3L7 12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         <button id="scene-stop" type="button" class="secondary" disabled aria-label="Stop camera"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="5" y="5" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/></svg></button>
         <button id="start-camera" type="button"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M6 5.5 7.5 3h5L14 5.5h3v11H3v-11h3Z" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="10.5" r="3" stroke="currentColor" stroke-width="1.4"/></svg><span id="start-camera-label">Start camera</span></button>
       </div>
@@ -293,6 +298,7 @@
           <label for="object-threshold">Minimum score</label><input id="object-threshold" type="range" min="0.25" max="1" step="0.05" value="0.5">
         </div>
         <p id="object-status" role="status">Detector unloaded. Downloads begin only on request.</p>
+        <p id="hand-status" role="status">Hand selection off</p>
         <dl class="debug-readouts">
           <div><dt>Completed detections / target</dt><dd id="object-rate">— / 6 Hz</dd></div>
           <div><dt>Object inference CPU</dt><dd id="object-cpu">—</dd></div>
@@ -535,6 +541,20 @@ const Core = Object.freeze({
   detectorPlacement({worker,offscreenCanvas,workerFailed=false}) {
     return worker===true&&offscreenCanvas===true&&!workerFailed?"worker":"page";
   },
+  // Camera-normal point (MediaPipe landmarks: [0,1]^2 of the full, unmirrored frame)
+  // → view angles through the same raster contain-fit the detector sees.
+  cameraToView(point,{camera,raster,fov}) {
+    const x=finiteNumber(point?.x,"camera x"),y=finiteNumber(point?.y,"camera y");
+    validateFov(fov);
+    const content=Core.fitRect(camera,raster,"contain");
+    return Object.freeze({xDeg:((content.x+x*content.width)/raster.width-.5)*fov.horizontalDeg,
+      yDeg:(.5-(content.y+y*content.height)/raster.height)*fov.verticalDeg});
+  },
+  // The object a fingertip refers to: the most specific box under it (within the
+  // dwell tolerance). People are never referents; identity is never inferred.
+  handReferent(entities,tipDeg) {
+    return Core.focusTarget(entities.filter(e=>!/person|face|human/i.test(e.label)),tipDeg)?.anchorId??null;
+  },
   createEntityModel() {
     return Object.freeze({session:null,source:null,entities:Object.freeze([]),departed:Object.freeze([])});
   },
@@ -615,8 +635,9 @@ const Core = Object.freeze({
   // already shown or dismissed re-arms only after the view leaves it, so steady
   // looking never becomes a reveal loop. People are never dwell targets, and a
   // dwell never overrides an explicit request or dismissal.
-  stepRevealPolicy(state,{now,entities,gaze,summon=null,dismiss=false}) {
+  stepRevealPolicy(state,{now,entities,gaze,summon=null,summonSource="tap",dismiss=false}) {
     finiteNumber(now,"reveal policy time");
+    if(!["tap","list","pinch"].includes(summonSource))throw new TypeError("Unknown request source");
     if(!Array.isArray(entities))throw new TypeError("Reveal policy needs entities");
     let {dwell,reveal,nextId,awaitingDeparture}=state,suppressed=state.suppressed.filter(item=>item.untilMs>now);
     const ended=[],present=new Map(entities.map(e=>[e.id,e]));
@@ -631,8 +652,9 @@ const Core = Object.freeze({
     };
     const create=(entity,warrant,event=null)=>{
       awaitDeparture(entity.id);
-      return Object.freeze({id:"reveal-"+nextId++,entityId:entity.id,label:entity.label,
-        warrant,bornMs:now,expiresMs:now+CONSTANTS[warrant==="dwell"?"revealDwellMs":"revealSummonMs"].value,event});
+      return Object.freeze({id:"reveal-"+nextId++,entityId:entity.id,label:entity.label,warrant,
+        source:warrant==="dwell"?"view-centre":summonSource,
+        bornMs:now,expiresMs:now+CONSTANTS[warrant==="dwell"?"revealDwellMs":"revealSummonMs"].value,event});
     };
     // 1. Endings and explicit requests first, so they constrain this step's dwell.
     if(reveal&&dismiss)end("dismissed");
@@ -1449,17 +1471,21 @@ function createEmbeddingWorker(view) {
 }
 
 const OBJECT_ASSETS=Object.freeze({
-  ...VISION_ASSETS,
+  ...VISION_ASSETS,task:"object",
   model:"https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/int8/1/efficientdet_lite0.tflite",
   sha256:"0720bf247bd76e6594ea28fa9c6f7c5242be774818997dbbeffc4da460c723bb"
 });
 
-// Preferred detector placement: a classic worker (MediaPipe's WASM loader uses
-// importScripts) with an OffscreenCanvas for its WebGL preprocessing, so CPU/WASM
-// inference never blocks rendering. Model bytes are integrity-checked inside the
-// worker; frames arrive as transferred bitmaps and are always closed.
-function objectWorkerMain() {
-  let task=null;
+const HAND_ASSETS=Object.freeze({library:VISION_ASSETS.library,wasm:VISION_ASSETS.wasm,task:"hand",
+  model:VISION_ASSETS.hand,sha256:VISION_ASSETS.handSha256});
+
+// Preferred placement for vision tasks (object detector, hand landmarker): a classic
+// worker (MediaPipe's WASM loader uses importScripts) with an OffscreenCanvas for its
+// WebGL preprocessing, so CPU/WASM inference never blocks rendering. Model bytes are
+// integrity-checked inside the worker; frames arrive as transferred bitmaps and are
+// always closed; results are posted as plain values.
+function visionWorkerMain() {
+  let task=null,kind=null;
   self.onmessage=async({data:m})=>{
     try {
       if(m.type==="load") {
@@ -1471,13 +1497,21 @@ function objectWorkerMain() {
         if(!response.ok)throw new Error("Detector model HTTP "+response.status);
         const bytes=new Uint8Array(await response.arrayBuffer());
         if(sha256Hex(bytes)!==m.assets.sha256)throw new Error("Detector model integrity mismatch");
-        task=await vision.ObjectDetector.createFromOptions(files,{canvas,baseOptions:{modelAssetBuffer:bytes,delegate:"CPU"},
-          runningMode:"VIDEO",scoreThreshold:0.25,maxResults:20});
-        self.postMessage({type:"ready"});
+        const baseOptions={modelAssetBuffer:bytes,delegate:"CPU"};
+        task=m.assets.task==="hand"?await vision.HandLandmarker.createFromOptions(files,{canvas,baseOptions,runningMode:"VIDEO",
+          numHands:1,minHandDetectionConfidence:0.5,minHandPresenceConfidence:0.5,minTrackingConfidence:0.5}):
+          await vision.ObjectDetector.createFromOptions(files,{canvas,baseOptions,runningMode:"VIDEO",scoreThreshold:0.25,maxResults:20});
+        kind=m.assets.task;self.postMessage({type:"ready"});
       } else if(m.type==="frame") {
         try {
-          if(!task)throw new Error("Detector unavailable");
+          if(!task)throw new Error("Vision task unavailable");
           const begin=performance.now(),result=task.detectForVideo(m.frame,m.timeMs);
+          if(kind==="hand") {
+            const hand=result.landmarks[0];
+            self.postMessage({type:"result",timeMs:m.timeMs,handCount:result.landmarks.length,
+              landmarks:hand?hand.map(p=>({x:p.x,y:p.y})):null,cpuMs:performance.now()-begin});
+            return;
+          }
           // Plain values only, so the result always survives structured cloning.
           const detections=result.detections.map(d=>({boundingBox:d.boundingBox&&{originX:d.boundingBox.originX,
             originY:d.boundingBox.originY,width:d.boundingBox.width,height:d.boundingBox.height},
@@ -1488,8 +1522,8 @@ function objectWorkerMain() {
     } catch(error) {task?.close();task=null;self.postMessage({type:"error",message:error.name+": "+error.message});}
   };
 }
-function createObjectWorker(view) {
-  const source=sha256Hex.toString()+"\n("+objectWorkerMain.toString()+")();";
+function createVisionWorker(view) {
+  const source=sha256Hex.toString()+"\n("+visionWorkerMain.toString()+")();";
   const url=view.URL.createObjectURL(new view.Blob([source],{type:"text/javascript"}));
   try{return new view.Worker(url);}finally{view.URL.revokeObjectURL(url);}
 }
@@ -2783,10 +2817,47 @@ function registerCameraSceneTests(T) {
     T.eq(Core.sceneSummary([{label:"<img>"}]),"1 <img>","labels stay plain data for textContent rendering");
   });
 }
+// Hand pointing, written before implementation. Landmarks are camera-normal and
+// unmirrored; they meet entities in view angles through the detector's raster fit.
+function registerHandPointingTests(T) {
+  const raster={width:320,height:180},fov=Core.analysisFov(320,180);
+  const box=(cx,cy,w,h)=>({leftDeg:cx-w/2,topDeg:cy+h/2,widthDeg:w,heightDeg:h});
+  T.suite("Hands: camera landmarks to view angles",()=>{
+    const hd={width:1280,height:720},centre=Core.cameraToView({x:0.5,y:0.5},{camera:hd,raster,fov});
+    T.approx(centre.xDeg,0,1e-12,"frame centre is the view centre");
+    T.approx(centre.yDeg,0,1e-12,"frame centre has no elevation");
+    const corner=Core.cameraToView({x:0,y:0},{camera:hd,raster,fov});
+    T.approx(corner.xDeg,-30,1e-12,"left frame edge is −30° in the 60° model");
+    T.approx(corner.yDeg,16.875,1e-12,"top frame edge is up");
+    const vga=Core.cameraToView({x:0,y:0.5},{camera:{width:640,height:480},raster,fov});
+    T.approx(vga.xDeg,-22.5,1e-12,"a pillarboxed 4:3 frame maps through the raster content, not the bars");
+    const portrait=Core.cameraToView({x:1,y:1},{camera:{width:720,height:1280},raster:{width:180,height:320},fov:Core.analysisFov(180,320)});
+    T.approx(portrait.yDeg,-30,1e-12,"portrait rasters put the 60° span on the long side");
+    T.throws(()=>Core.cameraToView({x:NaN,y:0},{camera:hd,raster,fov}),"invalid landmark refused");
+  });
+  T.suite("Hands: what the fingertip refers to",()=>{
+    const person={id:"p",label:"person",boxDeg:box(0,0,40,30)},cup={id:"c",label:"cup",boxDeg:box(-10,0,6,6)};
+    T.eq(Core.handReferent([person,cup],{xDeg:-10,yDeg:1}),"c","the object under the fingertip is the referent");
+    T.eq(Core.handReferent([person,cup],{xDeg:10,yDeg:0}),null,"pointing at a person refers to nothing; identity is never inferred");
+    T.eq(Core.handReferent([cup],{xDeg:-6,yDeg:0}),"c","a fingertip just outside the box still refers within the tolerance");
+    T.eq(Core.handReferent([cup],{xDeg:5,yDeg:0}),null,"pointing at empty space refers to nothing");
+  });
+  T.suite("Hands: pinch is an explicit request",()=>{
+    const cup={id:"c",label:"cup",boxDeg:box(-10,0,6,6),confirmed:false,status:"tracking"};
+    const r=Core.stepRevealPolicy(Core.createRevealPolicy(),{now:100,entities:[cup],gaze:{available:false},summon:"c",summonSource:"pinch"});
+    T.eq(r.reveal?.warrant,"summon","a pinch carries the summon warrant");
+    T.eq(r.reveal?.source,"pinch","the reveal records that a pinch asked for it");
+    T.eq(Core.stepRevealPolicy(Core.createRevealPolicy(),{now:100,entities:[cup],gaze:{available:false},summon:"c"}).reveal?.source,"tap",
+      "requests default to a tap");
+    T.throws(()=>Core.stepRevealPolicy(Core.createRevealPolicy(),{now:100,entities:[cup],gaze:{available:false},summon:"c",summonSource:"voice"}),
+      "unknown request sources are refused");
+  });
+}
 const T = createHarness();
 registerDisplayTransformTests(T);
 registerEntityTests(T);
 registerRevealPolicyTests(T);
+registerHandPointingTests(T);
 registerCameraSceneTests(T);
 registerStage7Tests(T);
 registerStage6Tests(T);
@@ -3057,7 +3128,7 @@ function mountObjectPipeline(doc,view) {
   const pipeline=createObjectController({releaseFrame:frame=>frame.close(),
     createWorker(){
       placement=Core.detectorPlacement({worker:typeof view.Worker==="function",offscreenCanvas:typeof view.OffscreenCanvas==="function",workerFailed});
-      return placement==="worker"?createObjectWorker(view):createObjectAdapter(view);
+      return placement==="worker"?createVisionWorker(view):createObjectAdapter(view);
     },
     onStatus(status) {
       if(status.phase==="error"&&placement==="worker"&&!workerFailed) {
@@ -3177,6 +3248,55 @@ function mountObjectPipeline(doc,view) {
   }};
 }
 
+// Opt-in hand pointing for the camera companion. The hand landmarker runs in a
+// worker on scene-camera frames at up to 8 Hz; landmarks stay camera-normal and
+// unmirrored until Core.cameraToView. The index fingertip aims; a pinch (existing
+// Core.stepPinch, armed by an open hand) is an explicit request. Nothing is stored.
+function mountHandPipeline(doc,view,video) {
+  const get=id=>doc.getElementById(id);
+  let enabled=false,phase="stopped",epoch=0,creating=false,latest=null,pinch=Core.pinchState(),pinches=[];
+  const status=value=>{get("hand-status").textContent=value;};
+  const pipeline=createObjectController({createWorker:()=>createVisionWorker(view),releaseFrame:frame=>frame.close(),
+    onStatus(state) {
+      phase=state.phase;if(phase!=="ready"){latest=null;pinch=Core.pinchState();}
+      status(state.message?`Hand selection unavailable: ${state.message}`:{loading:"Loading the hand model…",
+        ready:"Hand selection ready · worker CPU/WASM · point at an object and pinch",stopped:"Hand selection off"}[phase]||phase);
+    },
+    onResult(result) {
+      if(result.metadata.session!==epoch)return;
+      const hand=result.handCount===1&&Array.isArray(result.landmarks)&&result.landmarks.length===21?result.landmarks:null;
+      latest=hand?{timeMs:result.timeMs,landmarks:hand}:null;
+      const step=Core.stepPinch(pinch,{enabled:true,handCount:result.handCount,frameSource:"camera",timeMs:result.timeMs,
+        ratio:hand?Core.pinchRatio(hand,result.metadata.aspect):NaN},view.performance.now());
+      pinch=step.state;if(step.event&&hand)pinches.push(Object.freeze({timeMs:step.event.timeMs,tip:hand[8]}));
+    }});
+  function clear(){epoch++;creating=false;latest=null;pinches=[];pinch=Core.pinchState();}
+  return {enabled:()=>enabled,
+    start() {
+      if(Core.detectorPlacement({worker:typeof view.Worker==="function",offscreenCanvas:typeof view.OffscreenCanvas==="function"})!=="worker") {
+        status("Hand selection needs Web Worker and OffscreenCanvas support in this browser.");return false;
+      }
+      clear();enabled=true;pipeline.start({hz:8,assets:HAND_ASSETS});return true;
+    },
+    stop(){clear();enabled=false;pipeline.stop();},
+    // A new camera session keeps the model but drops landmarks from the old stream.
+    resetSession:clear,
+    capture(now) {
+      if(!enabled||creating||phase!=="ready"||pipeline.snapshot().busy||!(video.videoWidth>0))return;
+      const scale=Math.min(1,480/Math.max(video.videoWidth,video.videoHeight)),id=epoch;creating=true;
+      view.createImageBitmap(video,{resizeWidth:Math.round(video.videoWidth*scale),resizeHeight:Math.round(video.videoHeight*scale)}).then(bitmap=>{
+        if(id!==epoch){bitmap.close();return;}
+        creating=false;
+        pipeline.submit(bitmap,{timeMs:now,session:epoch,cameraRole:"world",source:"camera",aspect:video.videoWidth/video.videoHeight});
+      },()=>{if(id===epoch)creating=false;});
+    },
+    // The fresh fingertip (camera-normal) and the pinches since the last call.
+    sample(now) {
+      const pointer=latest&&now-latest.timeMs<=CONSTANTS.gazeFreshMs.value?latest.landmarks[8]:null;
+      const fired=pinches;pinches=[];return {pointer,pinches:fired};
+    }};
+}
+
 // A screen-based camera companion, never the optical additive/dimming renderer.
 // Per frame: tracker → entities (persistence) → reveal policy (warrants) →
 // display projection → DOM. Recognition alone earns at most a quiet marker;
@@ -3188,14 +3308,14 @@ function mountCameraCompanion(doc,view,controls) {
   const markers=new Map(),rows=new Map();
   let mode="mirror",labelMode="focus",source={kind:"stopped",status:"stopped",cameraActive:false};
   let snapshot=null,model=Core.createEntityModel(),policy=Core.createRevealPolicy(),views=[],reveal=null;
-  let request={summon:null,dismiss:false},announced=null,cardSize={id:null,height:56};
+  let request={summon:null,source:"tap",dismiss:false},announced=null,cardSize={id:null,height:56},aimedId=null;
   const text=(id,value)=>{const node=get(id);if(node.textContent!==value)node.textContent=value;};
   const style=(node,values)=>{for(const [key,value] of Object.entries(values))if(node.style[key]!==value)node.style[key]=value;};
   const pct=value=>value*100+"%";
   const title=label=>label.charAt(0).toUpperCase()+label.slice(1);
   const position=v=>v.cx<1/3?"Left side":v.cx>2/3?"Right side":"Center";
   const seconds=ms=>Math.max(1,Math.ceil(ms/1000))+" s";
-  function reset(){model=Core.createEntityModel();policy=Core.createRevealPolicy();reveal=null;request={summon:null,dismiss:false};}
+  function reset(){model=Core.createEntityModel();policy=Core.createRevealPolicy();reveal=null;aimedId=null;request={summon:null,source:"tap",dismiss:false};}
   function ask(change){request={...request,...change};paint(view.performance.now());}
   // Display-normal transform for the current stage size; null until camera pixels exist.
   function displayTransform(config,live,stage) {
@@ -3213,11 +3333,12 @@ function mountCameraCompanion(doc,view,controls) {
         const root=doc.createElement("div"),button=doc.createElement("button");
         root.className=kind==="box"?"scene-object":"scene-marker";root.dataset.entity=v.id;
         // Pointer shortcut only; the In view list is the keyboard path.
-        button.type="button";button.tabIndex=-1;button.addEventListener("click",()=>ask({summon:v.id}));
+        button.type="button";button.tabIndex=-1;button.addEventListener("click",()=>ask({summon:v.id,source:"tap"}));
         root.append(button);item={root,button,kind};markers.set(v.id,item);
       }
       const revealed=reveal?.entityId===v.id;
       item.root.dataset.stale=String(v.status==="stale");item.root.dataset.revealed=String(revealed);
+      item.root.dataset.aimed=String(v.id===aimedId);
       if(kind==="box") {
         style(item.root,{left:pct(v.x),top:pct(v.y),width:pct(v.width),height:pct(v.height)});
         item.root.dataset.nearTop=String(v.y<0.12);
@@ -3257,7 +3378,7 @@ function mountCameraCompanion(doc,view,controls) {
       if(!row) {
         const root=doc.createElement("li"),button=doc.createElement("button"),name=doc.createElement("strong"),location=doc.createElement("span");
         button.type="button";button.className="object-row";name.style.fontWeight="450";
-        button.addEventListener("click",()=>ask({summon:v.id}));button.append(name,location);root.append(button);get("scene-object-list").append(root);
+        button.addEventListener("click",()=>ask({summon:v.id,source:"list"}));button.append(name,location);root.append(button);get("scene-object-list").append(root);
         row={root,button,name,location};rows.set(v.id,row);
       }
       if(row.name.textContent!==title(v.label))row.name.textContent=title(v.label);
@@ -3273,7 +3394,8 @@ function mountCameraCompanion(doc,view,controls) {
       text("inspection-title",title(entity.label));
       text("inspection-description",entity.label==="person"?"A person is in view. Identity is never inferred.":
         "Recognized by the on-device camera model. Text, contents and object state are not read.");
-      text("inspection-reason",reveal.warrant==="dwell"?"You kept it near the centre of the view":"You asked to see it");
+      text("inspection-reason",reveal.source==="view-centre"?"You kept it near the centre of the view":
+        reveal.source==="pinch"?"You pinched it":"You asked to see it");
       text("inspection-position",position(v)+(config.mirrored?" · mirrored view":" · camera view"));
       text("inspection-evidence",(entity.status==="stale"?"Last camera detection · position unconfirmed":
         "Camera detection · Tier 1 label, Tier 2 tracked position")+` · ${entity.detections} ${entity.detections===1?"detection":"detections"}`);
@@ -3297,9 +3419,18 @@ function mountCameraCompanion(doc,view,controls) {
     const recognizing=!!display&&config.labelsAllowed&&labelMode!=="off"&&snapshot.phase==="ready";
     model=recognizing?Core.updateEntities(model,snapshot.tracker,{now,session:snapshot.session,source:"camera",
       threshold:get("object-threshold").valueAsNumber,presenceMs:snapshot.timing.expiryMs,staleMs:snapshot.timing.staleMs}):Core.createEntityModel();
-    const step=Core.stepRevealPolicy(policy,{now,entities:model.entities,summon:request.summon,dismiss:request.dismiss,
+    // Hand pointing: the fingertip aims (highlight only); a pinch is an explicit request.
+    const hand=recognizing&&controls.hands.enabled()?controls.hands.sample(now):{pointer:null,pinches:[]};
+    const toView=point=>Core.cameraToView(point,{camera:controls.cameraSize(),raster:snapshot.raster,fov:snapshot.fov});
+    aimedId=hand.pointer?Core.handReferent(model.entities,toView(hand.pointer)):null;
+    let summon=request.summon,summonSource=request.source;
+    for(const pinch of hand.pinches) {
+      const id=Core.handReferent(model.entities,toView(pinch.tip));
+      if(id&&summon===null){summon=id;summonSource="pinch";}
+    }
+    const step=Core.stepRevealPolicy(policy,{now,entities:model.entities,summon,summonSource,dismiss:request.dismiss,
       gaze:recognizing?Core.gazeSource("view-center").sample({},now):{available:false}});
-    policy=step.state;reveal=step.reveal;request={summon:null,dismiss:false};
+    policy=step.state;reveal=step.reveal;request={summon:null,source:"tap",dismiss:false};
     views=recognizing?Core.projectEntities(model.entities,{fov:snapshot.fov,display}):[];
     syncMarkers(stage);syncReveal(now,stage);syncRows();syncInspector(now,config);
     const shown=listed();
@@ -3307,6 +3438,8 @@ function mountCameraCompanion(doc,view,controls) {
     text("scene-summary",shown.length?Core.sceneSummary(shown):mode==="glasses"?"Quiet by default.":"Nothing observed yet.");
     for(const button of modeButtons)button.setAttribute("aria-pressed",String(button.dataset.sceneMode===mode));
     for(const button of labelButtons){button.disabled=!config.labelsAllowed;button.setAttribute("aria-pressed",String(button.dataset.labelMode===labelMode));}
+    get("hand-toggle").setAttribute("aria-pressed",String(controls.hands.enabled()));
+    get("hand-toggle").disabled=!config.labelsAllowed||labelMode==="off";
     get("scene-camera-dot").dataset.active=String(source.cameraActive);
     get("camera-welcome").hidden=source.kind!=="stopped"||mode==="glasses";
     text("view-label",mode==="mirror"?"Mirror view":mode==="world"?"World view":"Glasses preview");
@@ -3329,6 +3462,7 @@ function mountCameraCompanion(doc,view,controls) {
     else if(snapshot?.phase==="loading")message="Camera is live. Loading local object recognition; the first model download may take a moment.";
     else if(snapshot?.phase==="error")message="Camera is live. Object recognition is unavailable: "+get("object-status").textContent;
     else if(snapshot?.phase==="ready")message=!shown.length?"Recognition is running. Move a supported object into view.":
+      controls.hands.enabled()?"Point at an object and pinch to see it, or tap its marker. Esc dismisses.":
       labelMode==="all"?"Tap an object to inspect it. Details clear automatically.":
       "Objects stay quiet until you ask: tap a marker or keep one centred. Esc dismisses.";
     else message="Camera is live. Choose Off, then Focus, to reload object recognition.";
@@ -3341,12 +3475,17 @@ function mountCameraCompanion(doc,view,controls) {
   get("welcome-start").addEventListener("click",()=>controls.start());
   get("scene-stop").addEventListener("click",()=>controls.stop());
   get("reveal-card").addEventListener("click",()=>ask({dismiss:true}));
+  get("hand-toggle").addEventListener("click",()=>{
+    if(controls.hands.enabled())controls.hands.stop();else controls.hands.start();
+    aimedId=null;paint(view.performance.now());
+  });
   get("clear-inspection").addEventListener("click",()=>ask({dismiss:true}));
   doc.addEventListener("keydown",event=>{if(event.key==="Escape"&&reveal)ask({dismiss:true});});
   for(const button of labelButtons)button.addEventListener("click",()=>{
     const wasOn=labelMode!=="off";labelMode=button.dataset.labelMode;
     // Focus and All are presentations of the same entities; only Off resets them.
     if(wasOn!==(labelMode!=="off")){reset();controls.labelsChanged(labelMode!=="off");}
+    if(labelMode==="off"&&controls.hands.enabled())controls.hands.stop();
     paint(view.performance.now());
   });
   for(const button of modeButtons)button.addEventListener("click",()=>{
@@ -3382,10 +3521,11 @@ function mountFramePipeline(doc, view) {
   let lastDebugMs = -Infinity, lastVideoTime = -1, lastCameraPixelMs = null, worldPainted = false;
   const gaze = mountGazePipeline(doc,view,video);
   const objects = mountObjectPipeline(doc,view);
+  const hands = mountHandPipeline(doc,view,video);
   let autoDetectRequested=false;
   const scene=mountCameraCompanion(doc,view,{
     start:()=>beginCamera(true),stop:()=>controller.stop(),
-    cameraSize:()=>({width:video.videoWidth,height:video.videoHeight}),
+    cameraSize:()=>({width:video.videoWidth,height:video.videoHeight}),hands,
     labelsChanged(enabled){autoDetectRequested=enabled;if(!enabled)objects.reset();
       else if(controller.snapshot().kind==="camera"&&get("camera-role").value==="world")objects.start();},
     modeChanged(){
@@ -3421,7 +3561,7 @@ function mountFramePipeline(doc, view) {
       stage: { width: stage.clientWidth, height: stage.clientHeight }, frameRate: CONSTANTS.renderHz.value }) }).then(accept, reject);
   }
   const controller = createSourceController({ requestCamera, releaseStream, onChange(state, stream) {
-    if (activeRequestId !== state.requestId) { gaze.reset(); objects.reset(); activeRequestId=state.requestId; }
+    if (activeRequestId !== state.requestId) { gaze.reset(); objects.reset(); hands.resetSession(); activeRequestId=state.requestId; }
     scene.source(state);
     resetMetrics();
     get("source-status").textContent = state.reason;
@@ -3546,6 +3686,7 @@ function mountFramePipeline(doc, view) {
             lastVideoTime = video.currentTime;
             lastCameraPixelMs = now;
             gaze.capture(now);
+            if(get("camera-role").value==="world") hands.capture(now);
             if(get("camera-role").value==="user") {
               frame=Core.syntheticViewFrame(seed,get("freeze-scene").checked?0:frameIndex++,direction);
             }

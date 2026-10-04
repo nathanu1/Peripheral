@@ -26,6 +26,8 @@ const pin = (pattern, label) => { const m = html.match(pattern); if (!m) throw n
 const MP_VERSION = pin(/@mediapipe\/tasks-vision@([0-9.]+)\/vision_bundle\.mjs/, 'tasks-vision');
 const MODEL_URL = pin(/model:"(https:\/\/storage\.googleapis\.com\/mediapipe-models\/object_detector\/[^"]+)"/, 'detector');
 const MODEL_SHA = pin(/efficientdet_lite0\.tflite",\s*sha256:"([0-9a-f]{64})"/, 'detector hash');
+const HAND_URL = pin(/hand:"(https:\/\/storage\.googleapis\.com\/mediapipe-models\/hand_landmarker\/[^"]+)"/, 'hand model');
+const HAND_SHA = pin(/handSha256:"([0-9a-f]{64})"/, 'hand model hash');
 
 function loadPlaywright() {
   const require = createRequire(import.meta.url);
@@ -83,6 +85,10 @@ const SCENES = {
     { id: '44221f31a243f493', x: 0.38, y: 0.16, h: 0.72 },   // cat at the view centre
     { id: '45d25f290b3eff63', x: 0.70, y: 0.20, h: 0.70 }
   ], panPx: 8 },
+  hands: { width: 1280, height: 720, frames: 60, items: [
+    { id: '45fd09ada78c507d', x: 0.30, y: 0.10, h: 0.80 },   // hands exchanging rings
+    { id: '44221f31a243f493', x: 0.04, y: 0.30, h: 0.55 }
+  ], panPx: 6 },
   empty: { width: 1280, height: 720, frames: 30, items: [], panPx: 0 }
 };
 
@@ -178,6 +184,7 @@ async function run() {
   const viewport = option('viewport', '1024x640').split('x').map(Number);
   const pkg = mediapipePackage();
   const model = cached('efficientdet_lite0.tflite', MODEL_URL, MODEL_SHA);
+  const handModel = args.includes('--hands') ? cached('hand_landmarker.task', HAND_URL, HAND_SHA) : null;
   log('preparing fake camera');
   const builder = await chromium.launch();
   const camera = await buildCamera(builder, scenarioName);
@@ -203,6 +210,7 @@ async function run() {
         file = join(pkg, url.slice(mp.length).split('?')[0]);
         type = file.endsWith('.mjs') || file.endsWith('.js') ? 'text/javascript' : file.endsWith('.wasm') ? 'application/wasm' : type;
       } else if (url === MODEL_URL) file = model;
+      else if (url === HAND_URL && handModel) file = handModel;
       if (file && existsSync(file)) { served.push(url); return route.fulfill({ status: 200, contentType: type, body: readFileSync(file),
         headers: { 'Access-Control-Allow-Origin': '*' } }); }
       unexpected.push(url); return route.abort();
@@ -233,6 +241,7 @@ async function run() {
         reveal: card && !card.hidden ? { title: t('reveal-title'), detail: t('reveal-detail'), warrant: card.dataset.warrant, reason: t('inspection-reason') } : null,
         mirrored: document.getElementById('wearer-view')?.dataset.mirrored, fit: document.getElementById('wearer-view')?.dataset.fit,
         cameraSize: (v => v ? `${v.videoWidth}x${v.videoHeight}` : null)(document.getElementById('camera-video')),
+        hands: t('hand-status'), aimed: [...document.querySelectorAll('#scene-labels [data-aimed="true"]')].map(e => e.dataset.entity),
         boxes: [...document.querySelectorAll('#scene-labels > *')].map(e => [e.style.left, e.style.top, e.style.width, e.style.height].join(' ')) };
     });
     async function capture(step, waitMs) {
@@ -247,6 +256,7 @@ async function run() {
     log('starting camera');
     await page.click('#welcome-start', { timeout: 10000 });
     await detectorSettled();
+    if (handModel) { await page.click('#hand-toggle', { timeout: 10000 }); log('hand selection on'); }
     await capture('01-mirror', seconds * 1000);
     // A dwell may already have revealed the centred object; summon a different, visible marker.
     // Query and click in one page task so a reveal cannot hide the marker in between.

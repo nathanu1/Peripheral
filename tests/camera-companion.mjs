@@ -14,7 +14,8 @@ const {mountFramePipeline}=context.Peripheral;
 let now=0,serial=0,allowCamera=true,objectsPresent=true,modelAvailable=true;
 // Raster-pixel box of the injected cup; the centred variant covers the view centre.
 const offCentre={originX:32,originY:36,width:64,height:72},centred={originX:130,originY:60,width:60,height:60};
-let detectionBox=offCentre,detectorDelayMs=0,workerFails=false,workersCreated=0;
+let detectionBox=offCentre,detectorDelayMs=0,workerFails=false,workersCreated=0,hand=null;
+const workerTasks=[];
 const raf=new Map(),timers=new Map(),streams=[],requests=[],checks=[],canvasCalls=[];
 function check(name,condition){checks.push({name,passed:!!condition});}
 class Element {
@@ -68,9 +69,13 @@ const view={document:doc,isSecureContext:true,performance:{now:()=>now},
   // Detector worker double: same protocol as the page-thread adapter; can fail like a worker without WebGL.
   Worker:function(){workersCreated++;return view.testObjectAdapter(workerFails?'WebGL is unavailable in this worker':null);},
   OffscreenCanvas:class {},Blob:class {},URL:{createObjectURL:()=>'blob:detector',revokeObjectURL(){}},
-  testObjectAdapter(loadError=null){let onmessage=()=>{},dead=false;return {
+  testObjectAdapter(loadError=null){let onmessage=()=>{},dead=false,task=null;return {
     set onmessage(fn){onmessage=fn;},set onerror(fn){},terminate(){dead=true;},
     postMessage(message){Promise.resolve().then(()=>{if(dead){message.frame?.close();return;}
+      if(message.type==='load')workerTasks.push(message.assets?.task??'page');
+      if(message.type==='frame'&&task==='hand'){message.frame.close();
+        onmessage({data:{type:'result',timeMs:message.timeMs,cpuMs:3,handCount:hand?1:0,landmarks:hand}});return;}
+      if(message.type==='load')task=message.assets?.task;
       if(message.type==='load')onmessage({data:loadError?{type:'error',message:loadError}:modelAvailable?{type:'ready'}:{type:'error',message:'Injected graphics failure'}});
       if(message.type==='frame'){
         const respond=()=>{if(dead){message.frame.close();return;}
@@ -163,6 +168,23 @@ try {
   check('A worker that cannot run detection falls back to the page thread',get('object-status').textContent.includes('Detector ready')&&
     get('object-status').textContent.includes('page thread')&&marker()?.className==='scene-marker');
   get('scene-stop').click();workerFails=false;await advance(200);
+  // Hand pointing: the injected hand worker returns one hand whose index fingertip
+  // sits on the cup (camera-normal 0.2, 0.4); the thumb opens, then closes to pinch.
+  const handAt=(thumb)=>Array.from({length:21},(_,i)=>i===0?{x:0.2,y:0.8,z:0}:i===9?{x:0.2,y:0.6,z:0}:
+    i===8?{x:0.2,y:0.4,z:0}:i===4?thumb:{x:0.25,y:0.6,z:0});
+  get('welcome-start').click();await settle();await advance(700);
+  get('hand-toggle').click();await settle();await advance(300);
+  check('Hand selection loads a hand model in a worker on request',get('hand-toggle').getAttribute('aria-pressed')==='true'&&
+    workerTasks.includes('hand'));
+  hand=handAt({x:0.3,y:0.4,z:0});await advance(400);
+  check('Pointing at an object highlights its marker without revealing anything',marker()?.dataset.aimed==='true'&&get('reveal-card').hidden===true);
+  hand=handAt({x:0.2,y:0.41,z:0});await advance(400);
+  check('A pinch on the pointed object reveals it with an explicit warrant',get('reveal-card').hidden===false&&
+    get('reveal-title').textContent==='Cup'&&get('inspection-reason').textContent==='You pinched it');
+  hand=null;await advance(400);
+  check('Losing the hand clears the aim',marker()?.dataset.aimed!=='true');
+  get('hand-toggle').click();get('scene-stop').click();await advance(200);
+
   modeButtons[0].click();allowCamera=false;get('start-camera').click();await settle();await advance(34);
   check('Denied permission falls back with explicit synthetic provenance',get('source-label').textContent.includes('Synthetic')&&get('scene-message').textContent.includes('denied')&&get('scene-labels').children.length===0);
   allowCamera=true;modelAvailable=false;get('start-camera').click();await settle();await advance(240);
