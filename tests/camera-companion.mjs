@@ -15,7 +15,7 @@ let now=0,serial=0,allowCamera=true,objectsPresent=true,modelAvailable=true;
 const raf=new Map(),timers=new Map(),streams=[],requests=[],checks=[],canvasCalls=[];
 function check(name,condition){checks.push({name,passed:!!condition});}
 class Element {
-  constructor(tag){this.tagName=tag;this.children=[];this.events=new Map();this.dataset={};this.style={};this.attributes={};this.value='';this.textContent='';this.hidden=false;this.disabled=false;this.checked=false;this.clientWidth=960;this.width=320;this.height=180;}
+  constructor(tag){this.tagName=tag;this.children=[];this.events=new Map();this.dataset={};this.style={};this.attributes={};this.value='';this.textContent='';this.hidden=false;this.disabled=false;this.checked=false;this.clientWidth=960;this.clientHeight=540;this.width=320;this.height=180;}
   addEventListener(name,fn){const listeners=this.events.get(name)||[];listeners.push(fn);this.events.set(name,listeners);}
   dispatch(name,event={}){for(const fn of this.events.get(name)||[])fn(event);}
   click(){if(!this.disabled)this.dispatch('click');}
@@ -31,23 +31,23 @@ class Element {
     drawImage:(...args)=>canvasCalls.push({canvas:this,args}),
     getImageData:(x,y,w,h)=>({width:w,height:h,data:new Uint8ClampedArray(w*h*4)})};}
 }
-const elements=new Map(),modeButtons=[],calibration=[];
+const elements=new Map(),modeButtons=[],calibration=[],videos=[];
+function mockVideo(e){
+  e.readyState=0;e.videoWidth=1280;e.videoHeight=720;e.currentTime=0;e.srcObject=null;
+  e.play=()=>{e.readyState=2;return Promise.resolve();};e.pause=()=>{};videos.push(e);return e;
+}
 for(const match of html.matchAll(/<([a-z][a-z0-9]*)\b([^>]*\bid="([^"]+)"[^>]*)>/gi)) {
-  const element=new Element(match[1]);elements.set(match[3],element);
+  const element=new Element(match[1]);elements.set(match[3],element);if(match[1]==='video')mockVideo(element);
   const value=match[2].match(/\bvalue="([^"]*)"/);if(value)element.value=value[1];
   for(const dimension of ['width','height']){const value=match[2].match(new RegExp(`\\b${dimension}="(\\d+)"`));if(value)element[dimension]=Number(value[1]);}
   if(match[1]==='select'){const value=html.slice(match.index,html.indexOf('</select>',match.index)).match(/<option value="([^"]+)"/);if(value)element.value=value[1];}
 }
 for(const mode of ['mirror','world','glasses']){const b=new Element('button');b.dataset.sceneMode=mode;modeButtons.push(b);}
 for(let i=0;i<5;i++){const b=new Element('button');b.dataset.point=String(i);calibration.push(b);}
-const videos=[];
 const doc={hidden:false,events:new Map(),
   getElementById(id){if(!elements.has(id))throw new Error('Missing actual HTML element: '+id);return elements.get(id);},
   querySelectorAll(selector){if(selector==='[data-scene-mode]')return modeButtons;if(selector==='[data-point]')return calibration;throw new Error('Unexpected selector '+selector);},
-  createElement(tag){const e=new Element(tag);if(tag==='video'){
-    e.readyState=0;e.videoWidth=1280;e.videoHeight=720;e.currentTime=0;e.srcObject=null;
-    e.play=()=>{e.readyState=2;return Promise.resolve();};e.pause=()=>{};videos.push(e);
-  }return e;},
+  createElement(tag){const e=new Element(tag);return tag==='video'?mockVideo(e):e;},
   addEventListener(name,fn){this.events.set(name,fn);}}
 const get=id=>doc.getElementById(id);
 const view={document:doc,isSecureContext:true,performance:{now:()=>now},
@@ -83,7 +83,10 @@ try {
   get('welcome-start').click();await settle();await advance(240);
   check('Mirror start requests front-camera video without audio',requests[0].video.facingMode.ideal==='user'&&requests[0].audio===false);
   check('Mirror start automatically loads requested object recognition',get('object-status').textContent.includes('Detector ready'));
-  check('Live pixels use the display raster rather than the analysis raster',canvasCalls.some(c=>c.canvas===get('world-layer')&&c.args.at(-2)===960&&c.args.at(-1)===540));
+  check('Live pixels are presented by the native video element, not repainted per frame',
+    get('camera-video').srcObject===streams[0]&&get('wearer-view').dataset.liveVideo==='true'&&
+    !canvasCalls.some(c=>c.canvas===get('world-layer')&&c.args[0]===get('camera-video')));
+  check('Display fit is explicit for the live stage',get('wearer-view').dataset.fit==='cover');
   check('Mirror canvas and label projection share the reflection',get('wearer-view').dataset.mirrored==='true'&&get('scene-labels').children[0]?.style.left==='70%');
   check('Scene reports the actual injected observed class',get('scene-summary').textContent==='1 cup');
   const label=get('scene-labels').children[0]?.children[0];label.click();

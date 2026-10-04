@@ -41,8 +41,12 @@
   #toggle-labels[aria-pressed="true"] { border-color:#577562; color:var(--accent); }
   .scene-grid { display:grid; grid-template-columns:minmax(0,1fr) 274px; gap:24px; align-items:start; }
   #wearer-view { position: relative; aspect-ratio: 16 / 9; background: #070c09; overflow: hidden; border:1px solid #33413a; border-radius:16px; isolation:isolate; }
-  #wearer-view canvas { position: absolute; inset: 0; width: 100%; height: 100%; background: transparent; pointer-events: none; }
-  #wearer-view[data-mirrored="true"] #world-layer { transform:scaleX(-1); }
+  #wearer-view canvas, #camera-video { position: absolute; inset: 0; width: 100%; height: 100%; background: transparent; pointer-events: none; }
+  /* Live pixels are presented by the compositor; display fit and mirror are view-only transforms. */
+  #camera-video { object-fit: contain; visibility: hidden; }
+  #wearer-view[data-live-video="true"] #camera-video { visibility: visible; }
+  #wearer-view[data-fit="cover"] #camera-video { object-fit: cover; }
+  #wearer-view[data-mirrored="true"] #world-layer, #wearer-view[data-mirrored="true"] #camera-video { transform:scaleX(-1); }
   #scene-labels { position:absolute; inset:0; pointer-events:none; }
   .scene-object { position:absolute; border:1px solid #bdffd83d; border-radius:7px; transition:border-color .12s; }
   .scene-object::before,.scene-object::after { content:""; position:absolute; width:15px; height:15px; border-color:var(--accent); border-style:solid; }
@@ -147,6 +151,7 @@
   <figure aria-labelledby="view-label">
     <figcaption class="view-caption"><span id="view-label">Mirror view</span><span><i id="scene-camera-dot" class="status-dot" data-active="false" aria-hidden="true"></i> <span id="source-label">Camera off</span></span></figcaption>
     <div id="wearer-view" data-mode="mirror" data-mirrored="true" role="group" aria-label="Camera companion. Camera is off.">
+      <video id="camera-video" muted playsinline aria-hidden="true"></video>
       <canvas id="world-layer" width="960" height="540" aria-hidden="true"></canvas>
       <canvas id="subtractive-layer" width="960" height="540" aria-hidden="true"></canvas>
       <canvas id="additive-layer" width="960" height="540" aria-hidden="true"></canvas>
@@ -404,10 +409,59 @@ const Core = Object.freeze({
       labelsAllowed:mode!=="glasses"&&cameraRole==="world",
       facingMode:cameraRole==="user"||mode==="mirror"?"user":"environment"});
   },
-  sceneBoxes(tracker,{now,session,source,fov,mirrored=false,threshold=0.5}) {
+  // Coordinate spaces, in pipeline order (never mixed implicitly):
+  //   camera pixels  — sensor frame as delivered, unmirrored;
+  //   raster         — 320x180 analysis raster, camera contain-fitted (letterboxed, never cropped);
+  //   view angles    — degrees from the raster centre via the uniform-angular model (L5);
+  //   raster-normal  — [0,1]^2 of the raster, unmirrored; perception boxes end here;
+  //   display-normal — [0,1]^2 of the stage after display fit and optional mirror.
+  // Mirroring and cropping exist only in displayTransform/projectBox.
+  fitRect(source,target,fit) {
+    for(const size of [source,target]) if(!size||![size.width,size.height].every(v=>Number.isFinite(v)&&v>0))
+      throw new RangeError("Fit dimensions must be positive finite numbers");
+    if(fit!=="contain"&&fit!=="cover")throw new TypeError("Fit must be contain or cover");
+    const scale=(fit==="contain"?Math.min:Math.max)(target.width/source.width,target.height/source.height);
+    const width=source.width*scale,height=source.height*scale;
+    return Object.freeze({x:(target.width-width)/2,y:(target.height-height)/2,width,height});
+  },
+  // [model] Fill the stage (cover) unless that hides more than 30% of the camera frame;
+  // a 4:3 webcam on a 16:9 stage (25% hidden) still fills it.
+  displayFit(source,viewport,maxHiddenFraction=0.3) {
+    const cover=Core.fitRect(source,viewport,"cover");
+    const visible=Math.min(viewport.width,cover.width)*Math.min(viewport.height,cover.height)/(cover.width*cover.height);
+    return 1-visible<=maxHiddenFraction+1e-12?"cover":"contain";
+  },
+  analysisFov(width,height) {
+    validateRaster(width,height);
+    return Core.makeFov(CONSTANTS.syntheticFovDeg.value,CONSTANTS.syntheticFovDeg.value*height/width);
+  },
+  // Affine raster-normal → display-normal map per axis; mirror applied last.
+  displayTransform({camera,raster,viewport,fit,mirrored}) {
+    if(typeof mirrored!=="boolean")throw new TypeError("Mirroring must be an explicit boolean");
+    const content=Core.fitRect(camera,raster,"contain"),shown=Core.fitRect(camera,viewport,fit);
+    const axis=(rasterSize,start,size,shownStart,shownSize,viewSize)=>({
+      scale:rasterSize/size*shownSize/viewSize,offset:(shownStart-start/size*shownSize)/viewSize});
+    const x=axis(raster.width,content.x,content.width,shown.x,shown.width,viewport.width);
+    const y=axis(raster.height,content.y,content.height,shown.y,shown.height,viewport.height);
+    return Object.freeze({fit,mirrored,scaleX:x.scale,offsetX:x.offset,scaleY:y.scale,offsetY:y.offset});
+  },
+  projectBox(box,transform) {
+    if(!box||![box.x,box.y,box.width,box.height].every(Number.isFinite)||box.width<=0||box.height<=0)
+      throw new RangeError("Invalid raster box");
+    if(!transform||![transform.scaleX,transform.offsetX,transform.scaleY,transform.offsetY].every(Number.isFinite)||
+      typeof transform.mirrored!=="boolean")throw new TypeError("Invalid display transform");
+    let left=transform.offsetX+box.x*transform.scaleX,right=left+box.width*transform.scaleX;
+    if(transform.mirrored)[left,right]=[1-right,1-left];
+    const top=transform.offsetY+box.y*transform.scaleY,bottom=top+box.height*transform.scaleY;
+    const l=Math.max(0,left),r=Math.min(1,right),t=Math.max(0,top),b=Math.min(1,bottom);
+    if(r<=l||b<=t)return null;
+    return Object.freeze({x:l,y:t,width:r-l,height:b-t,clipped:l!==left||r!==right||t!==top||b!==bottom});
+  },
+  sceneBoxes(tracker,{now,session,source,fov,display,threshold=0.5}) {
     if(!Number.isFinite(now)||now<0||!Number.isInteger(session)||
       !Number.isFinite(threshold)||threshold<0||threshold>1)throw new TypeError("Invalid scene observation boundary");
     validateFov(fov);
+    if(!display)throw new TypeError("Scene boxes need an explicit display transform");
     if(source!=="camera"||tracker.source!==source||tracker.session!==session)return Object.freeze([]);
     const boxes=[];
     for(const t of tracker.tracks) {
@@ -416,13 +470,12 @@ const Core = Object.freeze({
         (t.status==="occluded"&&age>300)||!["detected","flow","occluded"].includes(t.status)||
         !Number.isFinite(score)||score<threshold||score>1||
         !b||![b.leftDeg,b.topDeg,b.widthDeg,b.heightDeg].every(Number.isFinite)||b.widthDeg<=0||b.heightDeg<=0)continue;
-      const left=Math.max(0,b.leftDeg/fov.horizontalDeg+.5);
-      const right=Math.min(1,(b.leftDeg+b.widthDeg)/fov.horizontalDeg+.5);
-      const top=Math.max(0,.5-b.topDeg/fov.verticalDeg);
-      const bottom=Math.min(1,.5-(b.topDeg-b.heightDeg)/fov.verticalDeg);
-      if(right<=left||bottom<=top)continue;
-      boxes.push(Object.freeze({id:t.id,label:t.label,x:mirrored?1-right:left,y:top,
-        width:right-left,height:bottom-top,modelScore:score,trackingTier:t.tier,
+      const rasterBox=Object.freeze({x:b.leftDeg/fov.horizontalDeg+.5,y:.5-b.topDeg/fov.verticalDeg,
+        width:b.widthDeg/fov.horizontalDeg,height:b.heightDeg/fov.verticalDeg});
+      const shown=Core.projectBox(rasterBox,display);
+      if(!shown)continue;
+      boxes.push(Object.freeze({id:t.id,label:t.label,x:shown.x,y:shown.y,width:shown.width,height:shown.height,
+        clipped:shown.clipped,rasterBox,modelScore:score,trackingTier:t.tier,
         status:t.status,observationMs:t.lastDetectionMs,ageMs:age}));
     }
     return Object.freeze(boxes);
@@ -2193,12 +2246,70 @@ function registerStage7Tests(T) {
     T.eq(Core.reidentify(live.memory,sample("b",[1,0,0],{source:"camera",timeMs:2000}),["b"]).tier,2,"camera re-ID remains inferred Tier 2");
   });
 }
+// Display transforms are written before their implementation. Perception stays in
+// unmirrored camera/raster/angular space; mirror and crop exist only at display.
+function registerDisplayTransformTests(T) {
+  const hd={width:1280,height:720},vga={width:640,height:480},raster={width:320,height:180};
+  T.suite("Display transform: fitting camera pixels",()=>{
+    const same=Core.fitRect(hd,raster,"contain");
+    T.eq([same.x,same.y,same.width,same.height].join(),"0,0,320,180","16:9 camera fills the 16:9 analysis raster");
+    const boxed=Core.fitRect(vga,raster,"contain");
+    T.eq([boxed.x,boxed.y,boxed.width,boxed.height].join(),"40,0,240,180","4:3 camera is pillarboxed, never cropped, for analysis");
+    const cover=Core.fitRect(vga,{width:960,height:540},"cover");
+    T.eq([cover.x,cover.y,cover.width,cover.height].join(),"0,-90,960,720","cover overflows the viewport symmetrically");
+    T.throws(()=>Core.fitRect(hd,raster,"stretch"),"unknown fit refused");
+    T.throws(()=>Core.fitRect({width:0,height:720},raster,"contain"),"empty source refused");
+    T.throws(()=>Core.fitRect(hd,{width:NaN,height:1},"cover"),"invalid target refused");
+    T.eq(Core.displayFit(hd,{width:1440,height:900}),"cover","near-matching aspect fills the stage");
+    T.eq(Core.displayFit(hd,{width:390,height:780}),"contain","a landscape camera on a portrait stage is not mostly cropped away");
+    T.eq(Core.displayFit(vga,{width:1086,height:611}),"cover","a common 4:3 webcam fills a near-16:9 stage");
+    T.eq(Core.displayFit({width:720,height:1280},{width:390,height:780}),"cover","a portrait camera fills a portrait stage");
+    const fov=Core.analysisFov(320,180);
+    T.eq(fov.horizontalDeg,60,"analysis raster uses the modeled 60° horizontal span");
+    T.approx(fov.verticalDeg,33.75,1e-12,"vertical span follows raster aspect");
+  });
+  T.suite("Display transform: mirror and crop only at the display boundary",()=>{
+    const view={width:960,height:540};
+    const plain=Core.displayTransform({camera:hd,raster,viewport:view,fit:"cover",mirrored:false});
+    const mirror=Core.displayTransform({camera:hd,raster,viewport:view,fit:"cover",mirrored:true});
+    T.eq([plain.scaleX,plain.offsetX,plain.scaleY,plain.offsetY].join(),"1,0,1,0","matching aspects give an identity map");
+    const box={x:0.1,y:0.2,width:0.2,height:0.2};
+    const a=Core.projectBox(box,plain),b=Core.projectBox(box,mirror);
+    T.approx(a.x,0.1,1e-12,"unmirrored box keeps camera-left on display-left");
+    T.approx(b.x,0.7,1e-12,"mirrored box follows reflected pixels");
+    T.approx(b.x+b.width,1-a.x,1e-12,"mirrored edges align with the reflection");
+    T.eq(b.y,a.y,"mirroring never moves vertical position");
+    T.eq(box.x,0.1,"projection does not mutate perception coordinates");
+    // 4:3 camera: pillarboxed in the 16:9 raster, contain-fitted to a 4:3 stage.
+    const fourThree=Core.displayTransform({camera:vga,raster,viewport:{width:800,height:600},fit:"contain",mirrored:false});
+    const content=Core.projectBox({x:40/320,y:0,width:240/320,height:1},fourThree);
+    T.approx(content.x,0,1e-12,"raster pillarbox is removed before display");
+    T.approx(content.width,1,1e-12,"camera content spans the matching stage");
+    // 4:3 camera cover-fitted to 16:9: the top and bottom 12.5% of the camera are hidden.
+    const cropped=Core.displayTransform({camera:vga,raster,viewport:view,fit:"cover",mirrored:false});
+    const centre=Core.projectBox({x:0.5-1e-3,y:0.5-1e-3,width:2e-3,height:2e-3},cropped);
+    T.approx(centre.x+centre.width/2,0.5,1e-9,"camera centre stays display centre under cover");
+    T.approx(centre.y+centre.height/2,0.5,1e-9,"vertical centre preserved under cover");
+    T.eq(Core.projectBox({x:0.3,y:0,width:0.2,height:0.1},cropped),null,"objects cropped out of view get no edge-pinned label");
+    const partial=Core.projectBox({x:0.3,y:0,width:0.2,height:0.5},cropped);
+    T.eq(partial.y,0,"partially cropped objects clip at the display edge");
+    T.true(partial.clipped,"clipping is reported, not hidden");
+    const mirroredCrop=Core.displayTransform({camera:vga,raster,viewport:view,fit:"cover",mirrored:true});
+    const left=Core.projectBox({x:0.2,y:0.4,width:0.05,height:0.05},mirroredCrop);
+    T.true(left.x>0.5,"camera-left object appears on the mirror's right");
+    T.throws(()=>Core.displayTransform({camera:hd,raster,viewport:view,fit:"cover",mirrored:"yes"}),"mirror flag must be explicit boolean");
+  });
+}
+
 function registerCameraSceneTests(T) {
   const fov={horizontalDeg:60,verticalDeg:33.75,diagonalDeg:Math.hypot(60,33.75)};
   const track={id:"anchor-1",label:"cup",boxDeg:{leftDeg:-24,topDeg:10.125,widthDeg:12,heightDeg:6.75},
     confidence:0.6,detectionConfidence:0.85,status:"detected",source:"camera",tier:2,lastDetectionMs:100,updatedMs:100};
   const tracker={session:4,source:"camera",tracks:[track]};
-  const options={now:120,session:4,source:"camera",fov,mirrored:false,threshold:0.5};
+  const display=mirrored=>Core.displayTransform({camera:{width:1280,height:720},raster:{width:320,height:180},
+    viewport:{width:960,height:540},fit:"cover",mirrored});
+  // Built inside suites so a missing transform fails assertions, not suite registration.
+  const options=()=>({now:120,session:4,source:"camera",fov,display:display(false),threshold:0.5});
   T.suite("Camera scene: physically distinct views",()=>{
     T.eq(Core.sceneView("mirror","world").facingMode,"user","mirror requests the front camera for scene pixels");
     T.eq(Core.sceneView("mirror","world").mirrored,true,"mirror presentation reflects the image");
@@ -2209,32 +2320,34 @@ function registerCameraSceneTests(T) {
     T.throws(()=>Core.sceneView("unknown","world"),"unknown presentation rejected");
   });
   T.suite("Camera scene: mirrored coordinates and clipping",()=>{
-    const normal=Core.sceneBoxes(tracker,options)[0];
-    const mirror=Core.sceneBoxes(tracker,{...options,mirrored:true})[0];
+    const normal=Core.sceneBoxes(tracker,options())[0];
+    const mirror=Core.sceneBoxes(tracker,{...options(),display:display(true)})[0];
     T.approx(normal.x,0.1,1e-9,"left edge projects from angular coordinates");
+    T.eq(JSON.stringify(mirror.rasterBox),JSON.stringify(normal.rasterBox),"mirroring leaves perception-space boxes unchanged");
+    T.throws(()=>Core.sceneBoxes(tracker,{...options(),display:undefined}),"display transform is required, never implicit");
     T.approx(normal.y,0.2,1e-9,"top edge projects from angular coordinates");
     T.approx(normal.width,0.2,1e-9,"angular box width projects independently of image resolution");
     T.approx(mirror.x,0.7,1e-9,"mirrored box follows reflected pixels");
     T.approx(mirror.x+mirror.width,1-normal.x,1e-9,"both mirror edges align");
-    const clipped=Core.sceneBoxes({...tracker,tracks:[{...track,boxDeg:{...track.boxDeg,leftDeg:-36}}]},options)[0];
+    const clipped=Core.sceneBoxes({...tracker,tracks:[{...track,boxDeg:{...track.boxDeg,leftDeg:-36}}]},options())[0];
     T.eq(clipped.x,0,"partially offscreen label clips at left edge");
     T.approx(clipped.width,0.1,1e-9,"clipping changes width without changing visible position");
-    T.eq(Core.sceneBoxes({...tracker,tracks:[{...track,boxDeg:{...track.boxDeg,leftDeg:40}}]},options).length,0,"offscreen objects do not get edge-pinned labels");
+    T.eq(Core.sceneBoxes({...tracker,tracks:[{...track,boxDeg:{...track.boxDeg,leftDeg:40}}]},options()).length,0,"offscreen objects do not get edge-pinned labels");
     T.eq(normal.modelScore,0.85,"detector model score is kept separate from decaying tracking strength");
   });
   T.suite("Camera scene: provenance and freshness",()=>{
-    T.eq(Core.sceneBoxes(tracker,{...options,now:701}).length,0,"label expires after 600 ms without detection");
-    T.eq(Core.sceneBoxes(tracker,{...options,now:99}).length,0,"future observations refused");
-    T.eq(Core.sceneBoxes(tracker,{...options,session:5}).length,0,"previous camera session refused");
+    T.eq(Core.sceneBoxes(tracker,{...options(),now:701}).length,0,"label expires after 600 ms without detection");
+    T.eq(Core.sceneBoxes(tracker,{...options(),now:99}).length,0,"future observations refused");
+    T.eq(Core.sceneBoxes(tracker,{...options(),session:5}).length,0,"previous camera session refused");
     for(const source of ["synthetic","evaluation","stopped"])
-      T.eq(Core.sceneBoxes(tracker,{...options,source}).length,0,"non-camera input never supplies live scene labels: "+source);
-    T.eq(Core.sceneBoxes({...tracker,source:"synthetic"},options).length,0,"tracker provenance cannot be laundered");
-    T.eq(Core.sceneBoxes({...tracker,tracks:[{...track,source:"synthetic"}]},options).length,0,"individual track provenance checked");
-    T.eq(Core.sceneBoxes(tracker,{...options,threshold:0.9}).length,0,"low detector scores filtered");
+      T.eq(Core.sceneBoxes(tracker,{...options(),source}).length,0,"non-camera input never supplies live scene labels: "+source);
+    T.eq(Core.sceneBoxes({...tracker,source:"synthetic"},options()).length,0,"tracker provenance cannot be laundered");
+    T.eq(Core.sceneBoxes({...tracker,tracks:[{...track,source:"synthetic"}]},options()).length,0,"individual track provenance checked");
+    T.eq(Core.sceneBoxes(tracker,{...options(),threshold:0.9}).length,0,"low detector scores filtered");
     const hidden={...tracker,tracks:[{...track,status:"occluded"}]};
-    T.eq(Core.sceneBoxes(hidden,{...options,now:401}).length,0,"unconfirmed boxes stop after 300 ms");
-    T.eq(Core.sceneBoxes(hidden,{...options,now:200})[0].status,"occluded","briefly cached boxes remain explicitly unconfirmed");
-    T.throws(()=>Core.sceneBoxes(tracker,{...options,now:NaN}),"invalid time refused");
+    T.eq(Core.sceneBoxes(hidden,{...options(),now:401}).length,0,"unconfirmed boxes stop after 300 ms");
+    T.eq(Core.sceneBoxes(hidden,{...options(),now:200})[0].status,"occluded","briefly cached boxes remain explicitly unconfirmed");
+    T.throws(()=>Core.sceneBoxes(tracker,{...options(),now:NaN}),"invalid time refused");
   });
   T.suite("Camera scene: evidence-bound scene summary",()=>{
     T.eq(Core.sceneSummary([]),"No objects detected yet","empty scene does not invent observations");
@@ -2242,7 +2355,7 @@ function registerCameraSceneTests(T) {
     T.eq(Core.sceneSummary([{label:"<img>"}]),"1 <img>","labels stay plain data for textContent rendering");
   });
   T.suite("Camera scene: explicit selection and expiry",()=>{
-    const boxes=Core.sceneBoxes(tracker,options);
+    const boxes=Core.sceneBoxes(tracker,options());
     T.eq(Core.sceneSelection(null,{type:"tick"},boxes,120),null,"detections alone do not create an inspected object");
     const selected=Core.sceneSelection(null,{type:"select",id:"anchor-1"},boxes,120);
     T.eq(selected.id,"anchor-1","tap selects an actual observed object");
@@ -2255,6 +2368,7 @@ function registerCameraSceneTests(T) {
   });
 }
 const T = createHarness();
+registerDisplayTransformTests(T);
 registerCameraSceneTests(T);
 registerStage7Tests(T);
 registerStage6Tests(T);
@@ -2563,7 +2677,7 @@ function mountObjectPipeline(doc,view) {
   get("stop-objects").addEventListener("click",reset);
   get("object-threshold").addEventListener("change",()=>{latest=null;paint(view.performance.now());});
   return {reset,start,phase:()=>phase,sceneSnapshot:()=>({tracker,session:epoch,phase,
-    fov:Core.makeFov(CONSTANTS.syntheticFovDeg.value,CONSTANTS.syntheticFovDeg.value*canvas.height/canvas.width)}),resetEvidence(now) {
+    raster:{width:canvas.width,height:canvas.height},fov:Core.analysisFov(canvas.width,canvas.height)}),resetEvidence(now) {
     evidenceStart=now;evidenceCompleted=0;evidenceCpuTotal=0;evidenceDetections=0;evidenceTier1=0;evidenceLabels=new Set();
   },evidence(now) {
     const durationMs=Math.max(0,now-evidenceStart);
@@ -2574,7 +2688,7 @@ function mountObjectPipeline(doc,view) {
     const started=view.performance.now(),flow={};
     if(tracker.tracks.length&&previousFrame&&previousFrame.source===frame.source&&
       previousFrame.width===frame.width&&previousFrame.height===frame.height&&now-previousTime<=100) {
-      const fov=Core.makeFov(60,60*frame.height/frame.width);
+      const fov=Core.analysisFov(frame.width,frame.height);
       for(const t of tracker.tracks) {
         const b=t.boxDeg;
         const region={x:Math.round((b.leftDeg/fov.horizontalDeg+0.5)*frame.width),
@@ -2600,7 +2714,7 @@ function mountObjectPipeline(doc,view) {
       if(id!==epoch) {bitmap.close();return;}
       creating=false;captured=image;
       const metadata={width:frame.width,height:frame.height,timeMs:now,session:epoch,source:frame.source,cameraRole:"world",
-        fov:Core.makeFov(CONSTANTS.syntheticFovDeg.value,CONSTANTS.syntheticFovDeg.value*frame.height/frame.width)};
+        fov:Core.analysisFov(frame.width,frame.height)};
       if(!pipeline.submit(bitmap,metadata)) captured=null;
     },error=>{if(id===epoch){creating=false;reset();get("object-status").textContent=`Detector frame capture failed: ${error.message}`;}});
   },diagnostics(now) {
@@ -2667,13 +2781,23 @@ function mountCameraCompanion(doc,view,controls) {
       row.button.setAttribute("aria-pressed",String(selection?.id===b.id));
     }
   }
+  // Display-normal transform for the current stage size; null until camera pixels exist.
+  function displayTransform(config,live) {
+    const camera=controls.cameraSize(),stage={width:viewport.clientWidth,height:viewport.clientHeight};
+    if(!live||!snapshot||!(camera.width>0&&camera.height>0&&stage.width>0&&stage.height>0))return null;
+    return Core.displayTransform({camera,raster:snapshot.raster,viewport:stage,
+      fit:Core.displayFit(camera,stage),mirrored:config.mirrored});
+  }
   function paint(now) {
     const config=Core.sceneView(mode,get("camera-role").value);
-    viewport.dataset.mode=mode;viewport.dataset.mirrored=String(config.mirrored);
     const live=source.kind==="camera"&&source.status==="running";
-    boxes=live&&config.labelsAllowed&&labelsEnabled&&snapshot?.phase==="ready"?
+    const display=displayTransform(config,live);
+    viewport.dataset.mode=mode;viewport.dataset.mirrored=String(config.mirrored);
+    viewport.dataset.liveVideo=String(live&&get("camera-role").value==="world");
+    viewport.dataset.fit=display?.fit??"contain";
+    boxes=display&&config.labelsAllowed&&labelsEnabled&&snapshot.phase==="ready"?
       Core.sceneBoxes(snapshot.tracker,{now,session:snapshot.session,source:"camera",fov:snapshot.fov,
-        mirrored:config.mirrored,threshold:get("object-threshold").valueAsNumber}):[];
+        display,threshold:get("object-threshold").valueAsNumber}):[];
     selection=Core.sceneSelection(selection,{type:"tick"},boxes,now);
     syncObjects();
     text("scene-count",`${boxes.length} ${boxes.length===1?"object":"objects"}`);
@@ -2746,7 +2870,7 @@ function mountFramePipeline(doc, view) {
   if (!worldContext) { get("source-status").textContent = "Canvas is unavailable; the frame feed cannot start."; return; }
   // W3C Media Capture and Streams: https://www.w3.org/TR/mediacapture-streams/
   // WHATWG video playback: https://html.spec.whatwg.org/multipage/media.html
-  const video = doc.createElement("video");
+  const video = get("camera-video");
   video.muted = true;
   video.playsInline = true;
   const capture = doc.createElement("canvas");
@@ -2761,12 +2885,13 @@ function mountFramePipeline(doc, view) {
   let seed = 42, frameIndex = 0, count = 0, missed = 0;
   let samples = [], lastStats = null, rafId = null, timeoutId = null;
   let clock = Core.createFrameClock(CONSTANTS.renderHz.value, view.performance.now());
-  let lastDebugMs = -Infinity, lastVideoTime = -1, lastCameraPixelMs = null;
+  let lastDebugMs = -Infinity, lastVideoTime = -1, lastCameraPixelMs = null, worldPainted = false;
   const gaze = mountGazePipeline(doc,view,video);
   const objects = mountObjectPipeline(doc,view);
   let autoDetectRequested=false;
   const scene=mountCameraCompanion(doc,view,{
     start:()=>beginCamera(true),stop:()=>controller.stop(),
+    cameraSize:()=>({width:video.videoWidth,height:video.videoHeight}),
     labelsChanged(enabled){autoDetectRequested=enabled;if(!enabled)objects.reset();
       else if(controller.snapshot().kind==="camera"&&get("camera-role").value==="world")objects.start();},
     modeChanged(){
@@ -2830,7 +2955,7 @@ function mountFramePipeline(doc, view) {
     if (state.kind === "stopped") {
       if (rafId !== null) view.cancelAnimationFrame(rafId);
       rafId = null;
-      worldContext.clearRect(0, 0, world.width, world.height);
+      worldContext.clearRect(0, 0, world.width, world.height); worldPainted = false;
       updateDiagnostics(view.performance.now());
     } else if (rafId === null) rafId = view.requestAnimationFrame(render);
   }});
@@ -2901,7 +3026,10 @@ function mountFramePipeline(doc, view) {
     const step = Core.stepFrameClock(clock, now);
     clock = step.clock;
     missed += step.missed;
-    if (step.emit) {
+    if (["requesting", "starting"].includes(state.status)) {
+      // Keep the stage dark while permission is pending; no synthetic flash.
+      if (worldPainted) { worldContext.clearRect(0, 0, world.width, world.height); worldPainted = false; }
+    } else if (step.emit) {
       try {
         const begin = view.performance.now();
         let frame = null;
@@ -2931,14 +3059,13 @@ function mountFramePipeline(doc, view) {
           const captured = view.performance.now();
           lastStats = Core.analyzeFrame(frame);
           const analyzed = view.performance.now();
-          worldContext.fillStyle="black";worldContext.fillRect(0,0,world.width,world.height);
           if(state.kind==="camera"&&get("camera-role").value==="world") {
-            const scale=Math.min(world.width/video.videoWidth,world.height/video.videoHeight);
-            const width=video.videoWidth*scale,height=video.videoHeight*scale;
-            worldContext.drawImage(video,(world.width-width)/2,(world.height-height)/2,width,height);
+            // The native <video> element presents camera pixels off the main thread.
+            if(worldPainted){worldContext.clearRect(0,0,world.width,world.height);worldPainted=false;}
           } else {
             captureContext.putImageData(new view.ImageData(frame.data,frame.width,frame.height),0,0);
-            worldContext.drawImage(capture,0,0,world.width,world.height);
+            worldContext.fillStyle="black";worldContext.fillRect(0,0,world.width,world.height);
+            worldContext.drawImage(capture,0,0,world.width,world.height);worldPainted=true;
           }
           const painted = view.performance.now();
           samples.push({ timeMs: now, captureMs: captured - begin, analysisMs: analyzed - captured, paintMs: painted - analyzed });

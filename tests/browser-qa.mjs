@@ -71,6 +71,10 @@ const SCENES = {
     { id: '50c0057044d205ff', x: 0.42, y: 0.10, h: 0.84 },   // bottle
     { id: '44221f31a243f493', x: 0.62, y: 0.22, h: 0.62 }    // cat
   ], panPx: 24 },
+  desk43: { width: 640, height: 480, frames: 60, items: [
+    { id: '45d25f290b3eff63', x: 0.02, y: 0.20, h: 0.70 },
+    { id: '44221f31a243f493', x: 0.55, y: 0.24, h: 0.62 }
+  ], panPx: 10 },
   portrait: { width: 720, height: 1280, frames: 60, items: [
     { id: '50c0057044d205ff', x: 0.08, y: 0.08, h: 0.40 },
     { id: '44221f31a243f493', x: 0.10, y: 0.55, h: 0.36 }
@@ -143,13 +147,18 @@ function serve() {
   });
 }
 
-// Samples main-thread frame cadence in the page for `ms` milliseconds.
+// Samples main-thread frame cadence for `ms` milliseconds, plus the camera
+// frames the compositor actually presented when a visible <video> shows them.
 const cadenceProbe = ms => new Promise(resolve => {
   const gaps = []; let last = performance.now(); const end = last + ms;
+  const video = document.getElementById('camera-video');
+  const presenting = video && video.srcObject && getComputedStyle(video).visibility === 'visible';
+  const quality = () => presenting ? video.getVideoPlaybackQuality() : null, before = quality();
   const step = now => { gaps.push(now - last); last = now; if (now < end) requestAnimationFrame(step); else {
-    gaps.sort((a, b) => a - b);
+    gaps.sort((a, b) => a - b); const after = quality();
     resolve({ frames: gaps.length, meanMs: gaps.reduce((s, g) => s + g, 0) / gaps.length,
-      p95Ms: gaps[Math.floor(gaps.length * 0.95)], maxMs: gaps.at(-1), over50: gaps.filter(g => g > 50).length });
+      p95Ms: gaps[Math.floor(gaps.length * 0.95)], maxMs: gaps.at(-1), over50: gaps.filter(g => g > 50).length,
+      presentedVideoFps: after ? (after.totalVideoFrames - before.totalVideoFrames - (after.droppedVideoFrames - before.droppedVideoFrames)) * 1000 / ms : null });
   } };
   requestAnimationFrame(step);
 });
@@ -201,7 +210,8 @@ async function run() {
     const labels = [...document.querySelectorAll('#scene-labels button, #scene-labels [data-entity]')].map(b => b.textContent);
     return { objectStatus: t('object-status'), objectRate: t('object-rate'), objectCpu: t('object-cpu'), fps: t('frame-fps'),
       paint: t('paint-ms'), work: t('work-ms'), summary: t('scene-summary'), message: t('scene-message'), labels,
-      mirrored: document.getElementById('wearer-view')?.dataset.mirrored };
+      mirrored: document.getElementById('wearer-view')?.dataset.mirrored, fit: document.getElementById('wearer-view')?.dataset.fit,
+      boxes: [...document.querySelectorAll('#scene-labels > *')].map(e => [e.style.left, e.style.top, e.style.width, e.style.height].join(' ')) };
   });
   async function capture(step, waitMs) {
     await page.waitForTimeout(waitMs);
