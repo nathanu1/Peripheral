@@ -67,7 +67,7 @@ const view={document:doc,isSecureContext:true,performance:{now:()=>now},
   ImageData:class {constructor(data,width,height){Object.assign(this,{data,width,height});}},
   createImageBitmap:async image=>({...image,close(){}}),
   // Detector worker double: same protocol as the page-thread adapter; can fail like a worker without WebGL.
-  Worker:function(){workersCreated++;return view.testObjectAdapter(workerFails?'WebGL is unavailable in this worker':null);},
+  Worker:function(){workersCreated++;return view.testObjectAdapter(workerFails===true?'WebGL is unavailable in this worker':workerFails||null);},
   OffscreenCanvas:class {},Blob:class {},URL:{createObjectURL:()=>'blob:detector',revokeObjectURL(){}},
   testObjectAdapter(loadError=null){let onmessage=()=>{},dead=false,task=null;return {
     set onmessage(fn){onmessage=fn;},set onerror(fn){},terminate(){dead=true;},
@@ -163,7 +163,20 @@ try {
   // A slow device: each detector result takes ~1 s, longer than the 800 ms default window.
   detectorDelayMs=950;get('welcome-start').click();await settle();await advance(6000);
   check('A ~1 Hz detector keeps object identity, so objects still confirm and get a marker',marker()?.className==='scene-marker');
+  const trackIds=()=>get('anchor-list').textContent.match(/anchor-\d+/g)||[];
+  const before=trackIds().join();let stale=0,frames=0;
+  for(let i=0;i<40;i++){await advance(100);frames++;if(marker()?.dataset.stale==='true')stale++;}
+  check('A continuously detected object is not shown as last seen between slow results',stale===0);
+  objectsPresent=false;await advance(1000);objectsPresent=true;await advance(3000);
+  check('One missed slow result does not re-form the track',trackIds().join()===before&&before!=='');
   get('scene-stop').click();detectorDelayMs=0;await advance(1000);
+  const workersBefore=workersCreated;
+  workerFails='TypeError: Failed to fetch';get('welcome-start').click();await settle();await advance(700);
+  check('A network failure is reported without moving detection to the page thread',
+    get('object-status').textContent.includes('Failed to fetch')&&workersCreated===workersBefore+1);
+  get('scene-stop').click();workerFails=false;get('welcome-start').click();await settle();await advance(700);
+  check('After a transient failure the next start uses the worker again',get('object-status').textContent.includes('in a worker'));
+  get('scene-stop').click();await advance(200);
   workerFails=true;get('welcome-start').click();await settle();await advance(700);
   check('A worker that cannot run detection falls back to the page thread',get('object-status').textContent.includes('Detector ready')&&
     get('object-status').textContent.includes('page thread')&&marker()?.className==='scene-marker');

@@ -531,18 +531,27 @@ const Core = Object.freeze({
     if(r<=l||b<=t)return null;
     return Object.freeze({x:l,y:t,width:r-l,height:b-t,clipped:l!==left||r!==right||t!==top||b!==bottom});
   },
-  // [model] Identity window of 2.5 detector periods (800 ms floor, 2.5 s cap): a
-  // slow device's cadence must not end identities between results.
-  trackTiming(detectorIntervalMs=null) {
-    const interval=Number.isFinite(detectorIntervalMs)&&detectorIntervalMs>0?detectorIntervalMs:0;
-    const floor=CONSTANTS.entityPresenceMs.value;
-    const expiryMs=Math.min(CONSTANTS.trackExpiryMaxMs.value,Math.max(floor,interval*CONSTANTS.trackExpiryPeriods.value));
-    return Object.freeze({expiryMs,staleMs:expiryMs*CONSTANTS.entityStaleMs.value/floor});
+  // [model] Identity window: result latency plus 2.5 detector periods (800 ms floor,
+  // 2.5 s cap), so one missed result never ends an identity on a slow device. A
+  // detection's age cycles between latency and latency + one period, so last-seen
+  // marking waits for latency + 1.5 periods (500 ms floor).
+  trackTiming(detectorIntervalMs=null,resultLatencyMs=0) {
+    const positive=v=>Number.isFinite(v)&&v>0?v:0;
+    const interval=positive(detectorIntervalMs),latency=positive(resultLatencyMs);
+    const expiryMs=Math.min(CONSTANTS.trackExpiryMaxMs.value,
+      Math.max(CONSTANTS.entityPresenceMs.value,latency+interval*CONSTANTS.trackExpiryPeriods.value));
+    return Object.freeze({expiryMs,staleMs:Math.min(expiryMs,Math.max(CONSTANTS.entityStaleMs.value,latency+1.5*interval))});
   },
   // Object detection leaves the page thread when Worker and OffscreenCanvas exist;
   // a worker that cannot run it (for example, no WebGL there) falls back once.
   detectorPlacement({worker,offscreenCanvas,workerFailed=false}) {
     return worker===true&&offscreenCanvas===true&&!workerFailed?"worker":"page";
+  },
+  // Only a capability failure (no graphics, worker cannot start) justifies the page
+  // thread; network and integrity failures would fail there too and are transient.
+  workerFailureIsCapability(message) {
+    // Pattern kept in a string: it names network failures, it does not use the network.
+    return !new RegExp("HTTP \\d+|integrity|Failed to fetch|NetworkError|network","i").test(String(message));
   },
   // Camera-normal point (MediaPipe landmarks: [0,1]^2 of the full, unmirrored frame)
   // → view angles through the same raster contain-fit the detector sees.
@@ -716,11 +725,12 @@ const Core = Object.freeze({
     for(const b of boxes)counts.set(b.label,(counts.get(b.label)||0)+1);
     return [...counts].slice(0,5).map(([label,n])=>`${n} ${n===1?label:label==="person"?"people":label.endsWith("s")?label:label+"s"}`).join(" · ");
   },
-  bindEmbedding(memory,tracker,result,now) {
+  // expiryMs follows the identity window (Core.trackTiming); crops may take 700 ms more to embed.
+  bindEmbedding(memory,tracker,result,now,{expiryMs=CONSTANTS.entityPresenceMs.value}={}) {
     const m=result.metadata,t=tracker.tracks.find(t=>t.id===m.id);
-    if(!Number.isFinite(now)||now<m.timeMs||now-m.timeMs>1500||!t||
+    if(!Number.isFinite(now)||now<m.timeMs||now-m.timeMs>expiryMs+700||!t||
       tracker.session!==m.session||tracker.source!==m.source||t.label!==m.label||
-      now-t.lastDetectionMs>800)return {memory,tracker,outcome:null};
+      now-t.lastDetectionMs>expiryMs)return {memory,tracker,outcome:null};
     const outcome=Core.reidentify(memory,{...m,timeMs:now,embedding:result.embedding},tracker.tracks.map(t=>t.id));
     const tracks=tracker.tracks.map(track=>track.id!==m.id?track:Object.freeze({...track,id:outcome.id,
       reidentification:Object.freeze({confidence:outcome.confidence,confidenceKind:outcome.confidenceKind,
@@ -2316,6 +2326,11 @@ function registerObjectBoundaryTests(T) {
     T.eq(Core.detectorPlacement({worker:true,offscreenCanvas:false}),"page","no OffscreenCanvas keeps detection on the page thread");
     T.eq(Core.detectorPlacement({worker:false,offscreenCanvas:true}),"page","no Worker keeps detection on the page thread");
     T.eq(Core.detectorPlacement({worker:true,offscreenCanvas:true,workerFailed:true}),"page","a failed worker falls back to the page thread");
+    T.eq(Core.workerFailureIsCapability("Error: WebGL is unavailable in this worker"),true,"missing worker graphics justifies the page thread");
+    T.eq(Core.workerFailureIsCapability("Worker error"),true,"a worker that cannot start justifies the page thread");
+    for(const message of ["Error: Detector model HTTP 404","Error: Detector model integrity mismatch","TypeError: Failed to fetch",
+      "TypeError: NetworkError when attempting to fetch resource."])
+      T.eq(Core.workerFailureIsCapability(message),false,"network or integrity failures do not move detection: "+message);
   });
   T.suite("Objects: malformed categories",()=>{
     const meta={width:320,height:180,source:"synthetic",cameraRole:"world",timeMs:100,session:1,fov:Core.makeFov(60,33.75)};
@@ -2497,6 +2512,10 @@ function registerStage7Tests(T) {
       T.eq(Core.bindEmbedding(memory,tracked,r,2100).tracker,tracked,"stale or rebound result is discarded");
     T.eq(Core.bindEmbedding(memory,tracked,result,4000).tracker,tracked,"late computation cannot revive a stale crop");
     T.eq(Core.bindEmbedding(memory,tracked,result,1900).tracker,tracked,"future crop cannot bind");
+    T.eq(Core.bindEmbedding(memory,tracked,result,3400).tracker,tracked,"the default 800 ms window refuses a slow binding");
+    T.eq(Core.bindEmbedding(memory,tracked,result,3400,{expiryMs:2000}).tracker.tracks[0].id,"departed",
+      "a slow device's identity window lets appearance still bind");
+    T.eq(Core.bindEmbedding(memory,tracked,result,4800,{expiryMs:2000}).tracker,tracked,"the widened window still expires");
   });
   T.suite("Re-ID: cosine and invalid evidence",()=>{
     T.eq(Core.cosineSimilarity([1,0],[2,0]),1,"cosine is magnitude invariant");
@@ -2657,7 +2676,11 @@ function registerEntityTests(T) {
     T.eq(Core.trackTiming(null).expiryMs,800,"unknown cadence keeps the 800 ms identity window");
     T.eq(fast.expiryMs,800,"a 6 Hz detector keeps the 800 ms floor");
     T.eq(slow.expiryMs,1500,"a slow detector widens the window to 2.5 periods");
-    T.eq(slow.staleMs,937.5,"last-seen marking scales with the window");
+    T.eq(slow.staleMs,900,"last-seen marking allows 1.5 periods between results");
+    const late=Core.trackTiming(600,600);
+    T.eq(late.expiryMs,2100,"result latency extends the window so one missed result never ends an identity");
+    T.eq(late.staleMs,1500,"a continuously detected object is never shown as last seen between results");
+    T.eq(Core.trackTiming(167,30).staleMs,500,"fast cadence keeps the 500 ms last-seen threshold");
     T.eq(stalled.expiryMs,2500,"the window is capped so stale objects still leave");
     const step=(st,t,detections=null,expiryMs)=>Core.trackObjects(st,{timeMs:t,session:1,source:"camera",detections,expiryMs});
     const seen=step(Core.createTracker(),0,[{boxDeg:cupBox,label:"cup",confidence:0.8,source:"camera",tier:1}]);
@@ -3126,14 +3149,16 @@ function mountObjectPipeline(doc,view) {
   let evidenceStart=0,evidenceCompleted=0,evidenceCpuTotal=0,evidenceDetections=0,evidenceTier1=0,evidenceLabels=new Set();
   let tracker=Core.createTracker(),previousFrame=null,previousTime=null,trackingCpuMs=0;
   let raster={width:CONSTANTS.frameWidth.value,height:CONSTANTS.frameHeight.value};
-  let lastResultMs=null,detectorIntervalMs=null;
-  const timing=()=>Core.trackTiming(detectorIntervalMs);
+  let lastResultMs=null,detectorIntervalMs=null,resultLatencyMs=null;
+  const timing=()=>Core.trackTiming(detectorIntervalMs,resultLatencyMs);
+  const smooth=(average,sample)=>average===null?sample:average+0.3*(sample-average);
+  function resetCadence(){lastResultMs=detectorIntervalMs=resultLatencyMs=null;}
   let appearanceMemory=[],attempted=new Set(),embeddingPhase="stopped";
   const embedding=createEmbeddingController({createWorker:()=>createEmbeddingWorker(view),
     onStatus(status){embeddingPhase=status;get("load-embeddings").disabled=["loading","ready"].includes(status);
       get("embedding-status").textContent=status==="ready"?"CLIP ready · worker CPU/WASM · browser quality unverified":status;},
     onResult(result){
-      const bound=Core.bindEmbedding(appearanceMemory,tracker,result,view.performance.now());
+      const bound=Core.bindEmbedding(appearanceMemory,tracker,result,view.performance.now(),{expiryMs:timing().expiryMs});
       appearanceMemory=bound.memory;tracker=bound.tracker;
       if(bound.outcome){attempted.add(bound.outcome.id);get("embedding-status").textContent=
         "CLIP · "+bound.outcome.reason+" · "+bound.outcome.confidence.toFixed(3)+" cosine-model · "+result.cpuMs.toFixed(1)+" ms";}
@@ -3183,9 +3208,9 @@ function mountObjectPipeline(doc,view) {
       return placement==="worker"?createVisionWorker(view):createObjectAdapter(view);
     },
     onStatus(status) {
-      if(status.phase==="error"&&placement==="worker"&&!workerFailed) {
+      if(status.phase==="error"&&placement==="worker"&&!workerFailed&&Core.workerFailureIsCapability(status.message)) {
         // One automatic retry on the page thread; a source change (new epoch) cancels it.
-        workerFailed=true;const id=epoch;phase="loading";
+        workerFailed=true;const id=epoch;phase="loading";resetCadence();
         get("object-status").textContent=`Detector worker unavailable (${status.message}); retrying on the page thread…`;
         view.setTimeout(()=>{if(id===epoch)pipeline.start({hz:6,assets:OBJECT_ASSETS});},0);
         return;
@@ -3197,7 +3222,8 @@ function mountObjectPipeline(doc,view) {
       if(phase!=="ready") {latest=null;captured=null;completed=[];cpuMs=null;ctx?.clearRect(0,0,canvas.width,canvas.height);get("object-list").textContent="No current observations";}
     },onResult(result) {
       const now=view.performance.now();
-      if(lastResultMs!==null)detectorIntervalMs=detectorIntervalMs===null?now-lastResultMs:detectorIntervalMs+0.3*(now-lastResultMs-detectorIntervalMs);
+      if(lastResultMs!==null)detectorIntervalMs=smooth(detectorIntervalMs,now-lastResultMs);
+      if(result.timeMs<=now)resultLatencyMs=smooth(resultLatencyMs,now-result.timeMs);
       lastResultMs=now;
       // Slow inference still counts: a result is usable while it is inside the identity window.
       if(!captured||result.metadata.session!==epoch||now-result.timeMs>timing().expiryMs) {captured=null;return;}
@@ -3216,7 +3242,7 @@ function mountObjectPipeline(doc,view) {
       for(const item of latest.observations) evidenceLabels.add(item.label);
       paint(now);
     }});
-  function reset() {epoch++;creating=false;lastSubmit=-Infinity;pipeline.stop();clearAppearance();lastResultMs=detectorIntervalMs=null;
+  function reset() {epoch++;creating=false;lastSubmit=-Infinity;pipeline.stop();clearAppearance();resetCadence();
     tracker=Object.freeze({...Core.createTracker(),nextId:tracker.nextId});
     previousFrame=null;previousTime=null;trackingCpuMs=0;showTracks();}
   function paint(now) {
@@ -3288,7 +3314,8 @@ function mountObjectPipeline(doc,view) {
     },error=>{if(id===epoch){creating=false;reset();get("object-status").textContent=`Detector frame capture failed: ${error.message}`;}});
   },diagnostics(now) {
     appearanceMemory=appearanceMemory.filter(m=>now-m.timeMs<=30000);
-    if(tracker.tracks.some(t=>now-t.lastDetectionMs>timing().expiryMs)) {
+    // Never prune past a pending detector frame: its result must still apply.
+    if(!creating&&!pipeline.snapshot().busy&&tracker.tracks.some(t=>now-t.lastDetectionMs>timing().expiryMs)) {
       tracker=Core.trackObjects(tracker,{timeMs:now,session:epoch,source:tracker.source,expiryMs:timing().expiryMs});
       showTracks();
     }
@@ -3727,20 +3754,22 @@ function mountFramePipeline(doc, view) {
         if (state.kind === "camera") {
           if (lastCameraPixelMs === null) lastCameraPixelMs = now;
           if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
-            sizeRaster(Core.analysisRaster({ width: video.videoWidth, height: video.videoHeight }));
-            // Fit the full camera frame; never silently crop its field of view.
-            const scale = Math.min(capture.width / video.videoWidth, capture.height / video.videoHeight);
-            const width = video.videoWidth * scale, height = video.videoHeight * scale;
-            captureContext.fillStyle = "black";
-            captureContext.fillRect(0, 0, capture.width, capture.height);
-            captureContext.drawImage(video, (capture.width - width) / 2, (capture.height - height) / 2, width, height);
-            frame = { width: capture.width, height: capture.height, data: captureContext.getImageData(0, 0, capture.width, capture.height).data, source: "camera", tier: 1 };
             lastVideoTime = video.currentTime;
             lastCameraPixelMs = now;
             gaze.capture(now);
-            if(get("camera-role").value==="world") hands.capture(now);
-            if(get("camera-role").value==="user") {
-              frame=Core.syntheticViewFrame(seed,get("freeze-scene").checked?0:frameIndex++,direction);
+            if (get("camera-role").value === "user") {
+              // Diagnostic role: the user camera only feeds face/hand sensing; the world is synthetic.
+              frame = Core.syntheticViewFrame(seed, get("freeze-scene").checked ? 0 : frameIndex++, direction);
+            } else {
+              sizeRaster(Core.analysisRaster({ width: video.videoWidth, height: video.videoHeight }));
+              // Fit the full camera frame; never silently crop its field of view.
+              const scale = Math.min(capture.width / video.videoWidth, capture.height / video.videoHeight);
+              const width = video.videoWidth * scale, height = video.videoHeight * scale;
+              captureContext.fillStyle = "black";
+              captureContext.fillRect(0, 0, capture.width, capture.height);
+              captureContext.drawImage(video, (capture.width - width) / 2, (capture.height - height) / 2, width, height);
+              frame = { width: capture.width, height: capture.height, data: captureContext.getImageData(0, 0, capture.width, capture.height).data, source: "camera", tier: 1 };
+              hands.capture(now);
             }
           } else if (now - lastCameraPixelMs > 2000) controller.fail(state.requestId, "CameraStalled");
         } else {
