@@ -4,6 +4,7 @@
   "description": "Development commands only; index.html runs without installation or a build.",
   "scripts": {
     "test": "node tests/run.mjs && node tests/camera-companion.mjs && node tests/geometry-gate.mjs",
-    "dev": "node tests/serve.mjs"
+    "dev": "node tests/serve.mjs",
+    "test:browser": "node tests/browser-qa.mjs"
   }
 }
