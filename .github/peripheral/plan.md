@@ -1,5 +1,21 @@
 # Build workflow
 
+## Camera-companion amendment — requested October 3, 2026
+
+Nathan requested a live front-camera mirror with smart-glasses-inspired
+inspection UI, scene labels/context, and delivery to his GitHub account.
+Implement this as a separate camera-companion presentation in the existing
+one-file app. Mirror and World view can show screen-based inspection labels;
+Glasses preview preserves the optical empty-at-rest boundary. A front camera
+used for scene pixels can include the user and objects but does not establish
+wearer gaze. Keep the diagnostic user-camera sensor path distinct. Show only
+fresh detector/tracker evidence; deeper interpretation remains future work.
+This bounded request does not mark Stage 8 or later optical stages completed.
+
+The camera companion now starts stopped. Its Start camera action requests
+video and local object recognition; debug capture retains manual model loading
+for measurements. Companion inspection is explicitly selected and expires.
+
 Repository: https://github.com/nathanu1/Peripheral
 Implementation target: one self-contained `index.html`, all CSS in one style element, all JS in one script element. Supporting Markdown, JSON checkpoints, and test evidence may live beside it.
 

@@ -566,5 +566,20 @@
       "scheduleImpact": "Stages 5\u20137 completed; Stage 8 next. Live browser validation remains unverified."
     }
   ],
-  "lastUpdated": "2026-09-15"
+  "lastUpdated": "2026-09-15",
+  "cameraCompanion": {
+    "status": "implemented_software_verified",
+    "requestedAt": "2026-10-03 America/New_York",
+    "scope": "Camera mirror and real scene labeling UI; user requested GitHub delivery under nathanu1.",
+    "reportPath": ".github/peripheral/reports/camera-companion.md",
+    "testResults": {
+      "inlinePassed": 457,
+      "inlineFailed": 0,
+      "shellPassed": 19,
+      "shellFailed": 0
+    },
+    "browserRendering": "unverified: cloud browser blocks local preview; local Chromium download unavailable",
+    "realCameraAndModelRun": "unverified in this run",
+    "opticalGlassesStages": "unchanged; nextStage remains 8"
+  }
 }

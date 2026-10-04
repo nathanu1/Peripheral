@@ -1,0 +1,84 @@
+{
+  "sourceSha256": "5981e722884e6cb94ef9ea63db5fb5253324ea77ce88747015adaff71075a420",
+  "scope": "Injected DOM/media/detector integration; not browser rendering or real model inference",
+  "passed": 19,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "Startup requests neither camera nor models",
+      "passed": true
+    },
+    {
+      "name": "Startup displays the camera welcome",
+      "passed": true
+    },
+    {
+      "name": "Mirror start requests front-camera video without audio",
+      "passed": true
+    },
+    {
+      "name": "Mirror start automatically loads requested object recognition",
+      "passed": true
+    },
+    {
+      "name": "Live pixels use the display raster rather than the analysis raster",
+      "passed": true
+    },
+    {
+      "name": "Mirror canvas and label projection share the reflection",
+      "passed": true
+    },
+    {
+      "name": "Scene reports the actual injected observed class",
+      "passed": true
+    },
+    {
+      "name": "Clicking a label opens evidence-bound details",
+      "passed": true
+    },
+    {
+      "name": "Displayed model score is not tracking decay",
+      "passed": true
+    },
+    {
+      "name": "Inspected details expire without dismissal",
+      "passed": true
+    },
+    {
+      "name": "World switch requests a rear camera and releases the old stream",
+      "passed": true
+    },
+    {
+      "name": "World image and labels are not mirrored",
+      "passed": true
+    },
+    {
+      "name": "Labels off removes annotations and unloads recognition",
+      "passed": true
+    },
+    {
+      "name": "Lost detections remove camera labels and scene context",
+      "passed": true
+    },
+    {
+      "name": "Glasses preview exposes no companion annotation elements",
+      "passed": true
+    },
+    {
+      "name": "Stop releases media tracks and clears the scene",
+      "passed": true
+    },
+    {
+      "name": "Denied permission falls back with explicit synthetic provenance",
+      "passed": true
+    },
+    {
+      "name": "Recognition failure preserves the camera and reports the error",
+      "passed": true
+    },
+    {
+      "name": "Hiding the page releases the camera",
+      "passed": true
+    }
+  ]
+}
