@@ -479,9 +479,24 @@ const Core = Object.freeze({
     const visible=Math.min(viewport.width,cover.width)*Math.min(viewport.height,cover.height)/(cover.width*cover.height);
     return 1-visible<=maxHiddenFraction+1e-12?"cover":"contain";
   },
+  // Same pixel budget in the camera's own orientation, so portrait frames are not pillarboxed.
+  analysisRaster(camera) {
+    if(!camera||![camera.width,camera.height].every(v=>Number.isFinite(v)&&v>0))throw new RangeError("Camera frame size must be positive");
+    const long=CONSTANTS.frameWidth.value,short=CONSTANTS.frameHeight.value;
+    return Object.freeze(camera.height>camera.width?{width:short,height:long}:{width:long,height:short});
+  },
+  // [model] The uncalibrated 60° span covers the raster's long side.
   analysisFov(width,height) {
     validateRaster(width,height);
-    return Core.makeFov(CONSTANTS.syntheticFovDeg.value,CONSTANTS.syntheticFovDeg.value*height/width);
+    const span=CONSTANTS.syntheticFovDeg.value,long=Math.max(width,height);
+    return Core.makeFov(span*width/long,span*height/long);
+  },
+  // Ask for frames in the stage's orientation; browsers treat these as preferences.
+  captureConstraints({facingMode,stage,frameRate}) {
+    if(!["user","environment"].includes(facingMode)||!Number.isFinite(frameRate)||frameRate<=0)throw new TypeError("Invalid capture request");
+    const portrait=stage.height>stage.width;
+    return Object.freeze({facingMode:Object.freeze({ideal:facingMode}),width:Object.freeze({ideal:portrait?720:1280}),
+      height:Object.freeze({ideal:portrait?1280:720}),frameRate:Object.freeze({ideal:frameRate})});
   },
   // Affine raster-normal → display-normal map per axis; mirror applied last.
   displayTransform({camera,raster,viewport,fit,mirrored}) {
@@ -2416,6 +2431,24 @@ function registerDisplayTransformTests(T) {
     T.eq(fov.horizontalDeg,60,"analysis raster uses the modeled 60° horizontal span");
     T.approx(fov.verticalDeg,33.75,1e-12,"vertical span follows raster aspect");
   });
+  T.suite("Display transform: orientation-aware capture",()=>{
+    const land=Core.analysisRaster(hd),port=Core.analysisRaster({width:720,height:1280});
+    T.eq([land.width,land.height].join(),"320,180","landscape cameras keep the 320x180 raster");
+    T.eq([port.width,port.height].join(),"180,320","portrait cameras get a portrait raster with the same pixel budget");
+    T.eq(Core.analysisRaster({width:720,height:720}).width,320,"square frames use the landscape raster");
+    const fov=Core.analysisFov(180,320);
+    T.eq(fov.verticalDeg,60,"the modeled 60° span follows the long side");
+    T.approx(fov.horizontalDeg,33.75,1e-12,"the short side keeps the raster aspect");
+    const filled=Core.fitRect({width:720,height:1280},port,"contain");
+    T.eq([filled.x,filled.width].join(),"0,180","a portrait camera fills a portrait raster without pillarboxing");
+    const wide=Core.captureConstraints({facingMode:"user",stage:{width:1280,height:720},frameRate:30});
+    const tall=Core.captureConstraints({facingMode:"user",stage:{width:390,height:780},frameRate:30});
+    T.eq([wide.width.ideal,wide.height.ideal].join(),"1280,720","landscape stages request landscape frames");
+    T.eq([tall.width.ideal,tall.height.ideal].join(),"720,1280","portrait stages request portrait frames");
+    T.eq(tall.facingMode.ideal,"user","camera direction is preserved");
+    T.eq(tall.frameRate.ideal,30,"frame rate request is preserved");
+    T.throws(()=>Core.analysisRaster({width:0,height:720}),"empty camera frame refused");
+  });
   T.suite("Display transform: mirror and crop only at the display boundary",()=>{
     const view={width:960,height:540};
     const plain=Core.displayTransform({camera:hd,raster,viewport:view,fit:"cover",mirrored:false});
@@ -2887,6 +2920,7 @@ function mountObjectPipeline(doc,view) {
   let epoch=0,latest=null,captured=null,creating=false,lastSubmit=-Infinity,completed=[],cpuMs=null,phase="stopped";
   let evidenceStart=0,evidenceCompleted=0,evidenceCpuTotal=0,evidenceDetections=0,evidenceTier1=0,evidenceLabels=new Set();
   let tracker=Core.createTracker(),previousFrame=null,previousTime=null,trackingCpuMs=0;
+  let raster={width:CONSTANTS.frameWidth.value,height:CONSTANTS.frameHeight.value};
   let appearanceMemory=[],attempted=new Set(),embeddingPhase="stopped";
   const embedding=createEmbeddingController({createWorker:()=>createEmbeddingWorker(view),
     onStatus(status){embeddingPhase=status;get("load-embeddings").disabled=["loading","ready"].includes(status);
@@ -2965,6 +2999,7 @@ function mountObjectPipeline(doc,view) {
     if(!ctx) return;
     ctx.clearRect(0,0,canvas.width,canvas.height);
     if(!latest||now-latest.metadata.timeMs>600) {latest=null;get("object-list").textContent="No current observations";return;}
+    if(canvas.width!==latest.image.width||canvas.height!==latest.image.height){canvas.width=latest.image.width;canvas.height=latest.image.height;}
     ctx.putImageData(latest.image,0,0);
     const text=[];
     for(const observation of latest.observations) {
@@ -2980,7 +3015,7 @@ function mountObjectPipeline(doc,view) {
   get("stop-objects").addEventListener("click",reset);
   get("object-threshold").addEventListener("change",()=>{latest=null;paint(view.performance.now());});
   return {reset,start,phase:()=>phase,sceneSnapshot:()=>({tracker,session:epoch,phase,
-    raster:{width:canvas.width,height:canvas.height},fov:Core.analysisFov(canvas.width,canvas.height)}),resetEvidence(now) {
+    raster:{...raster},fov:Core.analysisFov(raster.width,raster.height)}),resetEvidence(now) {
     evidenceStart=now;evidenceCompleted=0;evidenceCpuTotal=0;evidenceDetections=0;evidenceTier1=0;evidenceLabels=new Set();
   },evidence(now) {
     const durationMs=Math.max(0,now-evidenceStart);
@@ -2988,6 +3023,13 @@ function mountObjectPipeline(doc,view) {
       inferenceCpuMs:evidenceCompleted?evidenceCpuTotal/evidenceCompleted:0,detectionCount:evidenceDetections,
       tier1Count:evidenceTier1,labels:[...evidenceLabels]};
   },capture(frame,now) {
+    // A rotated camera changes the raster orientation: re-baseline tracking in the
+    // new angular frame and drop in-flight results; the detector stays loaded.
+    if(raster.width!==frame.width||raster.height!==frame.height) {
+      raster={width:frame.width,height:frame.height};epoch++;creating=false;captured=null;latest=null;
+      tracker=Object.freeze({...Core.createTracker(),nextId:tracker.nextId});previousFrame=null;previousTime=null;
+      appearanceMemory=[];attempted.clear();
+    }
     const started=view.performance.now(),flow={};
     if(tracker.tracks.length&&previousFrame&&previousFrame.source===frame.source&&
       previousFrame.width===frame.width&&previousFrame.height===frame.height&&now-previousTime<=100) {
@@ -3256,6 +3298,10 @@ function mountFramePipeline(doc, view) {
   let evidenceRecording=null,evidenceBaseline=null;
   let activeRequestId = -1;
 
+  // The analysis raster follows the frame's orientation (Core.analysisRaster).
+  function sizeRaster({ width, height }) {
+    if (capture.width !== width || capture.height !== height) { capture.width = width; capture.height = height; }
+  }
   function releaseStream(stream) {
     for (const track of stream.getTracks()) track.stop();
     if (video.srcObject === stream) { video.pause(); video.srcObject = null; }
@@ -3269,9 +3315,9 @@ function mountFramePipeline(doc, view) {
   function requestCamera(accept, reject) {
     const devices = view.navigator.mediaDevices;
     if (!view.isSecureContext || !devices?.getUserMedia) { reject({ name: "Unavailable" }); return; }
-    const config=Core.sceneView(scene.mode(),get("camera-role").value);
-    devices.getUserMedia({ audio: false, video: { facingMode: { ideal: config.facingMode },
-      width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: CONSTANTS.renderHz.value } } }).then(accept, reject);
+    const config=Core.sceneView(scene.mode(),get("camera-role").value),stage=get("wearer-view");
+    devices.getUserMedia({ audio: false, video: Core.captureConstraints({ facingMode: config.facingMode,
+      stage: { width: stage.clientWidth, height: stage.clientHeight }, frameRate: CONSTANTS.renderHz.value }) }).then(accept, reject);
   }
   const controller = createSourceController({ requestCamera, releaseStream, onChange(state, stream) {
     if (activeRequestId !== state.requestId) { gaze.reset(); objects.reset(); activeRequestId=state.requestId; }
@@ -3388,6 +3434,7 @@ function mountFramePipeline(doc, view) {
         if (state.kind === "camera") {
           if (lastCameraPixelMs === null) lastCameraPixelMs = now;
           if (video.readyState >= 2 && video.currentTime !== lastVideoTime) {
+            sizeRaster(Core.analysisRaster({ width: video.videoWidth, height: video.videoHeight }));
             // Fit the full camera frame; never silently crop its field of view.
             const scale = Math.min(capture.width / video.videoWidth, capture.height / video.videoHeight);
             const width = video.videoWidth * scale, height = video.videoHeight * scale;
@@ -3414,7 +3461,7 @@ function mountFramePipeline(doc, view) {
             // The native <video> element presents camera pixels off the main thread.
             if(worldPainted){worldContext.clearRect(0,0,world.width,world.height);worldPainted=false;}
           } else {
-            captureContext.putImageData(new view.ImageData(frame.data,frame.width,frame.height),0,0);
+            sizeRaster(frame);captureContext.putImageData(new view.ImageData(frame.data,frame.width,frame.height),0,0);
             worldContext.fillStyle="black";worldContext.fillRect(0,0,world.width,world.height);
             worldContext.drawImage(capture,0,0,world.width,world.height);worldPainted=true;
           }

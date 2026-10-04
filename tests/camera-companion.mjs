@@ -138,6 +138,17 @@ try {
     get('scene-labels').children.length===0&&get('reveal-card').hidden===true&&labelButtons.every(b=>b.disabled));
   get('scene-stop').click();
   check('Stop releases media tracks and clears the scene',streams.every(s=>s.track.stopped)&&get('scene-labels').children.length===0);
+  // Portrait phone: portrait stage, portrait camera frames, portrait analysis raster.
+  const stage=get('wearer-view');stage.clientWidth=540;stage.clientHeight=960;
+  for(const video of videos){video.videoWidth=720;video.videoHeight=1280;}
+  detectionBox={originX:60,originY:100,width:60,height:120};
+  modeButtons[0].click();get('welcome-start').click();await settle();await advance(700);
+  check('A portrait stage requests portrait camera frames',requests.at(-1).video.width.ideal===720&&requests.at(-1).video.height.ideal===1280);
+  check('Portrait frames are analysed in a portrait raster and markers stay aligned',
+    marker()?.style.left==='50%'&&marker()?.style.top==='50%');
+  get('scene-stop').click();stage.clientWidth=960;stage.clientHeight=540;
+  for(const video of videos){video.videoWidth=1280;video.videoHeight=720;}
+  detectionBox=offCentre;
   modeButtons[0].click();allowCamera=false;get('start-camera').click();await settle();await advance(34);
   check('Denied permission falls back with explicit synthetic provenance',get('source-label').textContent.includes('Synthetic')&&get('scene-message').textContent.includes('denied')&&get('scene-labels').children.length===0);
   allowCamera=true;modelAvailable=false;get('start-camera').click();await settle();await advance(240);

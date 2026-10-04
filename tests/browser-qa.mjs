@@ -232,6 +232,7 @@ async function run() {
         paint: t('paint-ms'), work: t('work-ms'), summary: t('scene-summary'), message: t('scene-message'), labels,
         reveal: card && !card.hidden ? { title: t('reveal-title'), detail: t('reveal-detail'), warrant: card.dataset.warrant, reason: t('inspection-reason') } : null,
         mirrored: document.getElementById('wearer-view')?.dataset.mirrored, fit: document.getElementById('wearer-view')?.dataset.fit,
+        cameraSize: (v => v ? `${v.videoWidth}x${v.videoHeight}` : null)(document.getElementById('camera-video')),
         boxes: [...document.querySelectorAll('#scene-labels > *')].map(e => [e.style.left, e.style.top, e.style.width, e.style.height].join(' ')) };
     });
     async function capture(step, waitMs) {
