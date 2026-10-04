@@ -79,6 +79,10 @@ const SCENES = {
     { id: '50c0057044d205ff', x: 0.08, y: 0.08, h: 0.40 },
     { id: '44221f31a243f493', x: 0.10, y: 0.55, h: 0.36 }
   ], panPx: 12 },
+  centre: { width: 1280, height: 720, frames: 60, items: [
+    { id: '44221f31a243f493', x: 0.38, y: 0.16, h: 0.72 },   // cat at the view centre
+    { id: '45d25f290b3eff63', x: 0.70, y: 0.20, h: 0.70 }
+  ], panPx: 8 },
   empty: { width: 1280, height: 720, frames: 30, items: [], panPx: 0 }
 };
 
@@ -163,6 +167,7 @@ const cadenceProbe = ms => new Promise(resolve => {
   requestAnimationFrame(step);
 });
 
+const log = message => console.error(`[qa ${new Date().toISOString().slice(11, 19)}] ${message}`);
 async function run() {
   const { chromium } = loadPlaywright();
   const scenarioName = option('scenario', 'desk');
@@ -170,6 +175,7 @@ async function run() {
   const viewport = option('viewport', '1440x900').split('x').map(Number);
   const pkg = mediapipePackage();
   const model = cached('efficientdet_lite0.tflite', MODEL_URL, MODEL_SHA);
+  log('preparing fake camera');
   const builder = await chromium.launch();
   const camera = await buildCamera(builder, scenarioName);
   await builder.close();
@@ -180,58 +186,84 @@ async function run() {
     '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream',
     `--use-file-for-fake-video-capture=${camera}`, '--enable-unsafe-swiftshader', '--use-angle=swiftshader',
     '--ignore-gpu-blocklist'] });
-  const context = await browser.newContext({ viewport: { width: viewport[0], height: viewport[1] },
-    deviceScaleFactor: 1, permissions: ['camera'] });
-  const unexpected = [], served = [], consoleErrors = [];
-  await context.route('**/*', async route => {
-    const url = route.request().url();
-    if (url.startsWith(origin)) return route.continue();
-    const mp = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}/`;
-    let file = null, type = 'application/octet-stream';
-    if (url.startsWith(mp)) {
-      file = join(pkg, url.slice(mp.length).split('?')[0]);
-      type = file.endsWith('.mjs') || file.endsWith('.js') ? 'text/javascript' : file.endsWith('.wasm') ? 'application/wasm' : type;
-    } else if (url === MODEL_URL) file = model;
-    if (file && existsSync(file)) { served.push(url); return route.fulfill({ status: 200, contentType: type, body: readFileSync(file),
-      headers: { 'Access-Control-Allow-Origin': '*' } }); }
-    unexpected.push(url); return route.abort();
-  });
-  const page = await context.newPage();
-  // MediaPipe reports routine TFLite delegate setup on console.error as "INFO:".
-  page.on('console', m => { if (m.type() === 'error' && !/^INFO: /.test(m.text())) consoleErrors.push(m.text()); });
-  page.on('pageerror', e => consoleErrors.push(String(e)));
-  await page.goto(origin + '/');
-  const shot = name => page.screenshot({ path: join(out, `${scenarioName}-${name}.png`) });
-  await shot('00-start');
-
   const result = { scenario: scenarioName, viewport: viewport.join('x'), seconds, mediapipe: MP_VERSION, steps: {} };
-  const read = () => page.evaluate(() => {
-    const t = id => document.getElementById(id)?.textContent ?? null;
-    const labels = [...document.querySelectorAll('#scene-labels button, #scene-labels [data-entity]')].map(b => b.textContent);
-    return { objectStatus: t('object-status'), objectRate: t('object-rate'), objectCpu: t('object-cpu'), fps: t('frame-fps'),
-      paint: t('paint-ms'), work: t('work-ms'), summary: t('scene-summary'), message: t('scene-message'), labels,
-      mirrored: document.getElementById('wearer-view')?.dataset.mirrored, fit: document.getElementById('wearer-view')?.dataset.fit,
-      boxes: [...document.querySelectorAll('#scene-labels > *')].map(e => [e.style.left, e.style.top, e.style.width, e.style.height].join(' ')) };
-  });
-  async function capture(step, waitMs) {
-    await page.waitForTimeout(waitMs);
-    const cadence = await page.evaluate(cadenceProbe, 3000);
-    result.steps[step] = { ...(await read()), cadence };
-    await shot(step);
-  }
-  await page.click('#start-camera');
-  await page.waitForFunction(() => /ready|unavailable|error/i.test(document.getElementById('object-status').textContent), null, { timeout: 60000 }).catch(() => {});
-  await capture('01-mirror', seconds * 1000);
-  await page.click('[data-scene-mode="world"]');
-  await page.waitForFunction(() => /ready|unavailable|error/i.test(document.getElementById('object-status').textContent), null, { timeout: 60000 }).catch(() => {});
-  await capture('02-world', seconds * 1000);
-  await page.click('[data-scene-mode="glasses"]');
-  await capture('03-glasses', 1500);
+  const unexpected = [], served = [], consoleErrors = [];
+  try {
+    const context = await browser.newContext({ viewport: { width: viewport[0], height: viewport[1] },
+      deviceScaleFactor: 1, permissions: ['camera'] });
+    await context.route('**/*', async route => {
+      const url = route.request().url();
+      if (url.startsWith(origin)) return route.continue();
+      const mp = `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}/`;
+      let file = null, type = 'application/octet-stream';
+      if (url.startsWith(mp)) {
+        file = join(pkg, url.slice(mp.length).split('?')[0]);
+        type = file.endsWith('.mjs') || file.endsWith('.js') ? 'text/javascript' : file.endsWith('.wasm') ? 'application/wasm' : type;
+      } else if (url === MODEL_URL) file = model;
+      if (file && existsSync(file)) { served.push(url); return route.fulfill({ status: 200, contentType: type, body: readFileSync(file),
+        headers: { 'Access-Control-Allow-Origin': '*' } }); }
+      unexpected.push(url); return route.abort();
+    });
+    const page = await context.newPage();
+    // MediaPipe reports routine TFLite delegate setup on console.error as "INFO:".
+    page.on('console', m => { if (m.type() === 'error' && !/^INFO: /.test(m.text())) consoleErrors.push(m.text()); });
+    page.on('pageerror', e => consoleErrors.push(String(e)));
+    log('opening page');
+    await page.goto(origin + '/');
+    // Reveal timeline: every change of the revealed object or its warrant, with page time.
+    await page.evaluate(() => {
+      window.__qaReveals = []; let last = '';
+      setInterval(() => {
+        const card = document.getElementById('reveal-card');
+        const key = card.hidden ? '' : card.dataset.warrant + ':' + document.getElementById('reveal-title').textContent;
+        if (key !== last) { window.__qaReveals.push({ ms: Math.round(performance.now()), reveal: key || null }); last = key; }
+      }, 100);
+    });
+    const shot = name => page.screenshot({ path: join(out, `${scenarioName}-${name}.png`) });
+    await shot('00-start');
+    const read = () => page.evaluate(() => {
+      const t = id => document.getElementById(id)?.textContent ?? null;
+      const labels = [...document.querySelectorAll('#scene-labels [data-entity]')].map(e => e.className + ':' + (e.textContent || e.dataset.entity));
+      const card = document.getElementById('reveal-card');
+      return { objectStatus: t('object-status'), objectRate: t('object-rate'), objectCpu: t('object-cpu'), fps: t('frame-fps'),
+        paint: t('paint-ms'), work: t('work-ms'), summary: t('scene-summary'), message: t('scene-message'), labels,
+        reveal: card && !card.hidden ? { title: t('reveal-title'), detail: t('reveal-detail'), warrant: card.dataset.warrant, reason: t('inspection-reason') } : null,
+        mirrored: document.getElementById('wearer-view')?.dataset.mirrored, fit: document.getElementById('wearer-view')?.dataset.fit,
+        boxes: [...document.querySelectorAll('#scene-labels > *')].map(e => [e.style.left, e.style.top, e.style.width, e.style.height].join(' ')) };
+    });
+    async function capture(step, waitMs) {
+      log(`${step}: observing for ${waitMs} ms`);
+      await page.waitForTimeout(waitMs);
+      const cadence = await page.evaluate(cadenceProbe, 3000);
+      result.steps[step] = { ...(await read()), cadence };
+      await shot(step);
+    }
+    const detectorSettled = () => page.waitForFunction(() => /ready|unavailable|error/i.test(document.getElementById('object-status').textContent),
+      null, { timeout: 60000 }).catch(() => log('detector did not settle within 60 s'));
+    log('starting camera');
+    await page.click('#welcome-start', { timeout: 10000 });
+    await detectorSettled();
+    await capture('01-mirror', seconds * 1000);
+    // A dwell may already have revealed the centred object; summon a different, visible marker.
+    // Query and click in one page task so a reveal cannot hide the marker in between.
+    const summoned = await page.evaluate(() => {
+      const button = document.querySelector('#scene-labels [data-entity][data-revealed="false"] button');
+      button?.click(); return !!button;
+    });
+    if (summoned) await capture('01b-mirror-summon', 600);
+    await page.click('[data-scene-mode="world"]', { timeout: 10000 });
+    await detectorSettled();
+    await capture('02-world', seconds * 1000);
+    await page.click('[data-scene-mode="glasses"]', { timeout: 10000 });
+    await capture('03-glasses', 1500);
+    result.revealTimeline = await page.evaluate(() => window.__qaReveals);
+  } finally { await browser.close(); server.close(); }
   result.network = { served: [...new Set(served)].length, unexpected };
   result.consoleErrors = consoleErrors;
-  await browser.close(); server.close();
   writeFileSync(join(out, `${scenarioName}-result.json`), JSON.stringify(result, null, 2) + '\n');
   console.log(JSON.stringify(result, null, 2));
   process.exitCode = unexpected.length || consoleErrors.length ? 1 : 0;
 }
-run().catch(error => { console.error(error); process.exitCode = 1; });
+// A hung browser must fail the run rather than stall it.
+const deadline = setTimeout(() => { log('timed out after 240 s'); process.exit(2); }, 240000);
+run().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => clearTimeout(deadline));

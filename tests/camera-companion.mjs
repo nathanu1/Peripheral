@@ -12,6 +12,9 @@ const context=createContext({});
 new Script(code,{filename:'index.html:camera-shell'}).runInContext(context);
 const {mountFramePipeline}=context.Peripheral;
 let now=0,serial=0,allowCamera=true,objectsPresent=true,modelAvailable=true;
+// Raster-pixel box of the injected cup; the centred variant covers the view centre.
+const offCentre={originX:32,originY:36,width:64,height:72},centred={originX:130,originY:60,width:60,height:60};
+let detectionBox=offCentre;
 const raf=new Map(),timers=new Map(),streams=[],requests=[],checks=[],canvasCalls=[];
 function check(name,condition){checks.push({name,passed:!!condition});}
 class Element {
@@ -31,7 +34,7 @@ class Element {
     drawImage:(...args)=>canvasCalls.push({canvas:this,args}),
     getImageData:(x,y,w,h)=>({width:w,height:h,data:new Uint8ClampedArray(w*h*4)})};}
 }
-const elements=new Map(),modeButtons=[],calibration=[],videos=[];
+const elements=new Map(),modeButtons=[],labelButtons=[],calibration=[],videos=[];
 function mockVideo(e){
   e.readyState=0;e.videoWidth=1280;e.videoHeight=720;e.currentTime=0;e.srcObject=null;
   e.play=()=>{e.readyState=2;return Promise.resolve();};e.pause=()=>{};videos.push(e);return e;
@@ -43,10 +46,11 @@ for(const match of html.matchAll(/<([a-z][a-z0-9]*)\b([^>]*\bid="([^"]+)"[^>]*)>
   if(match[1]==='select'){const value=html.slice(match.index,html.indexOf('</select>',match.index)).match(/<option value="([^"]+)"/);if(value)element.value=value[1];}
 }
 for(const mode of ['mirror','world','glasses']){const b=new Element('button');b.dataset.sceneMode=mode;modeButtons.push(b);}
+for(const mode of ['off','focus','all']){const b=new Element('button');b.dataset.labelMode=mode;labelButtons.push(b);}
 for(let i=0;i<5;i++){const b=new Element('button');b.dataset.point=String(i);calibration.push(b);}
 const doc={hidden:false,events:new Map(),
   getElementById(id){if(!elements.has(id))throw new Error('Missing actual HTML element: '+id);return elements.get(id);},
-  querySelectorAll(selector){if(selector==='[data-scene-mode]')return modeButtons;if(selector==='[data-point]')return calibration;throw new Error('Unexpected selector '+selector);},
+  querySelectorAll(selector){if(selector==='[data-scene-mode]')return modeButtons;if(selector==='[data-point]')return calibration;if(selector==='[data-label-mode]')return labelButtons;throw new Error('Unexpected selector '+selector);},
   createElement(tag){const e=new Element(tag);return tag==='video'?mockVideo(e):e;},
   addEventListener(name,fn){this.events.set(name,fn);}}
 const get=id=>doc.getElementById(id);
@@ -67,7 +71,7 @@ const view={document:doc,isSecureContext:true,performance:{now:()=>now},
       if(message.type==='load')onmessage({data:modelAvailable?{type:'ready'}:{type:'error',message:'Injected graphics failure'}});
       if(message.type==='frame'){
         message.frame.close();onmessage({data:{type:'result',timeMs:message.timeMs,cpuMs:4,
-          detections:objectsPresent?[{boundingBox:{originX:32,originY:36,width:64,height:72},categories:[{categoryName:'cup',score:.85}]}]:[]}});
+          detections:objectsPresent?[{boundingBox:{...detectionBox},categories:[{categoryName:'cup',score:.85}]}]:[]}});
       }
     });}
   };}}
@@ -87,23 +91,51 @@ try {
     get('camera-video').srcObject===streams[0]&&get('wearer-view').dataset.liveVideo==='true'&&
     !canvasCalls.some(c=>c.canvas===get('world-layer')&&c.args[0]===get('camera-video')));
   check('Display fit is explicit for the live stage',get('wearer-view').dataset.fit==='cover');
-  check('Mirror canvas and label projection share the reflection',get('wearer-view').dataset.mirrored==='true'&&get('scene-labels').children[0]?.style.left==='70%');
+  await advance(500);
+  const marker=()=>get('scene-labels').children[0];
+  check('Recognized objects stay quiet: a marker, no revealed details',marker()?.className==='scene-marker'&&
+    get('reveal-card').hidden===true&&get('inspection-details').hidden===true);
+  check('Mirror video and marker projection share the reflection',get('wearer-view').dataset.mirrored==='true'&&marker()?.style.left==='80%');
   check('Scene reports the actual injected observed class',get('scene-summary').textContent==='1 cup');
-  const label=get('scene-labels').children[0]?.children[0];label.click();
-  check('Clicking a label opens evidence-bound details',get('inspection-title').textContent==='Cup'&&get('inspection-details').hidden===false);
+  marker().children[0].click();
+  check('Tapping a marker reveals evidence-bound details for that object',get('reveal-card').hidden===false&&
+    get('reveal-title').textContent==='Cup'&&get('inspection-title').textContent==='Cup'&&get('inspection-details').hidden===false);
+  check('The reveal explains its warrant',get('inspection-reason').textContent==='You asked to see it');
+  check('The revealed object is framed so the card has a referent',get('reveal-frame').hidden===false&&get('reveal-frame').style.left==='70%');
   check('Displayed model score is not tracking decay',get('inspection-score').textContent.startsWith('0.85'));
-  await advance(6100);check('Inspected details expire without dismissal',get('inspection-details').hidden===true);
-  modeButtons[1].click();await settle();await advance(240);
+  await advance(6100);check('Revealed details expire without dismissal',get('reveal-card').hidden===true&&get('inspection-details').hidden===true);
+  marker().children[0].click();doc.events.get('keydown')({key:'Escape'});
+  check('Escape dismisses a reveal',get('reveal-card').hidden===true);
+  detectionBox=centred;await advance(1200);
+  check('A centred object is not revealed before the dwell threshold',get('reveal-card').hidden===true);
+  await advance(1400);
+  check('Keeping an object centred reveals it with the dwell warrant',get('reveal-card').hidden===false&&
+    get('reveal-card').dataset.warrant==='dwell'&&get('inspection-reason').textContent==='You kept it near the centre of the view');
+  detectionBox={originX:32,originY:2,width:64,height:176};await advance(1300);
+  marker()?.children[0].click();
+  const cardTop=get('reveal-card').style.top;
+  check('A full-height object keeps its card inside the stage (pixel placement, no off-stage transform)',
+    get('reveal-card').hidden===false&&cardTop.endsWith('px')&&parseFloat(cardTop)>=0&&parseFloat(cardTop)<=540-56);
+  doc.events.get('keydown')({key:'Escape'});
+  detectionBox=offCentre;await advance(1000);
+  labelButtons[2].click();await advance(34);labelButtons[1].click();await advance(34);
+  check('Switching between Focus and All keeps entity confirmation (no marker flicker)',marker()?.className==='scene-marker');
+  labelButtons[2].click();await advance(240);
+  check('All mode labels every recognized object with a box',marker()?.className==='scene-object'&&marker()?.style.left==='70%'&&
+    get('object-status').textContent.includes('Detector ready'));
+  modeButtons[1].click();await settle();await advance(700);
   check('World switch requests a rear camera and releases the old stream',requests.at(-1).video.facingMode.ideal==='environment'&&streams[0].track.stopped);
-  check('World image and labels are not mirrored',get('wearer-view').dataset.mirrored==='false'&&Math.abs(parseFloat(get('scene-labels').children[0]?.style.left)-10)<1e-6);
-  get('toggle-labels').click();await advance(34);
+  check('World image and labels are not mirrored',get('wearer-view').dataset.mirrored==='false'&&Math.abs(parseFloat(marker()?.style.left)-10)<1e-6);
+  labelButtons[0].click();await advance(34);
   check('Labels off removes annotations and unloads recognition',get('scene-labels').children.length===0&&get('object-status').textContent.includes('unloaded'));
-  get('toggle-labels').click();await settle();await advance(240);
-  objectsPresent=false;await advance(700);
-  check('Lost detections remove camera labels and scene context',get('scene-labels').children.length===0&&get('scene-count').textContent==='0 objects');
+  labelButtons[1].click();await settle();await advance(700);
+  check('Focus reloads recognition',get('object-status').textContent.includes('Detector ready')&&marker()?.className==='scene-marker');
+  objectsPresent=false;await advance(1000);
+  check('Lost detections remove markers and scene context',get('scene-labels').children.length===0&&get('scene-count').textContent==='0 objects');
   objectsPresent=true;await advance(240);
   modeButtons[2].click();await settle();await advance(240);
-  check('Glasses preview exposes no companion annotation elements',get('wearer-view').dataset.mode==='glasses'&&get('scene-labels').children.length===0&&get('toggle-labels').disabled);
+  check('Glasses preview exposes no companion annotation elements',get('wearer-view').dataset.mode==='glasses'&&
+    get('scene-labels').children.length===0&&get('reveal-card').hidden===true&&labelButtons.every(b=>b.disabled));
   get('scene-stop').click();
   check('Stop releases media tracks and clears the scene',streams.every(s=>s.track.stopped)&&get('scene-labels').children.length===0);
   modeButtons[0].click();allowCamera=false;get('start-camera').click();await settle();await advance(34);

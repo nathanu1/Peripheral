@@ -38,7 +38,9 @@
   .toolbar-actions button { display:flex; align-items:center; justify-content:center; gap:8px; font-size:12px; border-radius:8px; padding:9px 14px; }
   button svg { width:16px; height:16px; flex:none; }
   #start-camera { background:var(--accent); color:#11261a; border-color:var(--accent); font-weight:650; }
-  #toggle-labels[aria-pressed="true"] { border-color:#577562; color:var(--accent); }
+  .label-modes { display:flex; padding:3px; gap:3px; border:1px solid var(--line); border-radius:9px; }
+  .label-modes button { border:0; background:transparent; color:var(--muted); padding:7px 11px; min-height:36px; font-size:12px; border-radius:6px; }
+  .label-modes button[aria-pressed="true"] { color:var(--accent); background:#243229; }
   .scene-grid { display:grid; grid-template-columns:minmax(0,1fr) 274px; gap:24px; align-items:start; }
   #wearer-view { position: relative; aspect-ratio: 16 / 9; background: #070c09; overflow: hidden; border:1px solid #33413a; border-radius:16px; isolation:isolate; }
   #wearer-view canvas, #camera-video { position: absolute; inset: 0; width: 100%; height: 100%; background: transparent; pointer-events: none; }
@@ -52,8 +54,25 @@
   .scene-object::before,.scene-object::after { content:""; position:absolute; width:15px; height:15px; border-color:var(--accent); border-style:solid; }
   .scene-object::before { top:-1px; left:-1px; border-width:2px 0 0 2px; border-radius:7px 0 0; }
   .scene-object::after { bottom:-1px; right:-1px; border-width:0 2px 2px 0; border-radius:0 0 7px; }
-  .scene-object[data-unconfirmed="true"] { border-style:dashed; opacity:.65; }
-  .scene-object[data-selected="true"] { border-color:var(--accent); box-shadow:0 0 0 1px #bdffd83d; }
+  .scene-object[data-stale="true"] { border-style:dashed; opacity:.65; }
+  .scene-object[data-revealed="true"] { border-color:var(--accent); box-shadow:0 0 0 1px #bdffd83d; }
+  /* Positions arrive at detector rate; short linear transitions keep motion continuous. */
+  .scene-object, .scene-marker, .reveal-frame, .reveal-card { transition: left .18s linear, top .18s linear, width .18s linear, height .18s linear; }
+  .scene-marker { position:absolute; width:0; height:0; }
+  .scene-marker button { pointer-events:auto; position:absolute; left:-16px; top:-16px; width:32px; height:32px; min-height:0; padding:0; border:0; border-radius:50%; background:transparent; }
+  .scene-marker button::after { content:""; position:absolute; left:11px; top:11px; width:10px; height:10px; border-radius:50%; background:#effff4; box-shadow:0 0 0 2px #0b1510a0, 0 0 14px #bdffd870; opacity:.9; transition:transform .15s; }
+  .scene-marker button:hover::after { transform:scale(1.35); }
+  .scene-marker[data-stale="true"] button::after { opacity:.4; }
+  .scene-marker[data-revealed="true"] { display:none; }
+  .reveal-frame { position:absolute; pointer-events:none; border-radius:9px; }
+  .reveal-frame::before,.reveal-frame::after { content:""; position:absolute; width:18px; height:18px; border:2px solid var(--accent); }
+  .reveal-frame::before { top:-2px; left:-2px; border-width:2px 0 0 2px; border-radius:9px 0 0; }
+  .reveal-frame::after { bottom:-2px; right:-2px; border-width:0 2px 2px 0; border-radius:0 0 9px; }
+  .reveal-card { position:absolute; display:flex; flex-direction:column; align-items:center; gap:2px; transform:translateX(-50%); max-width:240px; padding:9px 14px 10px; border-radius:12px; background:#0c1712d6; backdrop-filter:blur(14px); border:1px solid #bdffd838; color:#f2fff7; cursor:pointer; white-space:nowrap; animation:reveal-in .24s ease-out; }
+  .reveal-card strong { font-size:15px; font-weight:560; letter-spacing:-.015em; }
+  .reveal-card span { font-size:11px; color:#a8c5b3; }
+  @keyframes reveal-in { from { opacity:0; } to { opacity:1; } }
+  .visually-hidden { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
   .scene-object button { pointer-events:auto; position:absolute; top:0; left:0; transform:translateY(-100%); border:1px solid #bdffd84f; background:#10251eef; backdrop-filter:blur(10px); color:#e4ffed; min-height:34px; padding:7px 11px; border-radius:6px 6px 6px 0; font-size:11px; font-weight:550; white-space:nowrap; max-width:190px; overflow:hidden; text-overflow:ellipsis; }
   .scene-object[data-near-top="true"] button { transform:none; }
   .camera-welcome { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px; background:radial-gradient(ellipse at 50% 40%,#223a2d77,transparent 65%); }
@@ -64,7 +83,8 @@
   #welcome-start { background:#d0fbe0; border-color:#d0fbe0; color:#163322; border-radius:8px; font-size:12px; padding:10px 20px; }
   .camera-hud { position:absolute; top:18px; left:18px; right:18px; display:flex; justify-content:space-between; gap:12px; pointer-events:none; }
   .hud-pill { display:flex; align-items:center; gap:6px; background:#0b1510cb; backdrop-filter:blur(12px); border:1px solid #b9dcc522; padding:6px 9px; color:#c9e1d1; border-radius:5px; font-size:9px; letter-spacing:.09em; }
-  #wearer-view[data-mode="glasses"] .camera-hud,#wearer-view[data-mode="glasses"] #scene-labels,#wearer-view[data-mode="glasses"] .camera-welcome { display:none !important; }
+  #wearer-view[data-mode="glasses"] .camera-hud,#wearer-view[data-mode="glasses"] #scene-labels,#wearer-view[data-mode="glasses"] .camera-welcome,
+  #wearer-view[data-mode="glasses"] .reveal-card,#wearer-view[data-mode="glasses"] .reveal-frame { display:none !important; }
   .status-dot { width:6px; height:6px; border-radius:50%; background:#758378; display:inline-block; }
   .status-dot[data-active="true"] { background:var(--accent); box-shadow:0 0 9px #bdffd844; }
   .scene-foot { display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px; margin:12px 0 0; font-size:11px; color:var(--muted); }
@@ -141,7 +161,11 @@
       <button type="button" data-scene-mode="glasses" aria-pressed="false">Glasses preview</button>
     </div>
     <div class="toolbar-actions">
-      <button id="toggle-labels" type="button" class="secondary" aria-pressed="true"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M6 2H2v4m12-4h4v4M2 14v4h4m12-4v4h-4M6 7h8v6H6z" stroke="currentColor" stroke-width="1.2"/></svg>Labels</button>
+      <div class="label-modes" role="group" aria-label="Object labels">
+        <button type="button" data-label-mode="off" aria-pressed="false">Off</button>
+        <button type="button" data-label-mode="focus" aria-pressed="true" title="Quiet markers; details when you ask or keep an object centred">Focus</button>
+        <button type="button" data-label-mode="all" aria-pressed="false" title="Label every recognized object">All</button>
+      </div>
       <button id="scene-stop" type="button" class="secondary" disabled aria-label="Stop camera"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="5" y="5" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.3"/></svg></button>
       <button id="start-camera" type="button"><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M6 5.5 7.5 3h5L14 5.5h3v11H3v-11h3Z" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="10.5" r="3" stroke="currentColor" stroke-width="1.4"/></svg><span id="start-camera-label">Start camera</span></button>
     </div>
@@ -156,6 +180,8 @@
       <canvas id="subtractive-layer" width="960" height="540" aria-hidden="true"></canvas>
       <canvas id="additive-layer" width="960" height="540" aria-hidden="true"></canvas>
       <div id="scene-labels" aria-label="Objects in the camera view"></div>
+      <div id="reveal-frame" class="reveal-frame" hidden aria-hidden="true"></div>
+      <div id="reveal-card" class="reveal-card" hidden aria-hidden="true" title="Dismiss"><strong id="reveal-title"></strong><span id="reveal-detail"></span></div>
       <div class="camera-hud" aria-hidden="true"><span id="scene-mode-badge" class="hud-pill">MIRROR</span><span id="scene-live-badge" class="hud-pill">CAMERA OFF</span></div>
       <div id="camera-welcome" class="camera-welcome">
         <svg class="welcome-symbol" viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d="M15 10H7v8m26-8h8v8M7 30v8h8m26-8v8h-8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="24" cy="24" r="8" stroke="currentColor" stroke-width="1.5"/><circle cx="24" cy="24" r="2" fill="currentColor"/></svg>
@@ -163,6 +189,7 @@
       </div>
     </div>
   </figure>
+  <p id="reveal-announcer" class="visually-hidden" role="status" aria-live="polite"></p>
   <div class="scene-foot"><span id="scene-interaction-hint">Tap an object label to inspect it</span><span id="scene-orientation">Front camera · mirrored</span></div>
   <p id="scene-message" role="status" aria-live="polite">Start your camera to turn your surroundings into a live, labeled view.</p>
   </div>
@@ -173,11 +200,13 @@
     <section class="inspect-card" aria-label="Selected object">
       <h3 id="inspection-title">A little context.</h3><p id="inspection-description">Objects appear here as they are detected. Select one to see what the camera can tell you.</p>
       <dl id="inspection-details" hidden>
+        <div><dt>Why it appeared</dt><dd id="inspection-reason"></dd></div>
         <div><dt>Position in this view</dt><dd id="inspection-position"></dd></div>
         <div><dt>Observation</dt><dd id="inspection-evidence"></dd></div>
         <div><dt>Recognition model score</dt><dd id="inspection-score"></dd></div>
+        <div><dt>Clears</dt><dd id="inspection-expiry"></dd></div>
       </dl>
-      <button id="clear-inspection" type="button" class="secondary" hidden>Clear selection</button>
+      <button id="clear-inspection" type="button" class="secondary" hidden>Dismiss</button>
     </section>
   </aside>
   </div>
@@ -321,6 +350,17 @@ const CONSTANTS = Object.freeze({
   dwellMaxGapMs: Object.freeze({ value: 500, kind: "model", source: "Maximum continuous observation gap" }),
   dwellRefractoryMs: Object.freeze({ value: 3000, kind: "model", source: "Per-anchor repeat suppression" }),
   syntheticFovDeg: Object.freeze({ value: 60, kind: "model", source: "Raster panorama sampling; not camera calibration" }),
+  // [model] Camera-companion entity and reveal choices; prototype values, not user-study results.
+  entityPresenceMs: Object.freeze({ value: 800, kind: "model", source: "Presence after the last detection; matches tracker expiry" }),
+  entityStaleMs: Object.freeze({ value: 500, kind: "model", source: "Gap before a position is shown as last seen (about 3 detector periods at 6 Hz)" }),
+  entityConfirmDetections: Object.freeze({ value: 2, kind: "model", source: "Detector results before an entity may be dwell-revealed" }),
+  entityConfirmMs: Object.freeze({ value: 250, kind: "model", source: "Persistence before an entity may be dwell-revealed" }),
+  entityScoreSmoothing: Object.freeze({ value: 0.4, kind: "model", source: "Exponential smoothing weight for new detector scores" }),
+  entityMemoryMs: Object.freeze({ value: 30000, kind: "model", source: "Short-term recall of departed entities; matches appearance memory" }),
+  entityMemoryMax: Object.freeze({ value: 64, kind: "model", source: "Departed-entity memory bound" }),
+  revealDwellMs: Object.freeze({ value: 4000, kind: "model", source: "Dwell-revealed detail lifetime" }),
+  revealSummonMs: Object.freeze({ value: 6000, kind: "model", source: "Explicitly requested detail lifetime" }),
+  revealDismissSuppressMs: Object.freeze({ value: 30000, kind: "model", source: "Dwell suppression after an explicit dismissal" }),
   evaluationFixtureMin: Object.freeze({ value: 30, kind: "model", source: "Stage 5 licensed fixture coverage floor" }),
   evaluationClassMin: Object.freeze({ value: 10, kind: "model", source: "Stage 5 detector-class coverage floor" }),
   evaluationHitRateMin: Object.freeze({ value: 0.6, kind: "model", source: "Stage 5 expected-label image-hit floor" }),
@@ -457,41 +497,141 @@ const Core = Object.freeze({
     if(r<=l||b<=t)return null;
     return Object.freeze({x:l,y:t,width:r-l,height:b-t,clipped:l!==left||r!==right||t!==top||b!==bottom});
   },
-  sceneBoxes(tracker,{now,session,source,fov,display,threshold=0.5}) {
-    if(!Number.isFinite(now)||now<0||!Number.isInteger(session)||
-      !Number.isFinite(threshold)||threshold<0||threshold>1)throw new TypeError("Invalid scene observation boundary");
-    validateFov(fov);
-    if(!display)throw new TypeError("Scene boxes need an explicit display transform");
-    if(source!=="camera"||tracker.source!==source||tracker.session!==session)return Object.freeze([]);
-    const boxes=[];
+  createEntityModel() {
+    return Object.freeze({session:null,source:null,entities:Object.freeze([]),departed:Object.freeze([])});
+  },
+  // Tracks become persistent entities. Presence and position status use hysteresis
+  // so labels hold steady between detector results; evidence counts detector
+  // results, never render frames. Departed entities are recalled briefly so a
+  // re-identified anchor keeps its history. Only live camera evidence qualifies.
+  updateEntities(model,tracker,{now,session,source,threshold=0.5}) {
+    if(!Number.isFinite(now)||now<0||!Number.isInteger(session)||!Number.isFinite(threshold)||threshold<0||threshold>1)
+      throw new TypeError("Invalid entity update boundary");
+    const value=name=>CONSTANTS[name].value;
+    if(source!=="camera"||tracker?.source!==source||tracker.session!==session)
+      return Object.freeze({session,source,entities:Object.freeze([]),departed:Object.freeze([])});
+    const same=model.session===session&&model.source===source;
+    const previous=new Map((same?model.entities:[]).map(e=>[e.id,e]));
+    const remembered=same?model.departed:[];
+    const entities=[];
     for(const t of tracker.tracks) {
-      const age=now-t.lastDetectionMs,b=t.boxDeg,score=t.detectionConfidence??t.confidence;
-      if(t.source!==source||!Number.isFinite(age)||age<0||age>600||
-        (t.status==="occluded"&&age>300)||!["detected","flow","occluded"].includes(t.status)||
-        !Number.isFinite(score)||score<threshold||score>1||
+      const age=now-t.lastDetectionMs,b=t.boxDeg,latest=t.detectionConfidence??t.confidence;
+      if(t.source!==source||!Number.isFinite(age)||age<0||age>value("entityPresenceMs")||
+        !["detected","flow","occluded"].includes(t.status)||typeof t.label!=="string"||!t.label||
+        !Number.isFinite(latest)||latest<threshold||latest>1||
         !b||![b.leftDeg,b.topDeg,b.widthDeg,b.heightDeg].every(Number.isFinite)||b.widthDeg<=0||b.heightDeg<=0)continue;
-      const rasterBox=Object.freeze({x:b.leftDeg/fov.horizontalDeg+.5,y:.5-b.topDeg/fov.verticalDeg,
-        width:b.widthDeg/fov.horizontalDeg,height:b.heightDeg/fov.verticalDeg});
-      const shown=Core.projectBox(rasterBox,display);
-      if(!shown)continue;
-      boxes.push(Object.freeze({id:t.id,label:t.label,x:shown.x,y:shown.y,width:shown.width,height:shown.height,
-        clipped:shown.clipped,rasterBox,modelScore:score,trackingTier:t.tier,
-        status:t.status,observationMs:t.lastDetectionMs,ageMs:age}));
+      const prior=[previous.get(t.id),...remembered.filter(m=>m.id===t.id)].find(m=>m?.label===t.label);
+      const fresh=!prior||t.lastDetectionMs>prior.lastDetectionMs;
+      const detections=(prior?.detections??0)+(fresh?1:0),firstSeenMs=prior?.firstSeenMs??t.lastDetectionMs;
+      const score=!prior?latest:fresh?prior.score+value("entityScoreSmoothing")*(latest-prior.score):prior.score;
+      entities.push(Object.freeze({id:t.id,label:t.label,firstSeenMs,lastDetectionMs:t.lastDetectionMs,detections,score,
+        boxDeg:Object.freeze({leftDeg:b.leftDeg,topDeg:b.topDeg,widthDeg:b.widthDeg,heightDeg:b.heightDeg}),
+        status:age<=value("entityStaleMs")?"tracking":"stale",
+        confirmed:detections>=value("entityConfirmDetections")&&t.lastDetectionMs-firstSeenMs>=value("entityConfirmMs"),
+        labelTier:1,trackingTier:t.tier,source,session}));
     }
-    return Object.freeze(boxes);
+    const live=new Set(entities.map(e=>e.id));
+    const departed=[...remembered.filter(m=>!live.has(m.id)&&!previous.has(m.id)),...[...previous.values()].filter(e=>!live.has(e.id))]
+      .filter(m=>now-m.lastDetectionMs<=value("entityMemoryMs")).slice(-value("entityMemoryMax"))
+      .map(m=>Object.freeze({id:m.id,label:m.label,firstSeenMs:m.firstSeenMs,lastDetectionMs:m.lastDetectionMs,
+        detections:m.detections,score:m.score,boxDeg:m.boxDeg}));
+    return Object.freeze({session,source,entities:Object.freeze(entities),departed:Object.freeze(departed)});
+  },
+  // Perception-space entities → display-normal boxes and visible-centre markers.
+  projectEntities(entities,{fov,display}) {
+    validateFov(fov);
+    if(!display)throw new TypeError("Entity projection needs an explicit display transform");
+    const views=[];
+    for(const e of entities) {
+      const b=e.boxDeg,shown=Core.projectBox({x:b.leftDeg/fov.horizontalDeg+.5,y:.5-b.topDeg/fov.verticalDeg,
+        width:b.widthDeg/fov.horizontalDeg,height:b.heightDeg/fov.verticalDeg},display);
+      if(shown)views.push(Object.freeze({id:e.id,label:e.label,status:e.status,confirmed:e.confirmed,score:e.score,
+        x:shown.x,y:shown.y,width:shown.width,height:shown.height,clipped:shown.clipped,
+        cx:shown.x+shown.width/2,cy:shown.y+shown.height/2}));
+    }
+    return Object.freeze(views);
+  },
+  // The object a gaze or view-centre direction rests on: the smallest box that
+  // contains it, else the nearest within the dwell tolerance. A previous target is
+  // returned with its true distance so stepDwell decays instead of resetting.
+  focusTarget(entities,directionDeg,{previousId=null,toleranceDeg=CONSTANTS.dwellToleranceDeg.value}={}) {
+    const xDeg=finiteNumber(directionDeg?.xDeg,"focus x"),yDeg=finiteNumber(directionDeg?.yDeg,"focus y");
+    const measured=entities.map(e=>{
+      const b=e.boxDeg,x=Math.min(Math.max(xDeg,b.leftDeg),b.leftDeg+b.widthDeg),y=Math.min(Math.max(yDeg,b.topDeg-b.heightDeg),b.topDeg);
+      return {anchorId:e.id,targetDirectionDeg:Object.freeze({xDeg:x,yDeg:y}),distanceDeg:Math.hypot(x-xDeg,y-yDeg),area:b.widthDeg*b.heightDeg};
+    });
+    const best=measured.filter(m=>m.distanceDeg<=toleranceDeg).sort((a,b)=>(a.distanceDeg>0)-(b.distanceDeg>0)||
+      (a.distanceDeg===0?a.area-b.area:a.distanceDeg-b.distanceDeg)||a.anchorId.localeCompare(b.anchorId))[0]??
+      measured.find(m=>m.anchorId===previousId);
+    return best?Object.freeze({anchorId:best.anchorId,targetDirectionDeg:best.targetDirectionDeg,distanceDeg:best.distanceDeg}):null;
+  },
+  createRevealPolicy({thresholdMs=CONSTANTS.dwellThresholdMs.value}={}) {
+    return Object.freeze({dwell:Core.createDwellState({thresholdMs}),reveal:null,suppressed:Object.freeze([]),
+      awaitingDeparture:Object.freeze([]),nextId:1});
+  },
+  // Warrant-based reveal lifecycle for the camera companion (L1, L2): nothing is
+  // shown without an explicit summon or a view-centre dwell on a confirmed object;
+  // every reveal is born with its expiry; at most one exists; every dwell event is
+  // acknowledged at removal or refusal so its refractory period starts. Anything
+  // already shown or dismissed re-arms only after the view leaves it, so steady
+  // looking never becomes a reveal loop. People are never dwell targets, and a
+  // dwell never overrides an explicit request or dismissal.
+  stepRevealPolicy(state,{now,entities,gaze,summon=null,dismiss=false}) {
+    finiteNumber(now,"reveal policy time");
+    if(!Array.isArray(entities))throw new TypeError("Reveal policy needs entities");
+    let {dwell,reveal,nextId,awaitingDeparture}=state,suppressed=state.suppressed.filter(item=>item.untilMs>now);
+    const ended=[],present=new Map(entities.map(e=>[e.id,e]));
+    const isSuppressed=id=>suppressed.some(item=>item.entityId===id);
+    const awaitDeparture=id=>{if(!awaitingDeparture.includes(id))awaitingDeparture=[...awaitingDeparture,id];};
+    const acknowledge=event=>{dwell=Core.finishDwellReveal(dwell,event,Math.max(now,dwell.lastTimeMs??now));};
+    const end=reason=>{
+      ended.push(Object.freeze({reveal,reason}));
+      if(reason==="dismissed")suppressed=[...suppressed,Object.freeze({entityId:reveal.entityId,untilMs:now+CONSTANTS.revealDismissSuppressMs.value})];
+      if(reveal.warrant==="dwell")acknowledge(reveal.event);
+      reveal=null;
+    };
+    const create=(entity,warrant,event=null)=>{
+      awaitDeparture(entity.id);
+      return Object.freeze({id:"reveal-"+nextId++,entityId:entity.id,label:entity.label,
+        warrant,bornMs:now,expiresMs:now+CONSTANTS[warrant==="dwell"?"revealDwellMs":"revealSummonMs"].value,event});
+    };
+    // 1. Endings and explicit requests first, so they constrain this step's dwell.
+    if(reveal&&dismiss)end("dismissed");
+    else if(reveal&&now>=reveal.expiresMs)end("expired");
+    else if(reveal&&!present.has(reveal.entityId))end("lost");
+    if(summon!==null&&present.has(summon)) {
+      if(reveal?.entityId===summon)end("dismissed");
+      else {if(reveal)end("replaced");reveal=create(present.get(summon),"summon");}
+    }
+    // 2. View-centre dwell. Whatever the view rests on (dismissed or already
+    //    shown included) blocks accumulation until the view leaves it.
+    let dwellEvent=null;
+    if(dwell.lastTimeMs===null||now>dwell.lastTimeMs) {
+      const candidates=entities.filter(e=>e.confirmed===true&&!/person|face|human/i.test(e.label));
+      const focus=gaze?.available===true?Core.focusTarget(candidates,gaze.directionDeg,{previousId:dwell.anchorId}):null;
+      const resting=focus&&focus.distanceDeg<=CONSTANTS.dwellToleranceDeg.value?focus.anchorId:null;
+      awaitingDeparture=awaitingDeparture.filter(id=>id===resting);
+      const armed=focus&&!awaitingDeparture.includes(focus.anchorId)&&!isSuppressed(focus.anchorId);
+      const step=Core.stepDwell(dwell,armed?{timeMs:now,available:true,anchorId:focus.anchorId,
+        directionDeg:gaze.directionDeg,targetDirectionDeg:focus.targetDirectionDeg}:{timeMs:now,available:false});
+      dwell=step.state;dwellEvent=step.event;
+    }
+    // 3. A dwell may replace another dwell reveal, never an explicit request.
+    if(dwellEvent) {
+      const target=present.get(dwellEvent.anchorId);
+      if(!target||reveal?.warrant==="summon"||reveal?.entityId===target.id||isSuppressed(target.id)) {
+        acknowledge(dwellEvent);if(target)awaitDeparture(target.id);
+      } else {if(reveal)end("replaced");reveal=create(target,"dwell",dwellEvent);}
+    }
+    return Object.freeze({state:Object.freeze({dwell,reveal,suppressed:Object.freeze(suppressed),
+      awaitingDeparture:Object.freeze(awaitingDeparture),nextId}),
+      reveal,ended:Object.freeze(ended)});
   },
   sceneSummary(boxes) {
     if(!boxes.length)return "No objects detected yet";
     const counts=new Map();
     for(const b of boxes)counts.set(b.label,(counts.get(b.label)||0)+1);
     return [...counts].slice(0,5).map(([label,n])=>`${n} ${n===1?label:label==="person"?"people":label.endsWith("s")?label:label+"s"}`).join(" · ");
-  },
-  sceneSelection(selection,action,boxes,now) {
-    if(!Number.isFinite(now)||now<0)throw new TypeError("Invalid selection time");
-    if(action.type==="clear")return null;
-    if(action.type==="select")return boxes.some(b=>b.id===action.id)?Object.freeze({id:action.id,openedMs:now,expiresMs:now+6000}):null;
-    if(action.type!=="tick")throw new TypeError("Unknown scene selection action");
-    return selection&&now>=selection.openedMs&&now<selection.expiresMs&&boxes.some(b=>b.id===selection.id)?selection:null;
   },
   bindEmbedding(memory,tracker,result,now) {
     const m=result.metadata,t=tracker.tracks.find(t=>t.id===m.id);
@@ -2301,15 +2441,210 @@ function registerDisplayTransformTests(T) {
   });
 }
 
+// Entity world model, focus and reveal policy: written before implementation.
+// Perception (tracks) becomes persistent entities; assistance needs a warrant.
+function registerEntityTests(T) {
+  const fov=Core.makeFov(60,33.75);
+  const box=(cx,cy,w,h)=>({leftDeg:cx-w/2,topDeg:cy+h/2,widthDeg:w,heightDeg:h});
+  const track=(id,label,b,lastDetectionMs,extra={})=>({id,label,boxDeg:b,confidence:0.8,detectionConfidence:0.8,
+    status:"detected",source:"camera",tier:2,lastDetectionMs,updatedMs:lastDetectionMs,...extra});
+  const tracker=(tracks,session=1)=>({session,source:"camera",timeMs:0,tracks});
+  const opts=(now,extra={})=>({now,session:1,source:"camera",threshold:0.5,...extra});
+  const cupBox=box(-10,5,8,6);
+  T.suite("Entities: provenance and freshness",()=>{
+    const cup=track("anchor-1","cup",cupBox,100);
+    const up=(tr,o)=>Core.updateEntities(Core.createEntityModel(),tr,o);
+    T.eq(up(tracker([cup]),opts(120)).entities.length,1,"a fresh camera track becomes an entity");
+    for(const source of ["synthetic","evaluation","stopped"])
+      T.eq(up(tracker([cup]),opts(120,{source})).entities.length,0,"non-camera input never creates live entities: "+source);
+    T.eq(up({...tracker([cup]),source:"synthetic"},opts(120)).entities.length,0,"tracker provenance cannot be laundered");
+    T.eq(up(tracker([{...cup,source:"synthetic"}]),opts(120)).entities.length,0,"individual track provenance checked");
+    T.eq(up(tracker([cup]),opts(120,{session:2})).entities.length,0,"previous camera session refused");
+    T.eq(up(tracker([cup]),opts(99)).entities.length,0,"future observations refused");
+    T.eq(up(tracker([cup]),opts(120,{threshold:0.9})).entities.length,0,"low detector scores filtered");
+    T.eq(up(tracker([cup]),opts(901)).entities.length,0,"presence ends 800 ms after the last detection");
+    T.eq(up(tracker([{...cup,status:"unknown"}]),opts(120)).entities.length,0,"unknown track status refused");
+    T.eq(up(tracker([{...cup,boxDeg:{...cupBox,widthDeg:0}}]),opts(120)).entities.length,0,"degenerate geometry refused");
+    T.throws(()=>up(tracker([cup]),opts(NaN)),"invalid time refused");
+    const first=up(tracker([cup]),opts(120));
+    const changed=Core.updateEntities(first,tracker([{...cup,lastDetectionMs:125}],2),opts(130,{session:2}));
+    T.eq(changed.entities[0].detections,1,"no entity memory crosses camera sessions");
+    T.eq(first.entities[0].labelTier,1,"class label keeps its measured detector tier");
+    T.eq(first.entities[0].trackingTier,2,"position keeps its inferred tracking tier");
+  });
+  T.suite("Entities: persistence without label flicker",()=>{
+    const at=(t,status="detected",last=t,score=0.8)=>tracker([track("anchor-1","cup",cupBox,last,{status,detectionConfidence:score})]);
+    let m=Core.updateEntities(Core.createEntityModel(),at(100),opts(100));
+    T.eq(m.entities[0].confirmed,false,"a single detection is not yet confirmed");
+    m=Core.updateEntities(m,at(133,"occluded",100),opts(133));
+    T.eq(m.entities[0].detections,1,"render frames between detections are not counted as evidence");
+    T.eq(m.entities[0].status,"tracking","an object between detector results is not shown as lost");
+    m=Core.updateEntities(m,at(300),opts(300));
+    T.eq(m.entities[0].detections,2,"each new detector result counts once");
+    T.eq(m.entities[0].confirmed,false,"confirmation needs 250 ms of persistence");
+    m=Core.updateEntities(m,at(400,"detected",400,0.6),opts(400));
+    T.eq(m.entities[0].confirmed,true,"repeated detections over 250 ms confirm the entity");
+    T.approx(m.entities[0].score,0.72,1e-12,"detector scores are smoothed, not replaced");
+    T.eq(m.entities[0].firstSeenMs,100,"first sighting is retained");
+    m=Core.updateEntities(m,at(899,"occluded",400),opts(899));
+    T.eq(m.entities[0].status,"tracking","500 ms without detection is still tracking");
+    m=Core.updateEntities(m,at(901,"occluded",400),opts(901));
+    T.eq(m.entities[0].status,"stale","only a real gap marks a position as last seen");
+  });
+  T.suite("Entities: short-term recall",()=>{
+    const cup=t=>track("anchor-1","cup",cupBox,t);
+    let m=Core.createEntityModel();
+    m=Core.updateEntities(m,tracker([cup(100)]),opts(100));
+    m=Core.updateEntities(m,tracker([cup(400)]),opts(400));
+    m=Core.updateEntities(m,tracker([]),opts(1300));
+    T.eq(m.entities.length,0,"a departed object leaves the live view");
+    T.eq(m.departed[0]?.id,"anchor-1","a departed object is remembered");
+    T.eq(m.departed[0]?.lastDetectionMs,400,"memory keeps when it was last seen");
+    m=Core.updateEntities(m,tracker([cup(5000)]),opts(5000));
+    T.eq(m.entities[0].firstSeenMs,100,"a re-identified object keeps its history");
+    T.eq(m.entities[0].detections,3,"evidence accumulates across a brief absence");
+    T.eq(m.departed.length,0,"a returned object leaves departed memory");
+    m=Core.updateEntities(m,tracker([]),opts(6000));
+    m=Core.updateEntities(m,tracker([]),opts(35001));
+    T.eq(m.departed.length,0,"memory expires 30 s after the last sighting");
+    let other=Core.updateEntities(Core.createEntityModel(),tracker([cup(100)]),opts(100));
+    other=Core.updateEntities(other,tracker([]),opts(1000));
+    other=Core.updateEntities(other,tracker([track("anchor-1","bowl",cupBox,1200)]),opts(1200));
+    T.eq(other.entities[0].detections,1,"memory never transfers to a different class");
+  });
+  T.suite("Entities: display projection",()=>{
+    const m=Core.updateEntities(Core.createEntityModel(),
+      tracker([track("anchor-1","cup",{leftDeg:-24,topDeg:10.125,widthDeg:12,heightDeg:6.75},100)]),opts(120));
+    const display=mirrored=>Core.displayTransform({camera:{width:1280,height:720},raster:{width:320,height:180},
+      viewport:{width:960,height:540},fit:"cover",mirrored});
+    const plain=Core.projectEntities(m.entities,{fov,display:display(false)})[0];
+    const mirror=Core.projectEntities(m.entities,{fov,display:display(true)})[0];
+    T.approx(plain.x,0.1,1e-9,"left edge projects from angular coordinates");
+    T.approx(plain.cx,0.2,1e-9,"marker sits at the visible centre");
+    T.approx(mirror.x,0.7,1e-9,"mirrored entity follows reflected pixels");
+    T.approx(mirror.cx,0.8,1e-9,"mirrored marker follows reflected pixels");
+    T.eq(mirror.label,"cup","projection keeps entity data as plain values");
+    const edge=Core.projectEntities([{...m.entities[0],boxDeg:{...m.entities[0].boxDeg,leftDeg:-36}}],{fov,display:display(false)})[0];
+    T.eq(edge.x,0,"a partially offscreen entity clips at the display edge");
+    T.approx(edge.width,0.1,1e-9,"clipping changes width without moving the visible part");
+    T.eq(Core.projectEntities([{...m.entities[0],boxDeg:{...m.entities[0].boxDeg,leftDeg:40}}],{fov,display:display(false)}).length,0,
+      "offscreen entities get no edge-pinned marker");
+    T.throws(()=>Core.projectEntities(m.entities,{fov}),"display transform is required");
+  });
+  T.suite("Focus: what the view centre rests on",()=>{
+    const person={id:"p",label:"person",boxDeg:box(0,0,30,30)};
+    const cup={id:"c",label:"cup",boxDeg:box(1,-1,6,6)};
+    const book={id:"b",label:"book",boxDeg:box(12,0,6,6)};
+    const centre={xDeg:0,yDeg:0};
+    T.eq(Core.focusTarget([person,cup,book],centre).anchorId,"c","the most specific object under the view centre wins");
+    T.eq(Core.focusTarget([book],centre),null,"nothing near the view centre means no focus");
+    const near=Core.focusTarget([{...book,boxDeg:box(4.5,0,6,6)}],centre);
+    T.eq(near?.anchorId,"b","an object within the jitter tolerance can be focused");
+    T.approx(near?.targetDirectionDeg.xDeg,1.5,1e-12,"the target is the nearest point of the object");
+    const held=Core.focusTarget([book],centre,{previousId:"b"});
+    T.eq(held?.anchorId,"b","a previous target is kept so dwell decays instead of resetting");
+    T.true(held?.distanceDeg>CONSTANTS.dwellToleranceDeg.value,"a held previous target reports its true distance");
+    T.throws(()=>Core.focusTarget([cup],{xDeg:NaN,yDeg:0}),"invalid direction refused");
+  });
+}
+
+function registerRevealPolicyTests(T) {
+  const box=(cx,cy,w,h)=>({leftDeg:cx-w/2,topDeg:cy+h/2,widthDeg:w,heightDeg:h});
+  const entity=(id,label,b,confirmed=true)=>({id,label,boxDeg:b,confirmed,status:"tracking"});
+  const cup=entity("c","cup",box(1,-1,6,6)),book=entity("b","book",box(14,0,6,6));
+  const away={available:true,directionDeg:{xDeg:0,yDeg:20}},centre={available:true,directionDeg:{xDeg:0,yDeg:0}};
+  const hold=(state,entities,from,to,gaze=centre)=>{
+    let r={state,reveal:null,ended:[]};const ids=[];let first=null;
+    for(let t=from;t<=to;t+=50){
+      r=Core.stepRevealPolicy(r.state,{now:t,entities,gaze});
+      if(r.reveal&&r.reveal.bornMs>=from&&!ids.includes(r.reveal.id)){ids.push(r.reveal.id);first??=t;}
+    }
+    return {r,ids,first};
+  };
+  T.suite("Reveal policy: perception does not imply assistance",()=>{
+    let r=Core.stepRevealPolicy(Core.createRevealPolicy(),{now:100,entities:[cup,book],gaze:away});
+    T.eq(r.reveal,null,"detected objects alone reveal nothing");
+    r=Core.stepRevealPolicy(r.state,{now:200,entities:[cup,book],gaze:away,summon:"unknown"});
+    T.eq(r.reveal,null,"unknown objects are never revealed");
+    r=Core.stepRevealPolicy(r.state,{now:300,entities:[cup,book],gaze:away,summon:"b"});
+    T.eq(r.reveal?.warrant,"summon","explicit selection carries the summon warrant");
+    T.eq(r.reveal?.entityId,"b","the reveal belongs to the selected object");
+    T.eq(r.reveal?.expiresMs,300+CONSTANTS.revealSummonMs.value,"the reveal schedules its own removal at birth");
+    r=Core.stepRevealPolicy(r.state,{now:300,entities:[cup,book],gaze:away});
+    T.eq(r.reveal?.entityId,"b","repeated same-time updates are idempotent");
+    r=Core.stepRevealPolicy(r.state,{now:300+CONSTANTS.revealSummonMs.value,entities:[cup,book],gaze:away});
+    T.eq(r.reveal,null,"summoned details expire without dismissal");
+    T.eq(r.ended[0]?.reason,"expired","expiry is reported");
+    r=Core.stepRevealPolicy(r.state,{now:6400,entities:[cup,book],gaze:away,summon:"b"});
+    r=Core.stepRevealPolicy(r.state,{now:6500,entities:[cup],gaze:away});
+    T.eq(r.reveal,null,"a departed object takes its details with it");
+    T.eq(r.ended[0]?.reason,"lost","loss is reported");
+    r=Core.stepRevealPolicy(r.state,{now:6600,entities:[cup,book],gaze:away,summon:"b"});
+    r=Core.stepRevealPolicy(r.state,{now:6700,entities:[cup,book],gaze:away,summon:"b"});
+    T.eq(r.reveal,null,"selecting the revealed object again dismisses it");
+    r=Core.stepRevealPolicy(r.state,{now:6800,entities:[cup,book],gaze:away,summon:"b"});
+    r=Core.stepRevealPolicy(r.state,{now:6900,entities:[cup,book],gaze:away,dismiss:true});
+    T.eq(r.ended[0]?.reason,"dismissed","explicit dismissal works");
+    r=Core.stepRevealPolicy(r.state,{now:7000,entities:[entity("u","cup",box(1,-1,6,6),false)],gaze:away,summon:"u"});
+    T.eq(r.reveal?.entityId,"u","an explicit request may inspect an unconfirmed object");
+    T.throws(()=>Core.stepRevealPolicy(r.state,{now:NaN,entities:[],gaze:away}),"invalid time refused");
+  });
+  T.suite("Reveal policy: dwell warrant from the view centre",()=>{
+    let {r,ids,first}=hold(Core.createRevealPolicy(),[cup,book],0,4000);
+    T.eq(first,1500,"holding an object at the view centre for 1.5 s reveals it");
+    T.eq(ids.length,1,"a steady dwell fires once");
+    T.eq(r.reveal?.warrant,"dwell","the reveal carries the dwell warrant");
+    T.eq(r.reveal?.entityId,"c","the dwell reveal belongs to the focused object");
+    ({r,ids}=hold(r.state,[cup,book],4050,8450));
+    T.eq(ids.length,0,"continued looking cannot re-trigger during expiry and refractory");
+    ({r,ids}=hold(r.state,[cup,book],8500,12000));
+    T.eq(ids.length,0,"an object stays quiet while the view never leaves it");
+    ({r}=hold(r.state,[cup,book],12050,12250,away));
+    ({r,ids}=hold(r.state,[cup,book],12300,14000));
+    T.eq(ids.length,1,"looking away and back re-arms the object");
+    T.eq(hold(Core.createRevealPolicy(),[cup],0,3000,{available:false}).ids.length,0,"unavailable gaze accumulates nothing");
+    T.eq(hold(Core.createRevealPolicy(),[entity("u","cup",box(1,-1,6,6),false)],0,3000).ids.length,0,
+      "unconfirmed objects cannot be revealed by dwell");
+    T.eq(hold(Core.createRevealPolicy(),[entity("p","person",box(0,0,30,30))],0,3000).ids.length,0,
+      "people are never dwell targets; identity is not inferred");
+    const held=hold(Core.createRevealPolicy(),[entity("p","person",box(0,0,30,30)),cup],0,1600);
+    T.eq(held.r.reveal?.entityId,"c","an object held in front of a person can still be revealed");
+  });
+  T.suite("Reveal policy: one reveal, acknowledged endings",()=>{
+    let {r}=hold(Core.createRevealPolicy(),[cup,book],0,1500);
+    r=Core.stepRevealPolicy(r.state,{now:1600,entities:[cup,book],gaze:centre,summon:"b"});
+    T.eq(r.reveal?.entityId,"b","an explicit request replaces the current reveal");
+    T.eq(r.ended[0]?.reason,"replaced","replacement is reported");
+    T.eq(r.state.dwell.refractory.find(item=>item.anchorId==="c")?.untilMs,1600+CONSTANTS.dwellRefractoryMs.value,
+      "a replaced dwell reveal starts its refractory period at removal");
+    ({r}=hold(Core.createRevealPolicy(),[cup,book],0,1500));
+    r=Core.stepRevealPolicy(r.state,{now:1600,entities:[cup,book],gaze:centre,dismiss:true});
+    const after=hold(r.state,[cup,book],1650,20000);
+    T.eq(after.ids.length,0,"a dismissed object is not offered again by dwell for 30 s");
+    const again=Core.stepRevealPolicy(after.r.state,{now:20050,entities:[cup,book],gaze:centre,summon:"c"});
+    T.eq(again.reveal?.entityId,"c","a dismissed object can still be requested explicitly");
+  });
+  T.suite("Reveal policy: shown once while the view stays put",()=>{
+    let r=Core.stepRevealPolicy(Core.createRevealPolicy(),{now:0,entities:[cup,book],gaze:centre,summon:"c"});
+    T.eq(hold(r.state,[cup,book],50,12000).ids.length,0,"a summoned, centred object is not re-revealed by dwell when it expires");
+    ({r}=hold(Core.createRevealPolicy(),[cup,book],0,1500));
+    r=Core.stepRevealPolicy(r.state,{now:2000,entities:[cup,book],gaze:centre,dismiss:true});
+    T.eq(hold(r.state,[cup,book],2050,40000).ids.length,0,"a dismissed object stays quiet after suppression ends if the view never left");
+    r=Core.stepRevealPolicy(Core.createRevealPolicy(),{now:0,entities:[cup,book],gaze:centre,summon:"c"});
+    ({r}=hold(r.state,[cup,book],50,1450));
+    r=Core.stepRevealPolicy(r.state,{now:1500,entities:[cup,book],gaze:centre,dismiss:true});
+    T.eq(r.reveal,null,"a dismissal in the step a dwell completes is not undone");
+    r=Core.stepRevealPolicy(Core.createRevealPolicy(),{now:0,entities:[cup,book],gaze:centre});
+    r=Core.stepRevealPolicy(r.state,{now:500,entities:[cup,book],gaze:centre,summon:"b"});
+    ({r}=hold(r.state,[cup,book],550,3000));
+    T.eq(r.reveal?.entityId,"b","a dwell never replaces an explicit request");
+    T.eq(r.reveal?.warrant,"summon","the explicit request keeps its warrant");
+  });
+}
+
+// Box freshness, provenance, mirroring and selection expiry moved to the entity,
+// display-transform and reveal-policy suites above.
 function registerCameraSceneTests(T) {
-  const fov={horizontalDeg:60,verticalDeg:33.75,diagonalDeg:Math.hypot(60,33.75)};
-  const track={id:"anchor-1",label:"cup",boxDeg:{leftDeg:-24,topDeg:10.125,widthDeg:12,heightDeg:6.75},
-    confidence:0.6,detectionConfidence:0.85,status:"detected",source:"camera",tier:2,lastDetectionMs:100,updatedMs:100};
-  const tracker={session:4,source:"camera",tracks:[track]};
-  const display=mirrored=>Core.displayTransform({camera:{width:1280,height:720},raster:{width:320,height:180},
-    viewport:{width:960,height:540},fit:"cover",mirrored});
-  // Built inside suites so a missing transform fails assertions, not suite registration.
-  const options=()=>({now:120,session:4,source:"camera",fov,display:display(false),threshold:0.5});
   T.suite("Camera scene: physically distinct views",()=>{
     T.eq(Core.sceneView("mirror","world").facingMode,"user","mirror requests the front camera for scene pixels");
     T.eq(Core.sceneView("mirror","world").mirrored,true,"mirror presentation reflects the image");
@@ -2319,56 +2654,16 @@ function registerCameraSceneTests(T) {
     T.eq(Core.sceneView("mirror","user").labelsAllowed,false,"diagnostic wearer sensors cannot label a synthetic world as camera");
     T.throws(()=>Core.sceneView("unknown","world"),"unknown presentation rejected");
   });
-  T.suite("Camera scene: mirrored coordinates and clipping",()=>{
-    const normal=Core.sceneBoxes(tracker,options())[0];
-    const mirror=Core.sceneBoxes(tracker,{...options(),display:display(true)})[0];
-    T.approx(normal.x,0.1,1e-9,"left edge projects from angular coordinates");
-    T.eq(JSON.stringify(mirror.rasterBox),JSON.stringify(normal.rasterBox),"mirroring leaves perception-space boxes unchanged");
-    T.throws(()=>Core.sceneBoxes(tracker,{...options(),display:undefined}),"display transform is required, never implicit");
-    T.approx(normal.y,0.2,1e-9,"top edge projects from angular coordinates");
-    T.approx(normal.width,0.2,1e-9,"angular box width projects independently of image resolution");
-    T.approx(mirror.x,0.7,1e-9,"mirrored box follows reflected pixels");
-    T.approx(mirror.x+mirror.width,1-normal.x,1e-9,"both mirror edges align");
-    const clipped=Core.sceneBoxes({...tracker,tracks:[{...track,boxDeg:{...track.boxDeg,leftDeg:-36}}]},options())[0];
-    T.eq(clipped.x,0,"partially offscreen label clips at left edge");
-    T.approx(clipped.width,0.1,1e-9,"clipping changes width without changing visible position");
-    T.eq(Core.sceneBoxes({...tracker,tracks:[{...track,boxDeg:{...track.boxDeg,leftDeg:40}}]},options()).length,0,"offscreen objects do not get edge-pinned labels");
-    T.eq(normal.modelScore,0.85,"detector model score is kept separate from decaying tracking strength");
-  });
-  T.suite("Camera scene: provenance and freshness",()=>{
-    T.eq(Core.sceneBoxes(tracker,{...options(),now:701}).length,0,"label expires after 600 ms without detection");
-    T.eq(Core.sceneBoxes(tracker,{...options(),now:99}).length,0,"future observations refused");
-    T.eq(Core.sceneBoxes(tracker,{...options(),session:5}).length,0,"previous camera session refused");
-    for(const source of ["synthetic","evaluation","stopped"])
-      T.eq(Core.sceneBoxes(tracker,{...options(),source}).length,0,"non-camera input never supplies live scene labels: "+source);
-    T.eq(Core.sceneBoxes({...tracker,source:"synthetic"},options()).length,0,"tracker provenance cannot be laundered");
-    T.eq(Core.sceneBoxes({...tracker,tracks:[{...track,source:"synthetic"}]},options()).length,0,"individual track provenance checked");
-    T.eq(Core.sceneBoxes(tracker,{...options(),threshold:0.9}).length,0,"low detector scores filtered");
-    const hidden={...tracker,tracks:[{...track,status:"occluded"}]};
-    T.eq(Core.sceneBoxes(hidden,{...options(),now:401}).length,0,"unconfirmed boxes stop after 300 ms");
-    T.eq(Core.sceneBoxes(hidden,{...options(),now:200})[0].status,"occluded","briefly cached boxes remain explicitly unconfirmed");
-    T.throws(()=>Core.sceneBoxes(tracker,{...options(),now:NaN}),"invalid time refused");
-  });
   T.suite("Camera scene: evidence-bound scene summary",()=>{
     T.eq(Core.sceneSummary([]),"No objects detected yet","empty scene does not invent observations");
     T.eq(Core.sceneSummary([{label:"person"},{label:"cup"},{label:"person"}]),"2 people · 1 cup","summary counts visible classes");
     T.eq(Core.sceneSummary([{label:"<img>"}]),"1 <img>","labels stay plain data for textContent rendering");
   });
-  T.suite("Camera scene: explicit selection and expiry",()=>{
-    const boxes=Core.sceneBoxes(tracker,options());
-    T.eq(Core.sceneSelection(null,{type:"tick"},boxes,120),null,"detections alone do not create an inspected object");
-    const selected=Core.sceneSelection(null,{type:"select",id:"anchor-1"},boxes,120);
-    T.eq(selected.id,"anchor-1","tap selects an actual observed object");
-    T.eq(selected.expiresMs,6120,"selection schedules automatic removal at birth");
-    T.eq(Core.sceneSelection(selected,{type:"tick"},boxes,6120),null,"selection expires without a dismissal");
-    T.eq(Core.sceneSelection(selected,{type:"tick"},[],150),null,"departed object clears contextual details");
-    T.eq(Core.sceneSelection(selected,{type:"select",id:"unknown"},boxes,150),null,"unknown object never becomes selected");
-    T.eq(Core.sceneSelection(selected,{type:"clear"},boxes,150),null,"explicit clear works");
-    T.throws(()=>Core.sceneSelection(null,{type:"select",id:"anchor-1"},boxes,NaN),"selection requires valid time");
-  });
 }
 const T = createHarness();
 registerDisplayTransformTests(T);
+registerEntityTests(T);
+registerRevealPolicyTests(T);
 registerCameraSceneTests(T);
 registerStage7Tests(T);
 registerStage6Tests(T);
@@ -2732,101 +3027,143 @@ function mountObjectPipeline(doc,view) {
 }
 
 // A screen-based camera companion, never the optical additive/dimming renderer.
-// Labels inspect only current camera evidence; they cannot assert identity,
-// contents, task completion, safety, OCR results, or metric world position.
+// Per frame: tracker → entities (persistence) → reveal policy (warrants) →
+// display projection → DOM. Recognition alone earns at most a quiet marker;
+// details need a summon (tap, list, keyboard) or a view-centre dwell, expire on
+// their own, and never assert identity, contents, state, OCR or metric position.
 function mountCameraCompanion(doc,view,controls) {
-  const get=id=>doc.getElementById(id),viewport=get("wearer-view");
-  const labels=new Map(),rows=new Map(),modeButtons=[...doc.querySelectorAll("[data-scene-mode]")];
-  let mode="mirror",labelsEnabled=true,source={kind:"stopped",status:"stopped",cameraActive:false};
-  let snapshot=null,boxes=[],selection=null;
+  const get=id=>doc.getElementById(id),viewport=get("wearer-view"),layer=get("scene-labels");
+  const modeButtons=[...doc.querySelectorAll("[data-scene-mode]")],labelButtons=[...doc.querySelectorAll("[data-label-mode]")];
+  const markers=new Map(),rows=new Map();
+  let mode="mirror",labelMode="focus",source={kind:"stopped",status:"stopped",cameraActive:false};
+  let snapshot=null,model=Core.createEntityModel(),policy=Core.createRevealPolicy(),views=[],reveal=null;
+  let request={summon:null,dismiss:false},announced=null,cardSize={id:null,height:56};
   const text=(id,value)=>{const node=get(id);if(node.textContent!==value)node.textContent=value;};
+  const style=(node,values)=>{for(const [key,value] of Object.entries(values))if(node.style[key]!==value)node.style[key]=value;};
+  const pct=value=>value*100+"%";
   const title=label=>label.charAt(0).toUpperCase()+label.slice(1);
-  const position=b=>b.x+b.width/2<1/3?"Left side":b.x+b.width/2>2/3?"Right side":"Center";
-  function select(id) {
-    selection=Core.sceneSelection(selection,{type:"select",id},boxes,view.performance.now());
-    paint(view.performance.now());
+  const position=v=>v.cx<1/3?"Left side":v.cx>2/3?"Right side":"Center";
+  const seconds=ms=>Math.max(1,Math.ceil(ms/1000))+" s";
+  function reset(){model=Core.createEntityModel();policy=Core.createRevealPolicy();reveal=null;request={summon:null,dismiss:false};}
+  function ask(change){request={...request,...change};paint(view.performance.now());}
+  // Display-normal transform for the current stage size; null until camera pixels exist.
+  function displayTransform(config,live,stage) {
+    const camera=controls.cameraSize();
+    if(!live||!snapshot||!(camera.width>0&&camera.height>0&&stage.width>0&&stage.height>0))return null;
+    return Core.displayTransform({camera,raster:snapshot.raster,viewport:stage,fit:Core.displayFit(camera,stage),mirrored:config.mirrored});
   }
-  function syncObjects() {
-    const visible=new Set(boxes.map(b=>b.id));
-    for(const [id,item] of labels)if(!visible.has(id)){item.root.remove();labels.delete(id);}
-    for(const [id,item] of rows)if(!visible.has(id)){item.root.remove();rows.delete(id);}
-    for(const [index,b] of boxes.entries()) {
-      let item=labels.get(b.id);
-      if(!item&&index<8) {
+  function listed(){return labelMode==="all"?views:views.filter(v=>v.confirmed);}
+  function syncMarkers(stage) {
+    const kind=labelMode==="all"?"box":"marker",wanted=new Map(listed().slice(0,12).map(v=>[v.id,v]));
+    for(const [id,item] of markers)if(!wanted.has(id)||item.kind!==kind){item.root.remove();markers.delete(id);}
+    for(const v of wanted.values()) {
+      let item=markers.get(v.id);const created=!item;
+      if(created) {
         const root=doc.createElement("div"),button=doc.createElement("button");
-        root.className="scene-object";button.type="button";
-        button.addEventListener("click",()=>select(b.id));root.append(button);get("scene-labels").append(root);
-        item={root,button};labels.set(b.id,item);
+        root.className=kind==="box"?"scene-object":"scene-marker";root.dataset.entity=v.id;
+        // Pointer shortcut only; the In view list is the keyboard path.
+        button.type="button";button.tabIndex=-1;button.addEventListener("click",()=>ask({summon:v.id}));
+        root.append(button);item={root,button,kind};markers.set(v.id,item);
       }
-      if(item) {
-        item.root.style.left=b.x*100+"%";item.root.style.top=b.y*100+"%";
-        item.root.style.width=b.width*100+"%";item.root.style.height=b.height*100+"%";
-        item.root.dataset.unconfirmed=String(b.status==="occluded");
-        item.root.dataset.selected=String(selection?.id===b.id);
-        item.root.dataset.nearTop=String(b.y<0.12);
-        item.button.textContent=title(b.label)+(b.status==="occluded"?" · last seen":"");
-        item.button.style.maxWidth=Math.min(190,viewport.clientWidth*(1-b.x))+"px";
-        item.button.setAttribute("aria-label",`Inspect ${b.label}, ${position(b).toLowerCase()}`);
-        item.button.setAttribute("aria-pressed",String(selection?.id===b.id));
-      }
-      let row=rows.get(b.id);
+      const revealed=reveal?.entityId===v.id;
+      item.root.dataset.stale=String(v.status==="stale");item.root.dataset.revealed=String(revealed);
+      if(kind==="box") {
+        style(item.root,{left:pct(v.x),top:pct(v.y),width:pct(v.width),height:pct(v.height)});
+        item.root.dataset.nearTop=String(v.y<0.12);
+        const label=title(v.label)+(v.status==="stale"?" · last seen":"");
+        if(item.button.textContent!==label)item.button.textContent=label;
+        style(item.button,{maxWidth:Math.min(190,stage.width*(1-v.x))+"px"});
+      } else style(item.root,{left:pct(v.cx),top:pct(v.cy)});
+      item.button.setAttribute("aria-label",`${revealed?"Dismiss":"Show"} ${v.label}, ${position(v).toLowerCase()}`);
+      // Positioned before insertion so a new marker never slides in from the corner.
+      if(created)layer.append(item.root);
+    }
+  }
+  function syncReveal(now,stage) {
+    const v=reveal&&views.find(item=>item.id===reveal.entityId),entity=v&&model.entities.find(e=>e.id===v.id);
+    const card=get("reveal-card"),frame=get("reveal-frame");
+    card.hidden=frame.hidden=!entity;
+    if(!entity){if(!reveal)announced=null;return;}
+    style(frame,{left:pct(v.x),top:pct(v.y),width:pct(v.width),height:pct(v.height)});
+    card.dataset.warrant=reveal.warrant;
+    text("reveal-title",title(v.label));
+    text("reveal-detail",[entity.status==="stale"?"Last seen here":"In view "+seconds(now-entity.firstSeenMs),
+      ...(entity.score<0.7?["uncertain"]:[])].join(" · "));
+    // Pixel placement: above the object, else below, else inside its top edge;
+    // always within the stage and clear of the floating controls. Measured once per reveal.
+    if(cardSize.id!==reveal.id)cardSize={id:reveal.id,height:card.offsetHeight||56};
+    const gap=12,dock=72,h=cardSize.height,top=v.y*stage.height,bottom=(v.y+v.height)*stage.height,half=Math.min(120,stage.width/2);
+    const y=top>=h+gap?top-gap-h:stage.height-bottom>=h+gap+dock?bottom+gap:top+gap;
+    style(card,{left:Math.min(Math.max(v.cx*stage.width,half),stage.width-half)+"px",
+      top:Math.max(8,Math.min(y,stage.height-h-dock))+"px"});
+    if(announced!==reveal.id){announced=reveal.id;text("reveal-announcer",`${title(v.label)}, ${position(v).toLowerCase()}`);}
+  }
+  function syncRows() {
+    const shown=listed().slice(0,12),ids=new Set(shown.map(v=>v.id));
+    for(const [id,row] of rows)if(!ids.has(id)){row.root.remove();rows.delete(id);}
+    for(const v of shown) {
+      let row=rows.get(v.id);
       if(!row) {
         const root=doc.createElement("li"),button=doc.createElement("button"),name=doc.createElement("strong"),location=doc.createElement("span");
         button.type="button";button.className="object-row";name.style.fontWeight="450";
-        button.addEventListener("click",()=>select(b.id));button.append(name,location);root.append(button);get("scene-object-list").append(root);
-        row={root,button,name,location};rows.set(b.id,row);
+        button.addEventListener("click",()=>ask({summon:v.id}));button.append(name,location);root.append(button);get("scene-object-list").append(root);
+        row={root,button,name,location};rows.set(v.id,row);
       }
-      row.name.textContent=title(b.label);row.location.textContent=position(b);
-      row.button.setAttribute("aria-label",`Inspect ${b.label}, ${position(b).toLowerCase()}`);
-      row.button.setAttribute("aria-pressed",String(selection?.id===b.id));
+      if(row.name.textContent!==title(v.label))row.name.textContent=title(v.label);
+      if(row.location.textContent!==position(v))row.location.textContent=position(v);
+      row.button.setAttribute("aria-label",`${reveal?.entityId===v.id?"Dismiss":"Show"} ${v.label}, ${position(v).toLowerCase()}`);
+      row.button.setAttribute("aria-pressed",String(reveal?.entityId===v.id));
     }
   }
-  // Display-normal transform for the current stage size; null until camera pixels exist.
-  function displayTransform(config,live) {
-    const camera=controls.cameraSize(),stage={width:viewport.clientWidth,height:viewport.clientHeight};
-    if(!live||!snapshot||!(camera.width>0&&camera.height>0&&stage.width>0&&stage.height>0))return null;
-    return Core.displayTransform({camera,raster:snapshot.raster,viewport:stage,
-      fit:Core.displayFit(camera,stage),mirrored:config.mirrored});
-  }
-  function paint(now) {
-    const config=Core.sceneView(mode,get("camera-role").value);
-    const live=source.kind==="camera"&&source.status==="running";
-    const display=displayTransform(config,live);
-    viewport.dataset.mode=mode;viewport.dataset.mirrored=String(config.mirrored);
-    viewport.dataset.liveVideo=String(live&&get("camera-role").value==="world");
-    viewport.dataset.fit=display?.fit??"contain";
-    boxes=display&&config.labelsAllowed&&labelsEnabled&&snapshot.phase==="ready"?
-      Core.sceneBoxes(snapshot.tracker,{now,session:snapshot.session,source:"camera",fov:snapshot.fov,
-        display,threshold:get("object-threshold").valueAsNumber}):[];
-    selection=Core.sceneSelection(selection,{type:"tick"},boxes,now);
-    syncObjects();
-    text("scene-count",`${boxes.length} ${boxes.length===1?"object":"objects"}`);
-    text("scene-summary",boxes.length?Core.sceneSummary(boxes):mode==="glasses"?"Quiet by default.":"Nothing observed yet.");
-    const chosen=selection&&boxes.find(b=>b.id===selection.id);
-    get("inspection-details").hidden=!chosen;get("clear-inspection").hidden=!chosen;
-    if(chosen) {
-      text("inspection-title",title(chosen.label));
-      text("inspection-description",chosen.label==="person"?"A person was detected in this frame. Their identity is not inferred.":
-        "This object class was detected in the camera image. Text, contents, and object state have not been read.");
-      text("inspection-position",position(chosen)+(config.mirrored?" · mirrored view":" · camera view"));
-      text("inspection-evidence",chosen.status==="detected"?"Camera detection · Tier 1 label":
-        chosen.status==="flow"?"Camera label · Tier 2 position estimate":"Last camera detection · position unconfirmed");
-      text("inspection-score",chosen.modelScore.toFixed(2)+" · model output, not certainty");
+  function syncInspector(now,config) {
+    const v=reveal&&views.find(item=>item.id===reveal.entityId),entity=v&&model.entities.find(e=>e.id===v.id);
+    get("inspection-details").hidden=!entity;get("clear-inspection").hidden=!entity;
+    if(entity) {
+      text("inspection-title",title(entity.label));
+      text("inspection-description",entity.label==="person"?"A person is in view. Identity is never inferred.":
+        "Recognized by the on-device camera model. Text, contents and object state are not read.");
+      text("inspection-reason",reveal.warrant==="dwell"?"You kept it near the centre of the view":"You asked to see it");
+      text("inspection-position",position(v)+(config.mirrored?" · mirrored view":" · camera view"));
+      text("inspection-evidence",(entity.status==="stale"?"Last camera detection · position unconfirmed":
+        "Camera detection · Tier 1 label, Tier 2 tracked position")+` · ${entity.detections} ${entity.detections===1?"detection":"detections"}`);
+      text("inspection-score",entity.score.toFixed(2)+" · smoothed model output, not certainty");
+      text("inspection-expiry","In "+seconds(reveal.expiresMs-now)+" unless the object leaves first");
     } else {
       text("inspection-title",mode==="glasses"?"The world comes first.":"A little context.");
       text("inspection-description",mode==="glasses"?"The original glasses renderer stays quiet. Surface anchoring and warranted assistance are still in progress.":
-        "Select a camera label or an object above to inspect it. Details clear after six seconds or when the object is lost.");
+        labelMode==="all"?"Every recognized object is labeled. Select one to see what the camera can tell you.":
+        "Recognized objects get a quiet marker. Tap one, pick it below, or keep it near the centre of the view for a moment. Details clear on their own.");
     }
+  }
+  function paint(now) {
+    const role=get("camera-role").value,config=Core.sceneView(mode,role);
+    const live=source.kind==="camera"&&source.status==="running";
+    const stage={width:viewport.clientWidth,height:viewport.clientHeight};
+    const display=displayTransform(config,live,stage);
+    viewport.dataset.mode=mode;viewport.dataset.mirrored=String(config.mirrored);
+    viewport.dataset.liveVideo=String(live&&role==="world");viewport.dataset.fit=display?.fit??"contain";
+    viewport.dataset.labels=labelMode;
+    const recognizing=!!display&&config.labelsAllowed&&labelMode!=="off"&&snapshot.phase==="ready";
+    model=recognizing?Core.updateEntities(model,snapshot.tracker,{now,session:snapshot.session,source:"camera",
+      threshold:get("object-threshold").valueAsNumber}):Core.createEntityModel();
+    const step=Core.stepRevealPolicy(policy,{now,entities:model.entities,summon:request.summon,dismiss:request.dismiss,
+      gaze:recognizing?Core.gazeSource("view-center").sample({},now):{available:false}});
+    policy=step.state;reveal=step.reveal;request={summon:null,dismiss:false};
+    views=recognizing?Core.projectEntities(model.entities,{fov:snapshot.fov,display}):[];
+    syncMarkers(stage);syncReveal(now,stage);syncRows();syncInspector(now,config);
+    const shown=listed();
+    text("scene-count",`${shown.length} ${shown.length===1?"object":"objects"}`);
+    text("scene-summary",shown.length?Core.sceneSummary(shown):mode==="glasses"?"Quiet by default.":"Nothing observed yet.");
     for(const button of modeButtons)button.setAttribute("aria-pressed",String(button.dataset.sceneMode===mode));
-    get("toggle-labels").disabled=!config.labelsAllowed;
-    get("toggle-labels").setAttribute("aria-pressed",String(labelsEnabled));
+    for(const button of labelButtons){button.disabled=!config.labelsAllowed;button.setAttribute("aria-pressed",String(button.dataset.labelMode===labelMode));}
     get("scene-camera-dot").dataset.active=String(source.cameraActive);
     get("camera-welcome").hidden=source.kind!=="stopped"||mode==="glasses";
     text("view-label",mode==="mirror"?"Mirror view":mode==="world"?"World view":"Glasses preview");
     text("scene-mode-badge",mode==="mirror"?"MIRROR":mode==="world"?"WORLD VIEW":"GLASSES PREVIEW");
     text("scene-live-badge",live?"LIVE · ON DEVICE":source.kind==="synthetic"?"SYNTHETIC TEST FEED":"CAMERA OFF");
     text("scene-orientation",config.mirrored?"Mirrored camera view":"Unmirrored camera view");
-    text("scene-interaction-hint",mode==="glasses"?"Glasses assistance stays empty at rest":"Tap an object label to inspect it");
+    text("scene-interaction-hint",mode==="glasses"?"Glasses assistance stays empty at rest":
+      labelMode==="all"?"Tap a label to inspect it":"Tap a marker, or keep an object centred, to learn about it");
     const requesting=["requesting","starting"].includes(source.status);
     get("start-camera").disabled=requesting||live;get("welcome-start").disabled=requesting;
     get("scene-stop").disabled=source.kind==="stopped"&&!requesting;
@@ -2838,28 +3175,37 @@ function mountCameraCompanion(doc,view,controls) {
     else if(source.kind==="synthetic")message=source.reason==="NotAllowedError"?
       "Camera access was denied. Allow it in your browser and try again. This feed is synthetic, not a live scene.":
       "Synthetic test feed · no live scene labels. "+(source.reason&&source.reason!=="Synthetic input selected"?source.reason:"");
-    else if(get("camera-role").value==="user")message="Diagnostic mode: the user camera supplies face/hand input over a synthetic world. Select Mirror or World view to display camera pixels.";
+    else if(role==="user")message="Diagnostic mode: the user camera supplies face/hand input over a synthetic world. Select Mirror or World view to display camera pixels.";
     else if(mode==="glasses")message="Live scene, quiet glasses renderer. Surface anchors and warranted assistance have not been implemented yet.";
-    else if(!labelsEnabled)message="Camera is live. Turn Labels on to recognize objects.";
+    else if(labelMode==="off")message="Camera is live. Choose Focus or All to recognize objects.";
     else if(snapshot?.phase==="loading")message="Camera is live. Loading local object recognition; the first model download may take a moment.";
     else if(snapshot?.phase==="error")message="Camera is live. Object recognition is unavailable: "+get("object-status").textContent;
-    else if(snapshot?.phase==="ready")message=boxes.length?"Tap an object to inspect it. Details clear automatically.":"Recognition is running. Move a supported object into view.";
-    else message="Camera is live. Turn Labels off and on to load object recognition.";
+    else if(snapshot?.phase==="ready")message=!shown.length?"Recognition is running. Move a supported object into view.":
+      labelMode==="all"?"Tap an object to inspect it. Details clear automatically.":
+      "Objects stay quiet until you ask: tap a marker or keep one centred. Esc dismisses.";
+    else message="Camera is live. Choose Off, then Focus, to reload object recognition.";
     text("scene-message",message);
-    viewport.setAttribute("aria-label",live&&get("camera-role").value==="world"?
-      `${mode==="mirror"?"Mirrored":"Live"} camera scene. ${Core.sceneSummary(boxes)}.`:
+    viewport.setAttribute("aria-label",live&&role==="world"?
+      `${mode==="mirror"?"Mirrored":"Live"} camera scene. ${Core.sceneSummary(shown)}.`:
       source.kind==="stopped"?"Camera companion. Camera is off.":"Synthetic test scene. No live perception.");
   }
   get("start-camera").addEventListener("click",()=>controls.start());
   get("welcome-start").addEventListener("click",()=>controls.start());
   get("scene-stop").addEventListener("click",()=>controls.stop());
-  get("toggle-labels").addEventListener("click",()=>{labelsEnabled=!labelsEnabled;selection=null;controls.labelsChanged(labelsEnabled);paint(view.performance.now());});
-  get("clear-inspection").addEventListener("click",()=>{selection=null;paint(view.performance.now());});
-  for(const button of modeButtons)button.addEventListener("click",()=>{
-    mode=button.dataset.sceneMode;selection=null;controls.modeChanged(mode);paint(view.performance.now());
+  get("reveal-card").addEventListener("click",()=>ask({dismiss:true}));
+  get("clear-inspection").addEventListener("click",()=>ask({dismiss:true}));
+  doc.addEventListener("keydown",event=>{if(event.key==="Escape"&&reveal)ask({dismiss:true});});
+  for(const button of labelButtons)button.addEventListener("click",()=>{
+    const wasOn=labelMode!=="off";labelMode=button.dataset.labelMode;
+    // Focus and All are presentations of the same entities; only Off resets them.
+    if(wasOn!==(labelMode!=="off")){reset();controls.labelsChanged(labelMode!=="off");}
+    paint(view.performance.now());
   });
-  return {mode:()=>mode,labelsEnabled:()=>labelsEnabled,
-    source(state){source=state;selection=null;snapshot=null;paint(view.performance.now());},
+  for(const button of modeButtons)button.addEventListener("click",()=>{
+    mode=button.dataset.sceneMode;reset();controls.modeChanged(mode);paint(view.performance.now());
+  });
+  return {mode:()=>mode,labelsEnabled:()=>labelMode!=="off",
+    source(state){source=state;reset();snapshot=null;paint(view.performance.now());},
     update(current,now){snapshot=current;paint(now);}};
 }
 
