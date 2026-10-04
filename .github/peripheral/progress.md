@@ -27,6 +27,16 @@ complete optical Stages 8–12.
 4. **Camera-first layout.** Stage fills the first viewport; slim top bar;
    floating dock (presentation, label mode, stop); welcome overlay carries
    the start action; In view + inspector below the stage.
+5. **Orientation-aware capture.** `Core.captureConstraints` asks for frames
+   in the stage orientation; `Core.analysisRaster` uses 180×320 for portrait
+   cameras (same pixel budget); `analysisFov` puts the 60° span on the long
+   side; rotation mid-stream re-baselines tracking.
+6. **Adaptive identity window.** `Core.trackTiming`: 2.5 measured detector
+   periods (800 ms floor, 2.5 s cap) for track expiry, entity presence,
+   last-seen marking and the stale-result guard (was a fixed 600 ms, which
+   discarded every result from inference slower than 600 ms).
+7. **Detection in a worker.** Classic Worker + OffscreenCanvas
+   (`objectWorkerMain`), one-time fallback to the page thread.
 
 ## Decisions
 
@@ -43,6 +53,10 @@ complete optical Stages 8–12.
 
 ## Measurements (software-GPU headless Chromium, 4 cores — comparative only)
 
+- Worker detection A/B (desk, 1024×640, 2 runs): processed FPS with the
+  detector 8.6–11.5 → 14.5–17.5; main-thread frame p95 183–200 → 83–100 ms.
+- Stage area dominates cost here: 1440×900 stage → detector ~2.5 Hz.
+
 - Before: camera visible at the processed rate, ~12 fps with the detector.
 - After: compositor presents ~30–34 camera fps regardless of main-thread load.
 - Main-thread processed rate with detector fell 12–13 → 5.5–9 fps here because
@@ -52,26 +66,21 @@ complete optical Stages 8–12.
 
 ## Known issues / debt
 
-- Slow devices: when detector results arrive less often than ~1.5 Hz,
-  tracks expire (800 ms, Stage 6 constant) between results and entity IDs
-  churn, which can drop a tap on a marker. Seen at 2.5 fps in this sandbox
-  with a 1440×900 stage. Fix: derive track/entity expiry from the measured
-  detector interval (keep 800 ms as the floor).
-- `getUserMedia` always asks for 1280×720, so portrait phones may get a
-  landscape or square frame that is letterboxed.
 - Only the cat is recognized in the desk fixture at score ≥ 0.5; chair and
   bottle crops fall below threshold (EfficientDet-Lite0 at 320×180).
-- Detector runs on the main thread (MediaPipe 0.10.21 needs page graphics);
-  a worker + OffscreenCanvas path is untested.
-- Portrait cameras: the 320×180 raster pillarboxes a portrait frame, wasting
-  ~70% of analysis pixels.
+- Face/hand landmarkers still run on the page thread (worker path untried).
+- Worker detection verified only in headless Chromium; Safari/Firefox
+  OffscreenCanvas WebGL in workers untested (fallback exists).
 - Real webcam, real phone, GPU-backed throughput still unverified.
 
 ## Next high-value tasks
 
-1. Orientation-aware capture: request portrait frames on portrait stages and
-   use a portrait analysis raster (long side = 60° model span).
-2. Adaptive track/entity expiry from the measured detector rate.
-3. Try MediaPipe detection in a worker with OffscreenCanvas; benchmark.
-4. Hand/pinch summon on the front camera in Mirror mode (pointing at objects).
-5. Depth/surfaces (numbered Stage 8) and a Tier 3 world model for real context.
+1. Hand interaction in Mirror mode: run the hand landmarker on the front
+   camera and let a pinch (or pointing fingertip) summon the object it refers
+   to — "which object am I referring to?" — reusing the reveal policy.
+2. Move face/hand landmarkers to a worker the same way as the detector.
+3. Real-device pass: laptop webcam, iPhone Safari, Android Chrome (worker
+   fallback, portrait capture, GPU-backed frame rate).
+4. Contextual content beyond the class label (Tier 3 world model, Stage 9/10)
+   so reveals carry useful information, still warrant-gated.
+5. Depth/surfaces (numbered Stage 8).
