@@ -364,6 +364,8 @@ const CONSTANTS = Object.freeze({
   entityConfirmDetections: Object.freeze({ value: 2, kind: "model", source: "Detector results before an entity may be dwell-revealed" }),
   entityConfirmMs: Object.freeze({ value: 250, kind: "model", source: "Persistence before an entity may be dwell-revealed" }),
   entityScoreSmoothing: Object.freeze({ value: 0.4, kind: "model", source: "Exponential smoothing weight for new detector scores" }),
+  trackExpiryPeriods: Object.freeze({ value: 2.5, kind: "model", source: "Identity window in detector periods, so one missed result never ends an identity" }),
+  trackExpiryMaxMs: Object.freeze({ value: 2500, kind: "model", source: "Identity window cap for very slow detector cadence" }),
   entityMemoryMs: Object.freeze({ value: 30000, kind: "model", source: "Short-term recall of departed entities; matches appearance memory" }),
   entityMemoryMax: Object.freeze({ value: 64, kind: "model", source: "Departed-entity memory bound" }),
   revealDwellMs: Object.freeze({ value: 4000, kind: "model", source: "Dwell-revealed detail lifetime" }),
@@ -520,6 +522,14 @@ const Core = Object.freeze({
     if(r<=l||b<=t)return null;
     return Object.freeze({x:l,y:t,width:r-l,height:b-t,clipped:l!==left||r!==right||t!==top||b!==bottom});
   },
+  // [model] Identity window of 2.5 detector periods (800 ms floor, 2.5 s cap): a
+  // slow device's cadence must not end identities between results.
+  trackTiming(detectorIntervalMs=null) {
+    const interval=Number.isFinite(detectorIntervalMs)&&detectorIntervalMs>0?detectorIntervalMs:0;
+    const floor=CONSTANTS.entityPresenceMs.value;
+    const expiryMs=Math.min(CONSTANTS.trackExpiryMaxMs.value,Math.max(floor,interval*CONSTANTS.trackExpiryPeriods.value));
+    return Object.freeze({expiryMs,staleMs:expiryMs*CONSTANTS.entityStaleMs.value/floor});
+  },
   createEntityModel() {
     return Object.freeze({session:null,source:null,entities:Object.freeze([]),departed:Object.freeze([])});
   },
@@ -527,7 +537,8 @@ const Core = Object.freeze({
   // so labels hold steady between detector results; evidence counts detector
   // results, never render frames. Departed entities are recalled briefly so a
   // re-identified anchor keeps its history. Only live camera evidence qualifies.
-  updateEntities(model,tracker,{now,session,source,threshold=0.5}) {
+  updateEntities(model,tracker,{now,session,source,threshold=0.5,
+    presenceMs=CONSTANTS.entityPresenceMs.value,staleMs=CONSTANTS.entityStaleMs.value}) {
     if(!Number.isFinite(now)||now<0||!Number.isInteger(session)||!Number.isFinite(threshold)||threshold<0||threshold>1)
       throw new TypeError("Invalid entity update boundary");
     const value=name=>CONSTANTS[name].value;
@@ -539,7 +550,7 @@ const Core = Object.freeze({
     const entities=[];
     for(const t of tracker.tracks) {
       const age=now-t.lastDetectionMs,b=t.boxDeg,latest=t.detectionConfidence??t.confidence;
-      if(t.source!==source||!Number.isFinite(age)||age<0||age>value("entityPresenceMs")||
+      if(t.source!==source||!Number.isFinite(age)||age<0||age>presenceMs||
         !["detected","flow","occluded"].includes(t.status)||typeof t.label!=="string"||!t.label||
         !Number.isFinite(latest)||latest<threshold||latest>1||
         !b||![b.leftDeg,b.topDeg,b.widthDeg,b.heightDeg].every(Number.isFinite)||b.widthDeg<=0||b.heightDeg<=0)continue;
@@ -549,7 +560,7 @@ const Core = Object.freeze({
       const score=!prior?latest:fresh?prior.score+value("entityScoreSmoothing")*(latest-prior.score):prior.score;
       entities.push(Object.freeze({id:t.id,label:t.label,firstSeenMs,lastDetectionMs:t.lastDetectionMs,detections,score,
         boxDeg:Object.freeze({leftDeg:b.leftDeg,topDeg:b.topDeg,widthDeg:b.widthDeg,heightDeg:b.heightDeg}),
-        status:age<=value("entityStaleMs")?"tracking":"stale",
+        status:age<=staleMs?"tracking":"stale",
         confirmed:detections>=value("entityConfirmDetections")&&t.lastDetectionMs-firstSeenMs>=value("entityConfirmMs"),
         labelTier:1,trackingTier:t.tier,source,session}));
     }
@@ -719,16 +730,18 @@ const Core = Object.freeze({
   createTracker() {
     return Object.freeze({timeMs:null,session:null,source:null,nextId:1,tracks:Object.freeze([])});
   },
-  trackObjects(state,{timeMs,session,source,detections=null,flow={}}) {
+  trackObjects(state,{timeMs,session,source,detections=null,flow={},expiryMs=CONSTANTS.entityPresenceMs.value}) {
     if(!Number.isFinite(timeMs)||timeMs<0||!Number.isInteger(session)||
       !["camera","synthetic","evaluation"].includes(source)||
       (detections!==null&&!Array.isArray(detections))) throw new TypeError("Invalid tracker input");
+    if(!Number.isFinite(expiryMs)||expiryMs<CONSTANTS.entityPresenceMs.value||expiryMs>CONSTANTS.trackExpiryMaxMs.value)
+      throw new RangeError("Identity window must be 800–2500 ms");
     if(state.timeMs!==null&&timeMs<state.timeMs) throw new RangeError("Tracker time moved backward");
     const same=state.session===session&&state.source===source;
     if(same&&timeMs===state.timeMs&&detections===null) return state;
     const dt=same&&state.timeMs!==null?timeMs-state.timeMs:0;
     let nextId=state.nextId;
-    let tracks=(same?state.tracks:[]).filter(t=>timeMs-t.lastDetectionMs<=800).map(t=>{
+    let tracks=(same?state.tracks:[]).filter(t=>timeMs-t.lastDetectionMs<=expiryMs).map(t=>{
       const f=flow[t.id],valid=dt<=100&&f&&[f.dxDeg,f.dyDeg,f.confidence].every(Number.isFinite)&&
         f.confidence>=0.8&&Math.abs(f.dxDeg)<=5&&Math.abs(f.dyDeg)<=5;
       return {...t,boxDeg:{...t.boxDeg,leftDeg:t.boxDeg.leftDeg+(valid?f.dxDeg:0),
@@ -2532,6 +2545,24 @@ function registerEntityTests(T) {
     m=Core.updateEntities(m,at(901,"occluded",400),opts(901));
     T.eq(m.entities[0].status,"stale","only a real gap marks a position as last seen");
   });
+  T.suite("Entities: identity window follows detector cadence",()=>{
+    const fast=Core.trackTiming(167),slow=Core.trackTiming(600),stalled=Core.trackTiming(5000);
+    T.eq(Core.trackTiming(null).expiryMs,800,"unknown cadence keeps the 800 ms identity window");
+    T.eq(fast.expiryMs,800,"a 6 Hz detector keeps the 800 ms floor");
+    T.eq(slow.expiryMs,1500,"a slow detector widens the window to 2.5 periods");
+    T.eq(slow.staleMs,937.5,"last-seen marking scales with the window");
+    T.eq(stalled.expiryMs,2500,"the window is capped so stale objects still leave");
+    const step=(st,t,detections=null,expiryMs)=>Core.trackObjects(st,{timeMs:t,session:1,source:"camera",detections,expiryMs});
+    const seen=step(Core.createTracker(),0,[{boxDeg:cupBox,label:"cup",confidence:0.8,source:"camera",tier:1}]);
+    T.eq(step(seen,1200,null).tracks.length,0,"the tracker default still expires at 800 ms");
+    T.eq(step(seen,1200,null,1500).tracks.length,1,"a wider window keeps identity between slow results");
+    T.eq(step(seen,1501,null,1500).tracks.length,0,"the wider window still expires");
+    T.throws(()=>step(seen,100,null,500),"windows below the 800 ms floor are refused");
+    let m=Core.updateEntities(Core.createEntityModel(),tracker([track("anchor-1","cup",cupBox,100)]),opts(1200,{presenceMs:1500,staleMs:937.5}));
+    T.eq(m.entities[0]?.status,"stale","entity staleness uses the supplied window");
+    m=Core.updateEntities(Core.createEntityModel(),tracker([track("anchor-1","cup",cupBox,100)]),opts(1000,{presenceMs:1500,staleMs:937.5}));
+    T.eq(m.entities[0]?.status,"tracking","entity tracking status uses the supplied window");
+  });
   T.suite("Entities: short-term recall",()=>{
     const cup=t=>track("anchor-1","cup",cupBox,t);
     let m=Core.createEntityModel();
@@ -2921,6 +2952,8 @@ function mountObjectPipeline(doc,view) {
   let evidenceStart=0,evidenceCompleted=0,evidenceCpuTotal=0,evidenceDetections=0,evidenceTier1=0,evidenceLabels=new Set();
   let tracker=Core.createTracker(),previousFrame=null,previousTime=null,trackingCpuMs=0;
   let raster={width:CONSTANTS.frameWidth.value,height:CONSTANTS.frameHeight.value};
+  let lastResultMs=null,detectorIntervalMs=null;
+  const timing=()=>Core.trackTiming(detectorIntervalMs);
   let appearanceMemory=[],attempted=new Set(),embeddingPhase="stopped";
   const embedding=createEmbeddingController({createWorker:()=>createEmbeddingWorker(view),
     onStatus(status){embeddingPhase=status;get("load-embeddings").disabled=["loading","ready"].includes(status);
@@ -2967,7 +3000,7 @@ function mountObjectPipeline(doc,view) {
       (t.tier===2?"Tier 2 association":"no live tier")+" · score "+t.confidence.toFixed(2)+
       (t.reidentification?" · appearance "+t.reidentification.reason+" "+t.reidentification.confidence.toFixed(3):"")
     ).join("\n")||"No tracked anchors";
-    get("anchor-list").textContent+="\nTracking CPU: "+trackingCpuMs.toFixed(2)+" ms";
+    get("anchor-list").textContent+="\nTracking CPU: "+trackingCpuMs.toFixed(2)+" ms · identity window "+timing().expiryMs.toFixed(0)+" ms";
   }
   const pipeline=createObjectController({createWorker:()=>createObjectAdapter(view),releaseFrame:frame=>frame.close(),
     onStatus(status) {
@@ -2976,13 +3009,16 @@ function mountObjectPipeline(doc,view) {
       if(phase!=="ready") {latest=null;captured=null;completed=[];cpuMs=null;ctx?.clearRect(0,0,canvas.width,canvas.height);get("object-list").textContent="No current observations";}
     },onResult(result) {
       const now=view.performance.now();
-      if(!captured||result.metadata.session!==epoch||now-result.timeMs>600) {captured=null;return;}
+      if(lastResultMs!==null)detectorIntervalMs=detectorIntervalMs===null?now-lastResultMs:detectorIntervalMs+0.3*(now-lastResultMs-detectorIntervalMs);
+      lastResultMs=now;
+      // Slow inference still counts: a result is usable while it is inside the identity window.
+      if(!captured||result.metadata.session!==epoch||now-result.timeMs>timing().expiryMs) {captured=null;return;}
       latest={metadata:result.metadata,observations:Core.objectDetections(result.detections,result.metadata,get("object-threshold").valueAsNumber),image:captured};
       // An older detector result cannot rewind the every-frame tracker.
       // Skip it conservatively; a later eligible detection will refresh identity.
       if(tracker.timeMs===null||result.timeMs>=tracker.timeMs) {
         tracker=Core.trackObjects(tracker,{timeMs:result.timeMs,session:epoch,
-          source:result.metadata.source,detections:latest.observations});
+          source:result.metadata.source,detections:latest.observations,expiryMs:timing().expiryMs});
         previousFrame={width:captured.width,height:captured.height,data:captured.data,source:result.metadata.source};
         previousTime=result.timeMs;showTracks();scheduleAppearance(captured,result.metadata);
       }
@@ -2992,7 +3028,7 @@ function mountObjectPipeline(doc,view) {
       for(const item of latest.observations) evidenceLabels.add(item.label);
       paint(now);
     }});
-  function reset() {epoch++;creating=false;lastSubmit=-Infinity;pipeline.stop();clearAppearance();
+  function reset() {epoch++;creating=false;lastSubmit=-Infinity;pipeline.stop();clearAppearance();lastResultMs=detectorIntervalMs=null;
     tracker=Object.freeze({...Core.createTracker(),nextId:tracker.nextId});
     previousFrame=null;previousTime=null;trackingCpuMs=0;showTracks();}
   function paint(now) {
@@ -3015,7 +3051,7 @@ function mountObjectPipeline(doc,view) {
   get("stop-objects").addEventListener("click",reset);
   get("object-threshold").addEventListener("change",()=>{latest=null;paint(view.performance.now());});
   return {reset,start,phase:()=>phase,sceneSnapshot:()=>({tracker,session:epoch,phase,
-    raster:{...raster},fov:Core.analysisFov(raster.width,raster.height)}),resetEvidence(now) {
+    raster:{...raster},fov:Core.analysisFov(raster.width,raster.height),timing:timing()}),resetEvidence(now) {
     evidenceStart=now;evidenceCompleted=0;evidenceCpuTotal=0;evidenceDetections=0;evidenceTier1=0;evidenceLabels=new Set();
   },evidence(now) {
     const durationMs=Math.max(0,now-evidenceStart);
@@ -3048,7 +3084,7 @@ function mountObjectPipeline(doc,view) {
     // While a detector frame is pending, retain its timestamp boundary so its
     // eventual result can be applied without retroactive identity changes.
     if(!creating&&!pipeline.snapshot().busy) {
-      tracker=Core.trackObjects(tracker,{timeMs:now,session:epoch,source:frame.source,flow});
+      tracker=Core.trackObjects(tracker,{timeMs:now,session:epoch,source:frame.source,flow,expiryMs:timing().expiryMs});
       previousFrame={...frame,data:new Uint8ClampedArray(frame.data)};previousTime=now;
     }
     trackingCpuMs=view.performance.now()-started;showTracks();
@@ -3064,8 +3100,8 @@ function mountObjectPipeline(doc,view) {
     },error=>{if(id===epoch){creating=false;reset();get("object-status").textContent=`Detector frame capture failed: ${error.message}`;}});
   },diagnostics(now) {
     appearanceMemory=appearanceMemory.filter(m=>now-m.timeMs<=30000);
-    if(tracker.tracks.some(t=>now-t.lastDetectionMs>800)) {
-      tracker=Core.trackObjects(tracker,{timeMs:now,session:epoch,source:tracker.source});
+    if(tracker.tracks.some(t=>now-t.lastDetectionMs>timing().expiryMs)) {
+      tracker=Core.trackObjects(tracker,{timeMs:now,session:epoch,source:tracker.source,expiryMs:timing().expiryMs});
       showTracks();
     }
     completed=completed.filter(t=>now-t<=2000);
@@ -3195,7 +3231,7 @@ function mountCameraCompanion(doc,view,controls) {
     viewport.dataset.labels=labelMode;viewport.dataset.source=source.kind;
     const recognizing=!!display&&config.labelsAllowed&&labelMode!=="off"&&snapshot.phase==="ready";
     model=recognizing?Core.updateEntities(model,snapshot.tracker,{now,session:snapshot.session,source:"camera",
-      threshold:get("object-threshold").valueAsNumber}):Core.createEntityModel();
+      threshold:get("object-threshold").valueAsNumber,presenceMs:snapshot.timing.expiryMs,staleMs:snapshot.timing.staleMs}):Core.createEntityModel();
     const step=Core.stepRevealPolicy(policy,{now,entities:model.entities,summon:request.summon,dismiss:request.dismiss,
       gaze:recognizing?Core.gazeSource("view-center").sample({},now):{available:false}});
     policy=step.state;reveal=step.reveal;request={summon:null,dismiss:false};

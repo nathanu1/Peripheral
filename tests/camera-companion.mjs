@@ -14,7 +14,7 @@ const {mountFramePipeline}=context.Peripheral;
 let now=0,serial=0,allowCamera=true,objectsPresent=true,modelAvailable=true;
 // Raster-pixel box of the injected cup; the centred variant covers the view centre.
 const offCentre={originX:32,originY:36,width:64,height:72},centred={originX:130,originY:60,width:60,height:60};
-let detectionBox=offCentre;
+let detectionBox=offCentre,detectorDelayMs=0;
 const raf=new Map(),timers=new Map(),streams=[],requests=[],checks=[],canvasCalls=[];
 function check(name,condition){checks.push({name,passed:!!condition});}
 class Element {
@@ -70,8 +70,10 @@ const view={document:doc,isSecureContext:true,performance:{now:()=>now},
     postMessage(message){Promise.resolve().then(()=>{if(dead){message.frame?.close();return;}
       if(message.type==='load')onmessage({data:modelAvailable?{type:'ready'}:{type:'error',message:'Injected graphics failure'}});
       if(message.type==='frame'){
-        message.frame.close();onmessage({data:{type:'result',timeMs:message.timeMs,cpuMs:4,
-          detections:objectsPresent?[{boundingBox:{...detectionBox},categories:[{categoryName:'cup',score:.85}]}]:[]}});
+        const respond=()=>{if(dead){message.frame.close();return;}
+          message.frame.close();onmessage({data:{type:'result',timeMs:message.timeMs,cpuMs:4,
+            detections:objectsPresent?[{boundingBox:{...detectionBox},categories:[{categoryName:'cup',score:.85}]}]:[]}});};
+        if(detectorDelayMs)view.setTimeout(respond,detectorDelayMs);else respond();
       }
     });}
   };}}
@@ -149,6 +151,10 @@ try {
   get('scene-stop').click();stage.clientWidth=960;stage.clientHeight=540;
   for(const video of videos){video.videoWidth=1280;video.videoHeight=720;}
   detectionBox=offCentre;
+  // A slow device: each detector result takes ~1 s, longer than the 800 ms default window.
+  detectorDelayMs=950;get('welcome-start').click();await settle();await advance(6000);
+  check('A ~1 Hz detector keeps object identity, so objects still confirm and get a marker',marker()?.className==='scene-marker');
+  get('scene-stop').click();detectorDelayMs=0;await advance(1000);
   modeButtons[0].click();allowCamera=false;get('start-camera').click();await settle();await advance(34);
   check('Denied permission falls back with explicit synthetic provenance',get('source-label').textContent.includes('Synthetic')&&get('scene-message').textContent.includes('denied')&&get('scene-labels').children.length===0);
   allowCamera=true;modelAvailable=false;get('start-camera').click();await settle();await advance(240);
