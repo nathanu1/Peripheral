@@ -27,11 +27,15 @@ and `reports/`; session progress: `.github/peripheral/progress.md` (read first).
 network — enforced by the core gate) → resource adapter / workers → harness
 → `register*Tests` suites → `// SHELL BEGIN … SHELL END` (all DOM).
 Shell mounts: `mountFramePipeline` (camera, render loop) → `mountGazePipeline`,
-`mountObjectPipeline` (detector, tracker, CLIP re-ID), `mountCameraCompanion` (HUD).
+`mountObjectPipeline` (detector, tracker, CLIP re-ID), `mountHandPipeline`
+(point and pinch), `mountCameraCompanion` (HUD). Vision tasks run in
+`visionWorkerMain` (object or hand task) with OffscreenCanvas.
 
 Companion pipeline per frame: tracker (`Core.trackObjects`) → entities
-(`Core.updateEntities`) → reveal policy (`Core.stepRevealPolicy`, uses
-`Core.stepDwell`) → projection (`Core.projectEntities`) → DOM.
+(`Core.updateEntities`, stable `entity-N` IDs) → reveal policy
+(`Core.stepRevealPolicy`: summon from tap/list/pinch, dwell via `Core.stepDwell`)
+→ projection (`Core.projectEntities`) → DOM. Hand landmarks are camera-normal
+until `Core.cameraToView`.
 
 ## Coordinate conventions (never mix implicitly)
 
@@ -68,6 +72,9 @@ in degrees; pixels appear only at paint (brief L5).
 
 - Tests first: add suites, record the red run, then implement. Keep all
   existing tests green; port (don't drop) intents when replacing an API.
+  Independent review agents with fuzzers/repro scripts have found real bugs
+  twice; worth repeating after multi-commit features. Slow-cadence behaviour
+  is testable in the injected shell via a delayed detector double.
 - Privacy: on-device only; no storage APIs, analytics, backends or keys; models
   are pinned and integrity-checked; never commit camera captures or datasets.
 - Performance: render target 30 fps; detector 6 Hz single-flight, CPU/WASM in a

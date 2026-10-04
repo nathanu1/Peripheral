@@ -36,7 +36,17 @@ complete optical Stages 8–12.
    last-seen marking and the stale-result guard (was a fixed 600 ms, which
    discarded every result from inference slower than 600 ms).
 7. **Detection in a worker.** Classic Worker + OffscreenCanvas
-   (`objectWorkerMain`), one-time fallback to the page thread.
+   (now `visionWorkerMain`), fallback to the page thread on capability
+   failures only.
+8. **Point and pinch.** Opt-in hand landmarker in a worker on scene-camera
+   frames; fingertip aims (marker highlight), pinch summons via the policy
+   (`Core.cameraToView`, `Core.handReferent`, reveal `source`).
+9. **Stable entity IDs.** `entity-N` with `trackId`; a re-formed track of the
+   same class overlapping a departed entity (≤3 s, IoU ≥0.2, unambiguous)
+   continues it.
+10. **Second review fixes.** Prune raced in-flight detection; stale flicker at
+   slow cadence; sticky/over-eager worker fallback; CLIP binding window.
+   Window = latency + 2.5 periods; last seen after latency + 1.5 periods.
 
 ## Decisions
 
@@ -68,19 +78,21 @@ complete optical Stages 8–12.
 
 - Only the cat is recognized in the desk fixture at score ≥ 0.5; chair and
   bottle crops fall below threshold (EfficientDet-Lite0 at 320×180).
-- Face/hand landmarkers still run on the page thread (worker path untried).
+- The diagnostic face/iris path (`createVisionAdapter`) still runs on the
+  page thread; companion hand pointing runs in a worker.
+- Pinch accuracy, aiming comfort and false pinches are unverified on a live
+  camera (only injected landmarks and a still photo were tested).
 - Worker detection verified only in headless Chromium; Safari/Firefox
   OffscreenCanvas WebGL in workers untested (fallback exists).
 - Real webcam, real phone, GPU-backed throughput still unverified.
 
 ## Next high-value tasks
 
-1. Hand interaction in Mirror mode: run the hand landmarker on the front
-   camera and let a pinch (or pointing fingertip) summon the object it refers
-   to — "which object am I referring to?" — reusing the reveal policy.
-2. Move face/hand landmarkers to a worker the same way as the detector.
-3. Real-device pass: laptop webcam, iPhone Safari, Android Chrome (worker
-   fallback, portrait capture, GPU-backed frame rate).
-4. Contextual content beyond the class label (Tier 3 world model, Stage 9/10)
-   so reveals carry useful information, still warrant-gated.
-5. Depth/surfaces (numbered Stage 8).
+1. Real-device pass: laptop webcam, iPhone Safari, Android Chrome — worker
+   path, portrait capture, pinch accuracy, GPU-backed frame rate.
+2. Contextual content beyond the class label: a Tier 3 world model (Stage 9)
+   and entity binding (Stage 10) so a reveal can say something useful, still
+   warrant-gated and source-labelled. This needs product decisions about which
+   information is worth showing.
+3. Move the diagnostic face/iris landmarker to the shared vision worker.
+4. Depth/surfaces (numbered Stage 8) for anchoring cards to surfaces.
