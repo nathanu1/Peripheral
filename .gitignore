@@ -1,2 +1,11 @@
 .cache/
 node_modules/
+dist/
+dev-dist/
+.env
+.env.*
+!.env.example
+playwright-report/
+test-results/
+bench-report.json
+*.tsbuildinfo

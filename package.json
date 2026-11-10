@@ -1,10 +1,30 @@
 {
   "name": "peripheral",
   "private": true,
-  "description": "Development commands only; index.html runs without installation or a build.",
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "test": "node tests/run.mjs && node tests/camera-companion.mjs && node tests/geometry-gate.mjs",
-    "dev": "node tests/serve.mjs",
-    "test:browser": "node tests/browser-qa.mjs"
+    "dev": "pnpm --parallel --filter @peripheral/web --filter @peripheral/server dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test && pnpm test:legacy",
+    "test:legacy": "npm --prefix legacy test",
+    "e2e": "pnpm --filter @peripheral/e2e e2e",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.14.0",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0.0",
+    "typescript-eslint": "^8.72.2"
   }
 }

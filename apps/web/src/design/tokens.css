@@ -1,0 +1,66 @@
+/*
+ * Peripheral design tokens (brief, section 6).
+ * These are the only colors, sizes and timings components may use.
+ * The overlay sits on live video, so legibility comes from backplates, not text color.
+ */
+@theme {
+  /* Color */
+  --color-plate: rgb(18 18 20 / 0.85); /* label backplate */
+  --color-glass: rgb(
+    30 30 32 / 0.55
+  ); /* floating controls only; never on labels, never glass on glass */
+  --color-glass-solid: rgb(28 28 30); /* prefers-reduced-transparency */
+  --color-ink: #ffffff;
+  --color-ink-2: rgb(235 235 245 / 0.62); /* secondary fact, leader lines */
+  --color-relevant: #0a84ff; /* focus matches, armed ring */
+  --color-unsure: #ffd60a; /* low confidence; always with a ~ glyph */
+  --color-hazard: #ff453a; /* errors; always with a glyph */
+  --color-cloud: #bf5af2; /* a crop is being sent */
+  --color-dot: #30d158; /* camera on */
+  --color-scrim: #000000;
+
+  /* Type. rem throughout so the user's font size is respected (tested at 200%). */
+  --font-sans: system-ui, -apple-system, 'SF Pro Text', 'Inter', sans-serif;
+  --text-label: 1.0625rem; /* 17px, 600 */
+  --text-label--line-height: 1.25;
+  --text-label--letter-spacing: -0.01em;
+  --text-label--font-weight: 600;
+  --text-card: 1.0625rem; /* 17px, 500 */
+  --text-card--line-height: 1.3;
+  --text-card--font-weight: 500;
+  --text-fact: 0.9375rem; /* 15px, 500, ink-2 */
+  --text-fact--line-height: 1.3;
+  --text-fact--font-weight: 500;
+  --text-min: 0.6875rem; /* 11px, the floor */
+  --text-min--line-height: 1.3;
+
+  /* Shape and space: 8pt grid */
+  --spacing: 0.25rem;
+  --radius-plate: 10px;
+  --radius-card: 16px;
+  --radius-control: 22px;
+  --size-touch: 2.75rem; /* 44px minimum touch target */
+  --size-dot: 0.5rem;
+  --blur-glass: 24px;
+
+  /* Timings that CSS needs. Springs live in motion.ts. */
+  --duration-dismiss: 200ms;
+  --duration-armed: 400ms;
+  --duration-crossfade: 150ms; /* reduced motion */
+}
+
+@utility glass {
+  background-color: var(--color-glass);
+  -webkit-backdrop-filter: blur(var(--blur-glass)) saturate(180%);
+  backdrop-filter: blur(var(--blur-glass)) saturate(180%);
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--color-glass-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@utility touch {
+  min-width: var(--size-touch);
+  min-height: var(--size-touch);
+}

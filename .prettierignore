@@ -1,0 +1,9 @@
+legacy/
+.github/peripheral/
+pnpm-lock.yaml
+dist/
+dev-dist/
+playwright-report/
+test-results/
+*.y4m
+CLAUDE.md

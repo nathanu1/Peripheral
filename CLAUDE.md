@@ -1,5 +1,41 @@
 # Peripheral — working notes for Claude sessions
 
+Calm perception overlay for phone cameras. The v1 build brief is the user's
+"Build Peripheral v1" prompt: seven milestones (M0 to M7), **stop after each one**
+and wait for the go-ahead. M0 (skeleton) is done; see README.md for status.
+
+## v1 monorepo (pnpm workspaces)
+
+- `apps/web` Vite + React 19 PWA; `apps/server` Hono; `packages/shared` zod
+  schemas; `e2e` Playwright. Layout and stack are fixed by the brief.
+- `pnpm dev` (HTTPS on the LAN + API server), `pnpm test`, `pnpm e2e`,
+  `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm format`. All must stay green.
+- Design tokens live only in `apps/web/src/design/tokens.css`; motion presets
+  only in `apps/web/src/design/motion.ts`. Components use nothing else.
+- `overlay/` must not import from `perception/` (ESLint enforces it).
+- Ask the user before adding any dependency the brief does not list.
+- TypeScript is pinned to 6.0.x because typescript-eslint does not support 7 yet.
+  `@playwright/test` is pinned to the version whose Chromium is pre-installed in
+  cloud sessions (1.63.0).
+- Hard rule: nothing identifies or labels people or faces. No frame leaves the
+  device except the one crop in an explicit Ask.
+
+## Git
+
+Work on the assigned branch; commits authored as
+`nathanu1 <129923698+nathanu1@users.noreply.github.com>` (repo convention)
+with a `Co-Authored-By: Claude` trailer; conventional messages
+(`feat(camera): …`); never force-push or rewrite history.
+
+---
+
+# Legacy prototype (`legacy/`)
+
+Everything below describes the earlier single-file prototype, now frozen under
+`legacy/`. Paths below are relative to `legacy/`; run its commands from there
+(`npm test`, `npm run dev`). Reuse its ideas (tracker, entity identity, display
+transforms), but new work goes in the monorepo.
+
 Smart-glasses perception prototype running through a camera. One self-contained
 `index.html` (one `<style>`, one inline `<script>`, no build, no framework).
 Product brief: `.github/peripheral/brief.md`; build plan and amendments:
