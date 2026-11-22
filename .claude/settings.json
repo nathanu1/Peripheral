@@ -1,0 +1,22 @@
+{
+  "workflowSizeGuideline": "small",
+  "permissions": {
+    "allow": [
+      "Bash(npm test)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/verify-green.mjs"],
+            "timeout": 180
+          }
+        ]
+      }
+    ]
+  }
+}

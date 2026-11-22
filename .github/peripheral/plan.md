@@ -153,3 +153,22 @@ evidence capture remain implemented, but live-camera output, sustained browser
 frame rate, wearable mounting and physical optics remain unverified and must be
 reported as such through final acceptance. A passing native evaluation does not
 establish browser or hardware performance.
+
+## Agent tooling amendment — requested November 21, 2026
+
+Nathan requested a Claude Code setup for this repository organized as agents,
+loops, graphs and a self-improvement step. It lives under `.claude/`, with a CI
+workflow at `.github/workflows/test.yml` that runs `npm test` on pushes to
+`main` and on pull requests.
+
+This is development tooling only. It does not change `index.html`, the tests,
+the stage sequence, any gate, or any stage's status; `nextStage` remains 8. The
+one-file rule applies to the application, which is unchanged. `.claude/CLAUDE.md`
+defers to this plan and to `brief.md` wherever they differ.
+
+The workflow scripts in `.claude/workflows/` and the Stop hook were exercised
+against mock agents and local failure cases in a cloud session. They have not
+yet been run inside Claude Code; their first real runs are unverified.
+`.claude/lessons.md` is seeded from blockers and repairs already recorded in
+this repository, and `/retro` may append to it. Lessons are advice for agents,
+never a substitute for this plan, and are reviewed in the diff like any change.
