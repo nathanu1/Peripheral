@@ -1,0 +1,23 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  suite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - name: Show Node version
+        run: node --version
+      - name: Run the deterministic suite
+        run: npm test > suite-output.json
+      - name: Show failures
+        if: failure()
+        run: tail -n 80 suite-output.json
