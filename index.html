@@ -265,6 +265,7 @@
         <p class="muted">CLIP appearance matching runs in a worker on newly detected object anchors. Similar objects may be indistinguishable; ambiguous matches are refused. Memory expires after 30 seconds and clears with the feed. Confidence is a cosine model score, not a measured probability.</p>
         <pre id="anchor-list" aria-label="Tracked object identities">No tracked anchors</pre>
         <p class="muted">Tracked IDs use angular box association and pixel flow. Occluded tracks expire after 800 ms without a detector observation. Positions are relative to the view; metric world anchoring is not available yet. Tracking CPU includes inline block matching; OpenCV is not loaded.</p>
+        <p class="muted">Surface estimation (relative plane fits over a monocular depth map) is implemented and tested on synthetic fixtures only. No depth model is pinned or loaded in this build, so no depth map arrives and every anchor reports "surface: floating (no-depth-map)". Depth Anything V2 inference, its rate and its accuracy are unverified.</p>
         <div class="feed-controls">
           <button id="record-baseline" type="button" class="secondary">Record 10 s baseline</button>
           <button id="record-detector" type="button" class="secondary">Record 15 s detector run</button>
@@ -321,6 +322,11 @@ const CONSTANTS = Object.freeze({
   evaluationHitRateMin: Object.freeze({ value: 0.6, kind: "model", source: "Stage 5 expected-label image-hit floor" }),
   evaluationIou50RateMin: Object.freeze({ value: 0.5, kind: "model", source: "Stage 5 IoU >= 0.5 match-rate floor" }),
   evaluationP95MsMax: Object.freeze({ value: 500, kind: "model", source: "Stage 5 native reference-runtime latency ceiling" }),
+  // [model] Stage 8 depth schedule and freshness. The brief asks for 1–2 Hz. No depth
+  // model has been timed in this build, so the default is the lower bound until a
+  // measured latency exists. A map outlives one slowest interval, never two.
+  depthHz: Object.freeze({ value: 1, kind: "model", source: "Brief depth schedule of 1–2 Hz; lower bound until a real model is timed" }),
+  depthFreshMs: Object.freeze({ value: 1500, kind: "model", source: "Depth-map freshness limit: above the slowest 1000 ms interval, below two of them" }),
   evaluationLicenses: Object.freeze({ value: Object.freeze([
     "https://creativecommons.org/licenses/by/2.0/",
     "https://creativecommons.org/licenses/by/4.0/",
@@ -363,6 +369,37 @@ function validateDisplayGeometry(display) {
   if (display.fov.horizontalDeg !== expected.fov.horizontalDeg || display.fov.verticalDeg !== expected.fov.verticalDeg) {
     throw new RangeError("Display FOV disagrees with its raster and pixel density");
   }
+}
+
+// Stage 8 depth values. A depth map is relative inverse depth along the view axis
+// (1/z up to an unknown scale and shift, used as given); zero means no finite depth.
+// Nothing derived from it is metric, and orientation is relative and uncalibrated.
+function requireDepthMap(map) {
+  if (!map || typeof map !== "object" || !Object.isFrozen(map) || map.metric !== false ||
+    map.depthKind !== "relative-inverse" || map.geometryKind !== "uniform-angular-model" ||
+    !Array.isArray(map.values) || !Object.isFrozen(map.values) ||
+    !Number.isInteger(map.width) || !Number.isInteger(map.height) || map.values.length !== map.width * map.height ||
+    !Number.isFinite(map.timeMs) || !Number.isInteger(map.session) || !map.projectionFov) {
+    throw new TypeError("Expected a validated depth map from Core.createDepthMap");
+  }
+  return map;
+}
+// Why a depth map may not be used at `now` for this session and source, or null.
+// Checked at the moment of use, never at the moment of request (lesson L5).
+function depthRefusal(map, now, session, source) {
+  if (map.session !== session) return "session-mismatch";
+  if (map.source !== source) return "source-mismatch";
+  if (now < map.timeMs) return "future-depth";
+  if (now - map.timeMs > CONSTANTS.depthFreshMs.value) return "stale-depth";
+  return null;
+}
+// A refusal carries no surface value, so it carries no tier, confidence or orientation.
+function withoutSurface(status, reason, map, evidence = {}) {
+  return Object.freeze({ status, reason, normal: null, pointDeg: null, inverseDepth: null,
+    residual: evidence.residual ?? null, inlierFraction: evidence.inlierFraction ?? null,
+    sampleCount: evidence.sampleCount ?? 0, metric: false, orientationKind: null,
+    depthTimeMs: map ? map.timeMs : null, revision: map ? map.revision : null,
+    tier: null, confidence: null, confidenceKind: null });
 }
 
 // FIPS 180-4 SHA-256 fallback for origins where SubtleCrypto is unavailable.
@@ -515,7 +552,11 @@ const Core = Object.freeze({
     let tracks=(same?state.tracks:[]).filter(t=>timeMs-t.lastDetectionMs<=800).map(t=>{
       const f=flow[t.id],valid=dt<=100&&f&&[f.dxDeg,f.dyDeg,f.confidence].every(Number.isFinite)&&
         f.confidence>=0.8&&Math.abs(f.dxDeg)<=5&&Math.abs(f.dyDeg)<=5;
-      return {...t,boxDeg:{...t.boxDeg,leftDeg:t.boxDeg.leftDeg+(valid?f.dxDeg:0),
+      // Stage 8: a surface belongs to the step it was anchored at. It is withdrawn
+      // here, not carried forward, so a moved box or an aged depth map cannot keep an
+      // old attachment; Core.anchorSurfaces must decide again from current evidence.
+      const {surface:withdrawn,...kept}=t;
+      return {...kept,boxDeg:{...t.boxDeg,leftDeg:t.boxDeg.leftDeg+(valid?f.dxDeg:0),
         topDeg:t.boxDeg.topDeg+(valid?f.dyDeg:0)},status:valid?"flow":"occluded",
         tier:source==="camera"?2:null,confidence:t.confidence*Math.exp(-dt/800),
         variance:t.variance+dt/1000,updatedMs:timeMs};
@@ -588,6 +629,149 @@ const Core = Object.freeze({
     const best=matches[0];
     if(best.error>20||matches[1].error-best.error<5)return null;
     return Object.freeze({dx:best.dx,dy:best.dy,confidence:1-best.error/100,confidenceKind:"photometric-model"});
+  },
+  // Stage 8: monocular depth and surface anchoring (inferred Tier 2 on camera input).
+  // Conventions [model]: view frame x right, y up, z forward; sample (i,j) lies on the
+  // ray through its pixel centre in the Stage 2 uniform-angular chart, the same chart
+  // objectDetections uses. Synthetic and evaluation maps never carry a live tier.
+  createDepthMap(input) {
+    if(!input||typeof input!=="object")throw new TypeError("Depth map input is required");
+    const {width,height,values,timeMs,session,source,revision,fov,confidence}=input;
+    validateRaster(width,height);
+    if(!values||typeof values==="string"||values.length!==width*height)
+      throw new TypeError("Depth samples must number width × height");
+    // A plain frozen copy: later writes to the model buffer cannot reach the map.
+    const copy=Array.from(values);
+    if(!copy.every(v=>Number.isFinite(v)&&v>=0))throw new RangeError("Depth samples must be finite, non-negative inverse depth");
+    if(!Number.isFinite(timeMs)||timeMs<0||!Number.isInteger(session)||
+      !["camera","synthetic","evaluation"].includes(source)||typeof revision!=="string"||!revision.trim()||
+      !Number.isFinite(confidence)||confidence<0||confidence>1)throw new TypeError("Invalid depth map metadata");
+    validateFov(fov);
+    // metric, depthKind and tier are derived here; a caller cannot declare them.
+    return Object.freeze({width,height,values:Object.freeze(copy),timeMs,session,source,revision,
+      metric:false,depthKind:"relative-inverse",geometryKind:"uniform-angular-model",
+      projectionFov:Core.makeFov(fov.horizontalDeg,fov.verticalDeg),
+      tier:source==="camera"?2:null,confidence,confidenceKind:"monocular-depth-model"});
+  },
+  // Inverse of poseDirectionDeg: xDeg=atan2(x,z), yDeg=atan2(y,hypot(x,z)).
+  viewRay(point) {
+    if(!point)throw new TypeError("Expected an angular direction");
+    const x=finiteNumber(point.xDeg,"xDeg")*Math.PI/180,y=finiteNumber(point.yDeg,"yDeg")*Math.PI/180;
+    return Object.freeze({x:Math.sin(x)*Math.cos(y),y:Math.sin(y),z:Math.cos(x)*Math.cos(y)});
+  },
+  createDepthSchedule({hz=CONSTANTS.depthHz.value}={}) {
+    if(!Number.isFinite(hz)||hz<1||hz>2)throw new RangeError("Depth rate must be 1–2 Hz");
+    return Object.freeze({hz,lastRequestMs:null,inFlightMs:null});
+  },
+  // Single flight: one request at a time, never closer than one interval, nothing
+  // queued. A slow model lowers the rate; only its own result releases a request.
+  stepDepthSchedule(schedule,event) {
+    if(!schedule||!Number.isFinite(schedule.hz)||schedule.hz<1||schedule.hz>2||!event)
+      throw new TypeError("Invalid depth schedule step");
+    if(event.type!=="frame"&&event.type!=="result")throw new TypeError("Unknown depth schedule event");
+    if(!Number.isFinite(event.timeMs)||event.timeMs<0)throw new RangeError("Invalid depth schedule time");
+    if(event.type==="result")return Object.freeze({request:null,
+      schedule:schedule.inFlightMs===event.timeMs?Object.freeze({...schedule,inFlightMs:null}):schedule});
+    if(!Number.isInteger(event.session)||!["camera","synthetic","evaluation"].includes(event.source))
+      throw new TypeError("Invalid depth request provenance");
+    if(schedule.inFlightMs!==null||(schedule.lastRequestMs!==null&&event.timeMs-schedule.lastRequestMs<1000/schedule.hz))
+      return Object.freeze({schedule,request:null});
+    return Object.freeze({schedule:Object.freeze({...schedule,lastRequestMs:event.timeMs,inFlightMs:event.timeMs}),
+      request:Object.freeze({timeMs:event.timeMs,session:event.session,source:event.source})});
+  },
+  // A delayed result is judged when it is applied. A dropped candidate leaves the
+  // current map as it was; anchorSurfaces checks that map again at every use.
+  applyDepthMap(current,candidate,context) {
+    requireDepthMap(candidate);
+    const held=current==null?null:requireDepthMap(current),{now,session,source}=context||{};
+    if(!Number.isFinite(now)||now<0||!Number.isInteger(session)||!["camera","synthetic","evaluation"].includes(source))
+      throw new TypeError("Invalid depth application boundary");
+    const reason=depthRefusal(candidate,now,session,source)||
+      (held&&held.session===session&&held.source===source&&candidate.timeMs<=held.timeMs?"out-of-order":null);
+    return Object.freeze({depth:reason?held:candidate,applied:!reason,reason});
+  },
+  // Plane n·X=d through X=z·(x/z,y/z,1) is affine in inverse depth q=1/z over the
+  // tangent coordinates: q=a·u+b·w+c with (a,b,c)=n/d, so ordinary least squares on
+  // the exact rays recovers the normal with no small-angle approximation.
+  // Stage 8 choices [model], all relative to the mean inverse depth so an unknown
+  // scale cannot change a verdict: at least 6 samples (twice the plane parameters)
+  // spanning two map rows and two map columns; inlier within 2%; a surface needs a
+  // relative RMS residual of at most 5% and 80% of the box's map pixels as inliers.
+  // Pixels without finite depth are not samples and cannot be inliers.
+  fitSurface(depthMap,boxDeg) {
+    const map=requireDepthMap(depthMap);
+    Core.boxIou(boxDeg,boxDeg);
+    const fov=map.projectionFov,w=map.width,h=map.height;
+    const left=boxDeg.leftDeg,right=left+boxDeg.widthDeg,top=boxDeg.topDeg,bottom=top-boxDeg.heightDeg;
+    const pointDeg=Object.freeze({xDeg:left+boxDeg.widthDeg/2,yDeg:top-boxDeg.heightDeg/2});
+    // Generous index bounds only limit the scan; membership is decided in degrees.
+    const i0=Math.max(0,Math.floor((left/fov.horizontalDeg+.5)*w)-1),i1=Math.min(w-1,Math.ceil((right/fov.horizontalDeg+.5)*w)+1);
+    const j0=Math.max(0,Math.floor((.5-top/fov.verticalDeg)*h)-1),j1=Math.min(h-1,Math.ceil((.5-bottom/fov.verticalDeg)*h)+1);
+    // Exact tangent coordinates of the ray (xDeg,yDeg): x/z=tan(xDeg) depends on the
+    // column alone and y/z=tan(yDeg)/cos(xDeg) factors by row and column, so each
+    // column and row in the box needs one viewRay, not one per sample.
+    const across=[],down=[];
+    for(let i=i0;i<=i1;i++) {
+      const xDeg=((i+.5)/w-.5)*fov.horizontalDeg;
+      if(xDeg<left||xDeg>right)continue;
+      const r=Core.viewRay({xDeg,yDeg:0});across.push({i,u:r.x/r.z,secant:1/r.z});
+    }
+    for(let j=j0;j<=j1;j++) {
+      const yDeg=(.5-(j+.5)/h)*fov.verticalDeg;
+      if(yDeg<bottom||yDeg>top)continue;
+      const r=Core.viewRay({xDeg:0,yDeg});down.push({j,tangent:r.y/r.z});
+    }
+    const samples=[],rows=new Set(),columns=new Set(),covered=across.length*down.length;
+    for(const row of down)for(const column of across) {
+      const q=map.values[row.j*w+column.i];
+      if(!Number.isFinite(q)||q<=0)continue;
+      samples.push({u:column.u,v:row.tangent*column.secant,q});rows.add(row.j);columns.add(column.i);
+    }
+    const count=samples.length;
+    // The attachment direction must itself lie inside the map; nothing is extrapolated.
+    if(count<6||rows.size<2||columns.size<2||!Core.containsDeg(pointDeg,fov))
+      return withoutSurface("no-surface","too-few-samples",map,{sampleCount:count});
+    let mu=0,mv=0,mq=0;
+    for(const s of samples){mu+=s.u;mv+=s.v;mq+=s.q;}
+    mu/=count;mv/=count;mq/=count;
+    let suu=0,suv=0,svv=0,suq=0,svq=0;
+    for(const s of samples){const du=s.u-mu,dv=s.v-mv,dq=s.q-mq;suu+=du*du;suv+=du*dv;svv+=dv*dv;suq+=du*dq;svq+=dv*dq;}
+    const det=suu*svv-suv*suv;
+    if(!(det>0))return withoutSurface("no-surface","too-few-samples",map,{sampleCount:count});
+    const a=(suq*svv-svq*suv)/det,b=(svq*suu-suq*suv)/det,c=mq-a*mu-b*mv;
+    let squared=0,inliers=0;
+    for(const s of samples){const e=s.q-(a*s.u+b*s.v+c);squared+=e*e;if(Math.abs(e)<=0.02*mq)inliers++;}
+    const residual=Math.sqrt(squared/count)/mq,inlierFraction=inliers/covered;
+    const centre=Core.viewRay(pointDeg),inverseDepth=a*centre.x/centre.z+b*centre.y/centre.z+c,length=Math.hypot(a,b,c);
+    if(!(residual<=0.05)||inlierFraction<0.8||!Number.isFinite(inverseDepth)||inverseDepth<=0||!(length>0))
+      return withoutSurface("no-surface","not-planar",map,{residual,inlierFraction,sampleCount:count});
+    // Finite depth means n·ray<0 for the viewer-facing normal, so it is -(a,b,c).
+    return Object.freeze({status:"surface",reason:null,normal:Object.freeze({x:-a/length,y:-b/length,z:-c/length}),
+      pointDeg,inverseDepth,residual,inlierFraction,sampleCount:count,metric:false,
+      orientationKind:"relative-uncalibrated",depthTimeMs:map.timeMs,revision:map.revision,
+      tier:map.source==="camera"?2:null,confidence:map.confidence*inlierFraction*(1-residual),confidenceKind:"plane-fit-model"});
+  },
+  // Every track leaves with a surface that is decided now: attached to a current
+  // fit, or floating with the reason. Nothing else about the tracker changes, and
+  // relative depth never becomes a metric world position.
+  anchorSurfaces(tracker,depthMap,now) {
+    if(!tracker||!Array.isArray(tracker.tracks))throw new TypeError("Expected a tracker");
+    if(!Number.isFinite(now)||now<0)throw new TypeError("Invalid anchoring time");
+    const map=depthMap==null?null:requireDepthMap(depthMap);
+    const blocked=map===null?"no-depth-map":depthRefusal(map,now,tracker.session,tracker.source);
+    const tracks=tracker.tracks.map(t=>{
+      let surface;
+      if(blocked)surface=withoutSurface("floating",blocked,map);
+      else if(t.source!==map.source)surface=withoutSurface("floating","source-mismatch",map);
+      // Depth under an unobserved box belongs to whatever hides the object.
+      else if(t.status!=="detected"&&t.status!=="flow")surface=withoutSurface("floating","occluded",map);
+      else {
+        const fit=Core.fitSurface(map,t.boxDeg);
+        surface=fit.status==="surface"?Object.freeze({...fit,status:"attached"}):withoutSurface("floating",fit.reason,map,fit);
+      }
+      return Object.freeze({...t,surface});
+    });
+    return Object.freeze({...tracker,tracks:Object.freeze(tracks)});
   },
   objectEvaluationEvidence({provenance,model,fixtures,results}) {
     if(!model||!Array.isArray(fixtures)||!results) throw new TypeError("Offline evidence requires model, fixtures and results");
@@ -1127,6 +1311,47 @@ function createObjectController({createWorker,onStatus,onResult,releaseFrame}) {
     if(phase!=="ready"||busy||meta.cameraRole!=="world"||!["camera","synthetic","evaluation"].includes(meta.source)||!Number.isFinite(t)||t<0||t<=lastTime||t-lastTime+1e-7<1000/hz) {releaseFrame(frame);return false;}
     busy=true;lastTime=t;pending={...meta,fov:{...meta.fov}};
     try {worker.postMessage({type:"frame",frame,timeMs:t},[frame]);return true;}
+    catch(error) {releaseFrame(frame);fail(error.message);return false;}
+  }});
+}
+
+// Stage 8 transport only: single-flight 1–2 Hz depth requests over an injected
+// worker, paced by the pure Core depth schedule. This build has no depth model,
+// asset list or hash, so the shell constructs no instance of it.
+function createDepthController({createWorker,onStatus,onResult,releaseFrame}) {
+  let worker=null,epoch=0,phase="stopped",schedule=null,pending=null;
+  const snapshot=()=>({phase,busy:pending!==null,epoch});
+  function stop() {epoch++;worker?.terminate();worker=null;schedule=null;pending=null;phase="stopped";onStatus(snapshot());}
+  function fail(message) {stop();phase="error";onStatus({...snapshot(),message});}
+  return Object.freeze({snapshot,stop,start(options={}) {
+    stop();
+    let paced;
+    try {paced=Core.createDepthSchedule(options.hz===undefined?{}:{hz:options.hz});}
+    catch {fail("Depth rate must be 1–2 Hz");return;}
+    schedule=paced;phase="loading";const id=epoch;onStatus(snapshot());
+    try {
+      worker=createWorker();
+      worker.onmessage=({data})=>{
+        if(id!==epoch) return;
+        if(data.type==="ready") {phase="ready";onStatus(snapshot());}
+        else if(data.type==="error") fail(data.message);
+        else if(data.type==="result"&&pending&&data.timeMs===pending.timeMs) {
+          schedule=Core.stepDepthSchedule(schedule,{type:"result",timeMs:data.timeMs}).schedule;
+          const metadata=pending;pending=null;onResult({...data,metadata});
+        }
+      };
+      worker.onerror=error=>{if(id===epoch) fail(error.message||"Depth worker error");};
+      worker.postMessage({type:"load",...options});
+    } catch(error) {fail(error.message);}
+  },submit(frame,meta) {
+    let next=null;
+    if(phase==="ready"&&meta.cameraRole==="world") {
+      try {next=Core.stepDepthSchedule(schedule,{type:"frame",timeMs:meta.timeMs,session:meta.session,source:meta.source});}
+      catch {next=null;}
+    }
+    if(!next||!next.request) {releaseFrame(frame);return false;}
+    schedule=next.schedule;pending={...meta,fov:{...meta.fov}};
+    try {worker.postMessage({type:"frame",frame,timeMs:meta.timeMs},[frame]);return true;}
     catch(error) {releaseFrame(frame);fail(error.message);return false;}
   }});
 }
@@ -2193,6 +2418,395 @@ function registerStage7Tests(T) {
     T.eq(Core.reidentify(live.memory,sample("b",[1,0,0],{source:"camera",timeMs:2000}),["b"]).tier,2,"camera re-ID remains inferred Tier 2");
   });
 }
+// Stage 8 tests: written before depth maps, plane fitting or surface anchoring exist.
+// Every depth map is an analytic synthetic fixture: no model, camera, network or DOM.
+// Model conventions these tests pin (choices, not camera calibration):
+//  - View frame: x right, y up, z forward. Core.viewRay inverts the Stage 3 pose
+//    reading: xDeg=atan2(x,z), yDeg=atan2(y,hypot(x,z)).
+//  - Depth sample (i,j) lies on the ray through its pixel centre in the Stage 2
+//    uniform-angular chart; a sample is a map pixel, never an interpolated value.
+//  - values are relative inverse depth along the view axis: 1/z up to an unknown
+//    scale and shift, used as given. Zero means no finite depth. Orientation and
+//    attachment depth are therefore relative and uncalibrated, never metric.
+function registerStage8Tests(T) {
+  const RAD=Math.PI/180,W=64,H=36,fov=Core.makeFov(60,33.75);
+  // Red-phase guards: each assertion must report on its own when a function is
+  // missing. attempt() turns a throw into the reported actual value; rejects()
+  // refuses to count "is not a function" as input validation, which T.throws would.
+  const attempt=fn=>{try{return fn();}catch(error){return String(error);}};
+  const rejects=(fn,message)=>{
+    let text="no exception";
+    try{fn();}catch(error){text=String(error);}
+    T.eq(/^no exception$|is not a function|is not defined|is missing$/.test(text)?text:"validation error","validation error",message);
+  };
+  const lazy=fn=>{let ready=false,value;return()=>{if(!ready){value=fn();ready=true;}return value;};};
+  const need=name=>{if(typeof Core[name]!=="function")throw new TypeError("Core."+name+" is not a function");return Core[name];};
+  const entry=name=>{if(!CONSTANTS[name])throw new TypeError("CONSTANTS."+name+" is missing");return CONSTANTS[name];};
+  const constant=name=>entry(name).value;
+  // Reference geometry, independent of the implementation under test.
+  const ray=p=>({x:Math.sin(p.xDeg*RAD)*Math.cos(p.yDeg*RAD),y:Math.sin(p.yDeg*RAD),z:Math.cos(p.xDeg*RAD)*Math.cos(p.yDeg*RAD)});
+  const centre=(i,j,f=fov)=>({xDeg:((i+.5)/W-.5)*f.horizontalDeg,yDeg:(.5-(j+.5)/H)*f.verticalDeg});
+  const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
+  const unit=v=>{const n=Math.hypot(v.x,v.y,v.z);return {x:v.x/n,y:v.y/n,z:v.z/n};};
+  const angleDeg=(a,b)=>Math.acos(Math.max(-1,Math.min(1,dot(a,b))))/RAD;
+  const yaw=d=>({x:Math.sin(d*RAD),y:0,z:-Math.cos(d*RAD)});
+  const pitch=d=>({x:0,y:Math.sin(d*RAD),z:-Math.cos(d*RAD)});
+  // Plane n·P=-distance with unit normal n facing a viewer at the origin. A ray
+  // that never meets the front of the plane reads 0: no finite depth.
+  const planeValue=(n,distance,p)=>{const r=ray(p),facing=-dot(n,r);return facing>0?facing/(distance*r.z):0;};
+  const field=(fn,f=fov)=>{const values=new Float32Array(W*H);for(let j=0;j<H;j++)for(let i=0;i<W;i++)values[j*W+i]=fn(centre(i,j,f),i,j);return values;};
+  const plane=(n,distance,f=fov)=>field(p=>planeValue(n,distance,p),f);
+  // Deterministic integer hash in [-1,1): scripted noise, no random source.
+  const noise=(i,j)=>{let h=Math.imul(i+1,374761393)^Math.imul(j+1,668265263);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/2147483648-1;};
+  const input=(values,extra={})=>({width:W,height:H,values,timeMs:1000,session:1,source:"synthetic",
+    revision:"fixture-depth-v1",fov,confidence:0.5,...extra});
+  const make=(values,extra)=>Core.createDepthMap(input(values,extra));
+  const middle=b=>({xDeg:b.leftDeg+b.widthDeg/2,yDeg:b.topDeg-b.heightDeg/2});
+  const box={leftDeg:-10,topDeg:6,widthDeg:20,heightDeg:12},wall=yaw(30);
+  const flatValues=lazy(()=>plane(yaw(0),2)),wallValues=lazy(()=>plane(wall,2));
+  const edgeValues=lazy(()=>field(p=>p.xDeg<0?0.25:1));
+  const noisyValues=lazy(()=>field((p,i,j)=>planeValue(wall,2,p)*(1+0.005*noise(i,j))));
+  // Scene for anchoring: the yawed wall on the left; a nearer flat object begins at
+  // 7.5°, so boxB holds six columns of each depth and boxA holds wall only.
+  const sceneValues=lazy(()=>field(p=>p.xDeg<7.5?planeValue(wall,2,p):1.2));
+  const boxA={leftDeg:-18,topDeg:6,widthDeg:16,heightDeg:12},boxB={leftDeg:2,topDeg:6,widthDeg:11.5,heightDeg:12};
+  const seen=source=>[{boxDeg:boxA,label:"cup",confidence:0.8,source},{boxDeg:boxB,label:"book",confidence:0.8,source}];
+  const tracked=(source="synthetic",timeMs=1000,state=Core.createTracker())=>
+    Core.trackObjects(state,{timeMs,session:1,source,detections:seen(source)});
+  const surfaceOf=(state,label)=>state.tracks.find(t=>t.label===label).surface;
+
+  T.suite("Depth: validated relative map",()=>{
+    const map=lazy(()=>make(flatValues()));
+    T.eq(attempt(()=>{const m=map();return [m.width,m.height,m.values.length,m.timeMs,m.session,m.source,m.revision].join();}),
+      "64,36,2304,1000,1,synthetic,fixture-depth-v1","raster, time, session, source and revision survive");
+    T.eq(attempt(()=>map().values[0]),0.5,"relative inverse-depth samples survive");
+    T.eq(attempt(()=>map().metric),false,"monocular depth never claims metric scale");
+    T.eq(attempt(()=>map().depthKind),"relative-inverse","unknown scale and shift are named");
+    T.eq(attempt(()=>{const m=make(flatValues(),{metric:true,depthKind:"metric"});return m.metric+","+m.depthKind;}),
+      "false,relative-inverse","a caller cannot declare the map metric");
+    T.eq(attempt(()=>map().geometryKind),"uniform-angular-model","projection is the Stage 2 angular model, not calibration");
+    T.eq(attempt(()=>map().projectionFov.horizontalDeg),60,"map keeps the field of view it was projected with");
+    T.eq(attempt(()=>Object.isFrozen(map())&&Object.isFrozen(map().values)&&Object.isFrozen(map().projectionFov)),true,"depth map is immutable");
+    T.eq(attempt(()=>{const own=plane(yaw(0),2),m=make(own);own[0]=9;return m.values[0];}),0.5,"later writes to the model buffer cannot alter the map");
+    T.eq(attempt(()=>make(flatValues(),{tier:2}).tier),null,"synthetic depth carries no live tier whatever the caller passes");
+    T.eq(attempt(()=>make(flatValues(),{source:"evaluation",tier:2}).tier),null,"prerecorded evaluation depth carries no live tier");
+    T.eq(attempt(()=>make(flatValues(),{source:"camera",tier:1}).tier),2,"camera depth is inferred Tier 2, never Tier 1");
+    T.eq(attempt(()=>make(flatValues(),{source:"camera",confidence:0.4}).confidence),0.4,"Tier 2 depth carries its confidence");
+    T.eq(attempt(()=>make(flatValues(),{source:"camera"}).confidenceKind),"monocular-depth-model","confidence is a model estimate, not a probability");
+    rejects(()=>make(flatValues().slice(1)),"sample count must equal width × height");
+    rejects(()=>make(field(()=>NaN)),"NaN depth is rejected");
+    rejects(()=>make(field((p,i)=>i?0.5:Infinity)),"infinite depth is rejected");
+    rejects(()=>make(new Float32Array(0),{width:0}),"empty raster is rejected");
+    rejects(()=>make(flatValues(),{width:W+.5}),"fractional raster is rejected");
+    rejects(()=>make(null),"missing samples are rejected");
+    rejects(()=>make(flatValues(),{timeMs:-1}),"negative time is rejected");
+    rejects(()=>make(flatValues(),{timeMs:NaN}),"nonfinite time is rejected");
+    rejects(()=>make(flatValues(),{session:1.5}),"session must be an integer");
+    rejects(()=>make(flatValues(),{source:"guessed"}),"unknown provenance is rejected");
+    rejects(()=>make(flatValues(),{revision:""}),"model revision is required");
+    rejects(()=>make(flatValues(),{fov:60}),"bare scalar field of view is rejected");
+    rejects(()=>make(flatValues(),{fov:{horizontalDeg:60,verticalDeg:33.75,diagonalDeg:90}}),"inconsistent field of view is rejected");
+    rejects(()=>make(flatValues(),{confidence:1.5}),"confidence above one is rejected");
+    rejects(()=>make(flatValues(),{confidence:undefined}),"missing confidence is rejected");
+    rejects(()=>Core.createDepthMap(null),"missing input is rejected");
+  });
+
+  T.suite("Depth: view-ray convention",()=>{
+    const probe={xDeg:20,yDeg:-10};
+    T.approx(attempt(()=>Core.viewRay({xDeg:0,yDeg:0}).z),1,1e-12,"view centre looks along +z");
+    T.approx(attempt(()=>Core.viewRay({xDeg:30,yDeg:0}).x),0.5,1e-12,"positive xDeg is rightward");
+    T.approx(attempt(()=>Core.viewRay({xDeg:0,yDeg:30}).y),0.5,1e-12,"positive yDeg is upward");
+    T.approx(attempt(()=>{const v=Core.viewRay(probe);return Math.hypot(v.x,v.y,v.z);}),1,1e-12,"rays are unit length");
+    T.approx(attempt(()=>{const v=Core.viewRay(probe);return Math.atan2(v.x,v.z)/RAD;}),20,1e-10,"yaw inverts the Stage 3 pose reading");
+    T.approx(attempt(()=>{const v=Core.viewRay(probe);return Math.atan2(v.y,Math.hypot(v.x,v.z))/RAD;}),-10,1e-10,"pitch inverts the Stage 3 pose reading");
+    T.eq(attempt(()=>Object.isFrozen(Core.viewRay(probe))),true,"ray is immutable");
+    rejects(()=>Core.viewRay({xDeg:NaN,yDeg:0}),"nonfinite direction is rejected");
+  });
+
+  T.suite("Depth: 1–2 Hz single-flight schedule",()=>{
+    const frame=(timeMs,extra={})=>({type:"frame",timeMs,session:1,source:"synthetic",...extra});
+    const step=(schedule,event)=>Core.stepDepthSchedule(schedule,event);
+    T.eq(attempt(()=>entry("depthHz").kind),"model","depth rate is a declared model choice");
+    T.eq(attempt(()=>constant("depthHz")>=1&&constant("depthHz")<=2),true,"default depth rate is inside the brief's 1–2 Hz");
+    T.eq(attempt(()=>Core.createDepthSchedule().hz===constant("depthHz")),true,"an unconfigured schedule uses the default rate");
+    for(const hz of [0.5,2.5,0,NaN]) rejects(()=>Core.createDepthSchedule({hz}),"rate outside 1–2 Hz is rejected: "+hz);
+    T.eq(attempt(()=>[Core.createDepthSchedule({hz:1}).hz,Core.createDepthSchedule({hz:2}).hz].join()),"1,2","both ends of 1–2 Hz are allowed");
+    T.eq(attempt(()=>Object.isFrozen(Core.createDepthSchedule())),true,"schedule state is immutable");
+    const started=lazy(()=>step(Core.createDepthSchedule({hz:1}),frame(1000)));
+    T.eq(attempt(()=>{const r=started().request;return [r.timeMs,r.session,r.source].join();}),"1000,1,synthetic",
+      "first frame issues one request bound to its time, session and source");
+    T.eq(attempt(()=>Object.isFrozen(started().request)&&Object.isFrozen(started().schedule)),true,"request and next state are immutable");
+    T.eq(attempt(()=>step(started().schedule,frame(3000)).request),null,"no second request while one is in flight");
+    T.eq(attempt(()=>step(step(started().schedule,{type:"result",timeMs:999}).schedule,frame(3000)).request),null,
+      "an unmatched result cannot release the in-flight request");
+    const settled=lazy(()=>step(started().schedule,{type:"result",timeMs:1000}).schedule);
+    T.eq(attempt(()=>step(settled(),frame(1999)).request),null,"a frame inside the rate interval issues nothing");
+    T.eq(attempt(()=>step(settled(),frame(2000)).request.timeMs),2000,"the next request waits one full interval");
+    T.eq(attempt(()=>step(settled(),frame(1000)).request),null,"a repeated timestamp issues nothing");
+    T.eq(attempt(()=>step(settled(),frame(500)).request),null,"a backward timestamp issues nothing");
+    rejects(()=>step(settled(),frame(NaN)),"nonfinite frame time is rejected");
+    rejects(()=>step(settled(),frame(2000,{source:"guessed"})),"unknown provenance is rejected");
+    rejects(()=>step(settled(),{type:"flush"}),"unknown schedule event is rejected");
+    // Ten seconds of 30 fps render frames; each result returns latencyMs after its request.
+    const drive=(hz,latencyMs)=>{
+      let schedule=Core.createDepthSchedule(hz===null?{}:{hz}),pending=null;const issued=[];
+      for(let i=0;i<300;i++){
+        const timeMs=i*1000/30;
+        if(pending!==null&&timeMs-pending>=latencyMs){schedule=step(schedule,{type:"result",timeMs:pending}).schedule;pending=null;}
+        const next=step(schedule,frame(timeMs));schedule=next.schedule;
+        if(next.request){issued.push(next.request.timeMs);pending=next.request.timeMs;}
+      }
+      return issued;
+    };
+    const gap=times=>times.slice(1).reduce((least,t,i)=>Math.min(least,t-times[i]),Infinity);
+    T.eq(attempt(()=>drive(1,300).length),10,"1 Hz issues ten requests across ten seconds of 30 fps frames");
+    T.eq(attempt(()=>drive(2,300).length),20,"2 Hz issues twenty requests across the same frames");
+    T.eq(attempt(()=>gap(drive(1,300))>=1000&&gap(drive(2,300))>=500),true,"requests are never closer than the configured interval");
+    T.eq(attempt(()=>{const n=drive(null,300).length;return n>=10&&n<=20;}),true,"the default rate stays inside 1–2 Hz over ten seconds");
+    T.eq(attempt(()=>drive(1,2500).join()),"0,2500,5000,7500","a slow model lowers the rate; nothing queues or bursts");
+  });
+
+  T.suite("Depth: single-flight worker boundary",()=>{
+    // The controller sits outside the pure core, like createObjectController. Only the
+    // injected transport is exercised: no model worker, asset list or hash is tested here.
+    const exists=typeof createDepthController==="function";
+    const run=fn=>exists?attempt(fn):"ReferenceError: createDepthController is not defined";
+    const workers=[],results=[],statuses=[];let released=0;
+    const makeWorker=()=>{const w={messages:[],postMessage(m){this.messages.push(m);},terminate(){this.closed=true;}};workers.push(w);return w;};
+    const meta=(timeMs,extra={})=>({width:W,height:H,timeMs,session:1,source:"synthetic",cameraRole:"world",fov,...extra});
+    const result=timeMs=>({data:{type:"result",timeMs,width:W,height:H,values:[],cpuMs:40}});
+    const controller=run(()=>createDepthController({createWorker:makeWorker,onStatus:s=>statuses.push(s),
+      onResult:r=>results.push(r),releaseFrame:()=>released++}));
+    T.eq(run(()=>controller.submit({},meta(0))),false,"an unloaded depth model accepts no frame");
+    run(()=>controller.start({hz:1}));
+    T.eq(run(()=>controller.snapshot().phase),"loading","model loading is explicit");
+    T.eq(run(()=>workers[0].messages[0].type),"load","loading crosses the injected worker boundary");
+    run(()=>workers[0].onmessage({data:{type:"ready"}}));
+    T.eq(run(()=>statuses.at(-1).phase),"ready","readiness is reported to the debug surface");
+    T.eq(run(()=>controller.submit({},meta(1000))),true,"a ready worker accepts one frame");
+    T.eq(run(()=>{const m=workers[0].messages.at(-1);return m.type+"|"+m.timeMs;}),"frame|1000","the frame is posted with its capture time");
+    T.eq(run(()=>controller.submit({},meta(2500))),false,"a busy worker drops the frame instead of queueing");
+    T.eq(run(()=>released),2,"every refused frame is released");
+    run(()=>workers[0].onmessage(result(999)));
+    T.eq(run(()=>controller.snapshot().busy),true,"an unmatched result cannot release the in-flight request");
+    run(()=>workers[0].onmessage(result(1000)));
+    T.eq(run(()=>results.length),1,"the matching result is delivered once");
+    T.eq(run(()=>{const m=results[0].metadata;return [m.timeMs,m.session,m.source,m.fov.horizontalDeg].join();}),"1000,1,synthetic,60",
+      "the result stays bound to its request's time, session, source and projection");
+    T.eq(run(()=>controller.submit({},meta(1500))),false,"1 Hz refuses a frame half a second after the last request");
+    T.eq(run(()=>controller.submit({},meta(2000))),true,"a frame one interval later is accepted");
+    run(()=>controller.stop());
+    run(()=>workers[0].onmessage(result(2000)));
+    T.eq(run(()=>results.length),1,"a late result cannot outlive a stopped session");
+    T.eq(run(()=>workers[0].closed),true,"stop terminates the model worker");
+    run(()=>controller.start());
+    T.eq(run(()=>controller.snapshot().phase),"loading","the default rate is accepted");
+    run(()=>workers[0].onerror({message:"obsolete failure"}));
+    T.eq(run(()=>controller.snapshot().phase),"loading","an old worker's failure cannot poison the new one");
+    run(()=>workers[1].onmessage({data:{type:"ready"}}));
+    T.eq(run(()=>controller.submit({},meta(5000,{cameraRole:"user"}))),false,"a user-facing camera is never submitted for world depth");
+    run(()=>controller.start({hz:5}));
+    T.eq(run(()=>controller.snapshot().phase),"error","a rate outside 1–2 Hz is refused");
+    T.eq(run(()=>workers.length),2,"a refused rate creates no worker");
+  });
+
+  T.suite("Depth: results are checked when applied",()=>{
+    const apply=(current,candidate,now,extra={})=>Core.applyDepthMap(current,candidate,{now,session:1,source:"synthetic",...extra});
+    const outcome=r=>r.applied+"|"+r.reason;
+    const first=lazy(()=>make(flatValues(),{timeMs:1000})),second=lazy(()=>make(flatValues(),{timeMs:1600}));
+    T.eq(attempt(()=>entry("depthFreshMs").kind),"model","freshness window is a declared model choice");
+    T.eq(attempt(()=>constant("depthFreshMs")>=1000&&constant("depthFreshMs")<=2000),true,
+      "a map outlives the slowest schedule interval, but never two of them");
+    T.eq(attempt(()=>outcome(apply(null,first(),1100))),"true|null","a fresh result for the current session is applied");
+    T.eq(attempt(()=>apply(null,first(),1100).depth===first()),true,"the applied map becomes current");
+    T.eq(attempt(()=>apply(first(),second(),1700).depth===second()),true,"a newer map replaces an older one");
+    T.eq(attempt(()=>outcome(apply(second(),first(),1700))),"false|out-of-order","a result arriving out of order is dropped");
+    T.eq(attempt(()=>apply(second(),first(),1700).depth===second()),true,"an out-of-order result cannot overwrite newer state");
+    T.eq(attempt(()=>outcome(apply(second(),make(flatValues(),{timeMs:1600}),1700))),"false|out-of-order","a duplicate timestamp is not newer");
+    T.eq(attempt(()=>outcome(apply(null,first(),1100,{session:2}))),"false|session-mismatch","a result from a previous session is dropped");
+    T.eq(attempt(()=>apply(null,first(),1100,{session:2}).depth),null,"a dropped result leaves no depth behind");
+    T.eq(attempt(()=>outcome(apply(null,first(),1100,{source:"camera"}))),"false|source-mismatch","a result from another source is dropped");
+    T.eq(attempt(()=>outcome(apply(null,first(),1000+constant("depthFreshMs")))),"true|null","the freshness window is inclusive");
+    T.eq(attempt(()=>outcome(apply(null,first(),1001+constant("depthFreshMs")))),"false|stale-depth","a result older than the freshness window is dropped");
+    T.eq(attempt(()=>apply(second(),first(),1001+constant("depthFreshMs")).depth===second()),true,"a stale result cannot replace existing state");
+    T.eq(attempt(()=>outcome(apply(null,first(),999))),"false|future-depth","a result from the future is dropped");
+    T.eq(attempt(()=>{const next=make(flatValues(),{timeMs:1700,session:2});return apply(first(),next,1800,{session:2}).depth===next;}),true,
+      "a new session's first map replaces the previous session's");
+    T.eq(attempt(()=>Object.isFrozen(apply(null,first(),1100))),true,"the outcome is immutable");
+    rejects(()=>apply(null,first(),NaN),"applying requires a valid time");
+    rejects(()=>apply(null,null,1100),"a missing result is rejected");
+    // Schedule, map and application together: ten seconds of 30 fps frames at 1 Hz,
+    // each scripted result returning 300 ms after its request.
+    T.eq(attempt(()=>{
+      let schedule=Core.createDepthSchedule({hz:1}),pending=null,current=null,arrived=0;
+      for(let i=0;i<300;i++){
+        const now=i*1000/30;
+        if(pending&&now-pending.timeMs>=300){
+          const applied=apply(current,make(flatValues(),pending),now);
+          current=applied.depth;arrived+=Number(applied.applied);
+          schedule=Core.stepDepthSchedule(schedule,{type:"result",timeMs:pending.timeMs}).schedule;pending=null;
+        }
+        const next=Core.stepDepthSchedule(schedule,{type:"frame",timeMs:now,session:1,source:"synthetic"});
+        schedule=next.schedule;if(next.request)pending=next.request;
+      }
+      return arrived+"|"+current.timeMs;
+    }),"10|9000","depth maps arrive at the scheduled rate");
+  });
+
+  T.suite("Depth: plane normals from analytic maps",()=>{
+    const fit=(values,b=box,extra)=>Core.fitSurface(make(values,extra),b);
+    const facing=lazy(()=>fit(flatValues())),tilted=lazy(()=>fit(wallValues()));
+    T.eq(attempt(()=>facing().status+"|"+facing().reason),"surface|null","a clean plane is a surface with no refusal reason");
+    T.approx(attempt(()=>angleDeg(facing().normal,{x:0,y:0,z:-1})),0,0.02,"fronto-parallel plane faces straight back at the viewer");
+    const cases=[["30° yawed wall",wall,2,box],["40° pitched table",pitch(40),2,box],
+      ["oblique plane off centre",unit({x:0.3,y:-0.4,z:-0.866}),3,{leftDeg:5,topDeg:-2,widthDeg:16,heightDeg:10}],
+      ["ground below the horizon",{x:0,y:1,z:0},1.5,{leftDeg:-10,topDeg:-4,widthDeg:20,heightDeg:10}]];
+    for(const [name,n,distance,b] of cases){
+      const r=lazy(()=>fit(plane(n,distance),b));
+      T.approx(attempt(()=>angleDeg(r().normal,n)),0,0.02,name+": known normal is recovered");
+      T.approx(attempt(()=>Math.hypot(r().normal.x,r().normal.y,r().normal.z)),1,1e-9,name+": normal is unit length");
+      T.eq(attempt(()=>dot(r().normal,ray(middle(b)))<0),true,name+": normal is oriented toward the viewer");
+    }
+    T.eq(attempt(()=>tilted().residual>=0&&tilted().residual<1e-4),true,"an exact plane leaves a negligible relative residual");
+    T.eq(attempt(()=>tilted().inlierFraction),1,"every sample of an exact plane is an inlier");
+    T.eq(attempt(()=>Number.isInteger(tilted().sampleCount)&&tilted().sampleCount>=3&&tilted().sampleCount<=264),true,
+      "samples are map pixels inside the box; none are invented");
+    T.eq(attempt(()=>tilted().pointDeg.xDeg===0&&tilted().pointDeg.yDeg===0),true,"attachment direction is the box centre, in degrees");
+    T.approx(attempt(()=>tilted().inverseDepth),planeValue(wall,2,{xDeg:0,yDeg:0}),2e-5,
+      "attachment depth is the fitted plane along the centre ray, not the nearest raw sample");
+    T.eq(attempt(()=>tilted().metric),false,"a fit makes no metric claim");
+    T.eq(attempt(()=>tilted().orientationKind),"relative-uncalibrated","orientation is labelled relative and uncalibrated");
+    T.eq(attempt(()=>tilted().depthTimeMs+"|"+tilted().revision),"1000|fixture-depth-v1","a fit names the depth map and model revision it came from");
+    T.eq(attempt(()=>tilted().tier),null,"a synthetic surface carries no live tier");
+    T.eq(attempt(()=>fit(wallValues(),box,{source:"evaluation"}).tier),null,"a prerecorded surface carries no live tier");
+    T.eq(attempt(()=>Object.isFrozen(tilted())&&Object.isFrozen(tilted().normal)&&Object.isFrozen(tilted().pointDeg)),true,"a fit is immutable");
+    const live=lazy(()=>fit(wallValues(),box,{source:"camera",confidence:0.6}));
+    T.eq(attempt(()=>live().tier),2,"a camera surface is inferred Tier 2");
+    T.eq(attempt(()=>live().confidence>0&&live().confidence<=0.6),true,"surface confidence is bounded by its depth map's confidence");
+    T.eq(attempt(()=>live().confidenceKind),"plane-fit-model","surface confidence is a fit heuristic, not a probability");
+    T.approx(attempt(()=>angleDeg(fit(wallValues().map(v=>v*250)).normal,wall)),0,0.02,"an unknown scale does not change the normal");
+    const narrow=Core.makeFov(40,22.5);
+    T.approx(attempt(()=>angleDeg(fit(plane(wall,2,narrow),{leftDeg:-8,topDeg:5,widthDeg:16,heightDeg:10},{fov:narrow}).normal,wall)),0,0.02,
+      "the map's own field of view drives the geometry; no fixed raster scale");
+    const noisy=lazy(()=>fit(noisyValues()));
+    T.eq(attempt(()=>noisy().status),"surface","±0.5% sample noise is still a surface");
+    T.approx(attempt(()=>angleDeg(noisy().normal,wall)),0,2,"light noise moves the normal by under two degrees");
+    T.eq(attempt(()=>noisy().inlierFraction>=0.9&&noisy().inlierFraction<=1),true,"inlier fraction is reported and stays high under light noise");
+    T.eq(attempt(()=>noisy().residual>tilted().residual),true,"residual grows with noise");
+    T.approx(attempt(()=>fit(noisyValues().map(v=>v*250)).residual/noisy().residual),1,1e-3,
+      "residual is relative, so the unknown scale cannot change a verdict");
+    // The same wall read through an unknown shift is, to any fitter, a different exact
+    // plane. That is why orientation is labelled uncalibrated rather than trusted.
+    const shifted=lazy(()=>fit(wallValues().map(v=>v+0.25)));
+    T.approx(attempt(()=>angleDeg(shifted().normal,unit({x:wall.x,y:0,z:wall.z-0.5}))),0,0.02,"a shifted map is fitted as given");
+    T.eq(attempt(()=>angleDeg(shifted().normal,wall)>5),true,"an unknown shift changes the apparent tilt");
+  });
+
+  T.suite("Depth: no surface instead of a bad normal",()=>{
+    const fit=(values,b=box)=>Core.fitSurface(make(values),b);
+    const verdict=r=>[r.status,r.reason,r.normal,r.pointDeg,r.inverseDepth].map(String).join("|");
+    const none=reason=>"no-surface|"+reason+"|null|null|null";
+    const speck={leftDeg:0.1,topDeg:0.9,widthDeg:0.8,heightDeg:0.8};
+    T.eq(attempt(()=>verdict(fit(edgeValues()))),none("not-planar"),"a box straddling a depth edge gets no normal");
+    T.eq(attempt(()=>verdict(fit(edgeValues().map(v=>v*250)))),none("not-planar"),"rescaling cannot turn an edge into a surface");
+    T.eq(attempt(()=>verdict(fit(field((p,i,j)=>1.1+0.9*noise(i,j))))),none("not-planar"),"unstructured depth is not a plane");
+    T.eq(attempt(()=>verdict(fit(wallValues(),speck))),none("too-few-samples"),"one sample cannot define a plane");
+    T.eq(attempt(()=>fit(wallValues(),speck).sampleCount<=1),true,"a tiny box is not padded with interpolated samples");
+    T.eq(attempt(()=>verdict(fit(wallValues(),{leftDeg:40,topDeg:6,widthDeg:20,heightDeg:12}))),none("too-few-samples"),
+      "a box outside the map's field of view has no samples");
+    T.eq(attempt(()=>verdict(fit(plane({x:0,y:1,z:0},1.5),{leftDeg:-10,topDeg:14,widthDeg:20,heightDeg:10}))),none("too-few-samples"),
+      "zero inverse depth above the horizon is not finite depth");
+    T.eq(attempt(()=>{const r=fit(edgeValues());return Object.isFrozen(r)&&r.metric===false;}),true,"a refusal is immutable and makes no metric claim");
+    rejects(()=>fit(wallValues(),{...box,widthDeg:0}),"an empty angular box is rejected");
+    rejects(()=>fit(wallValues(),{...box,leftDeg:NaN}),"a nonfinite angular box is rejected");
+    rejects(()=>Core.fitSurface(null,box),"a missing depth map is rejected");
+  });
+
+  T.suite("Depth: anchors attach to fitted surfaces",()=>{
+    const anchored=lazy(()=>Core.anchorSurfaces(tracked(),make(sceneValues()),1100));
+    const cup=()=>surfaceOf(anchored(),"cup"),book=()=>surfaceOf(anchored(),"book");
+    T.eq(attempt(()=>cup().status+"|"+cup().reason),"attached|null","an anchor on a clean plane attaches to it");
+    T.approx(attempt(()=>angleDeg(cup().normal,wall)),0,0.02,"the attachment carries the fitted normal");
+    T.eq(attempt(()=>cup().pointDeg.xDeg===-10&&cup().pointDeg.yDeg===0),true,"the attachment lies on the anchor's centre ray");
+    T.approx(attempt(()=>cup().inverseDepth),planeValue(wall,2,middle(boxA)),2e-5,"the attachment point is on the fitted plane, not a raw sample");
+    T.eq(attempt(()=>cup().depthTimeMs+"|"+cup().revision),"1000|fixture-depth-v1","the attachment names its source depth map and model revision");
+    T.eq(attempt(()=>cup().metric+"|"+cup().orientationKind),"false|relative-uncalibrated","the attachment stays relative and uncalibrated");
+    T.eq(attempt(()=>cup().tier),null,"a synthetic attachment carries no live tier");
+    T.eq(attempt(()=>book().status+"|"+book().reason),"floating|not-planar","an anchor across a depth edge floats, with a reason");
+    T.eq(attempt(()=>[book().normal,book().pointDeg,book().inverseDepth].map(String).join("|")),"null|null|null","a floating anchor is given no surface values");
+    T.eq(attempt(()=>{const before=tracked(),json=JSON.stringify(before);Core.anchorSurfaces(before,make(sceneValues()),1100);
+      return JSON.stringify(before)===json;}),true,"anchoring does not mutate the tracker it was given");
+    const sameTrack=(a,b)=>Object.keys(b).every(key=>key==="boxDeg"?
+      ["leftDeg","topDeg","widthDeg","heightDeg"].every(edge=>a.boxDeg[edge]===b.boxDeg[edge]):Object.is(a[key],b[key]));
+    T.eq(attempt(()=>{const a=anchored(),b=tracked();return a.tracks.length===2&&b.tracks.every((t,i)=>sameTrack(a.tracks[i],t))&&
+      [a.nextId,a.session,a.source,a.timeMs].join()===[b.nextId,b.session,b.source,b.timeMs].join();}),true,
+      "identity, box and tracker bookkeeping are untouched");
+    T.eq(attempt(()=>anchored().tracks.every(t=>t.worldPosition===null&&t.coordinateFrame==="view-angular")),true,
+      "relative depth invents no metric world position");
+    T.eq(attempt(()=>Object.isFrozen(anchored())&&Object.isFrozen(anchored().tracks)&&
+      anchored().tracks.every(t=>Object.isFrozen(t)&&Object.isFrozen(t.surface))&&Object.isFrozen(cup().normal)),true,"the anchored tracker is immutable");
+    const live=lazy(()=>Core.anchorSurfaces(tracked("camera"),make(sceneValues(),{source:"camera",confidence:0.6}),1100));
+    T.eq(attempt(()=>surfaceOf(live(),"cup").tier),2,"a camera attachment is inferred Tier 2");
+    T.eq(attempt(()=>{const c=surfaceOf(live(),"cup").confidence;return c>0&&c<=0.6;}),true,"attachment confidence is bounded by its depth map's");
+    T.eq(attempt(()=>surfaceOf(live(),"cup").confidenceKind),"plane-fit-model","attachment confidence is a fit heuristic, not a probability");
+    T.eq(attempt(()=>Core.anchorSurfaces(Core.createTracker(),make(sceneValues()),1100).tracks.length),0,"an empty tracker stays empty");
+    // Stage 8 feeds the debug console only. Camera-companion labels are built from the
+    // tracker, so attaching surfaces must leave them byte-identical.
+    const view={now:1100,session:1,source:"camera",fov,mirrored:false,threshold:0.5};
+    T.eq(attempt(()=>JSON.stringify(Core.sceneBoxes(live(),view))),JSON.stringify(Core.sceneBoxes(tracked("camera"),view)),
+      "surface data adds nothing to wearer-facing labels");
+  });
+
+  T.suite("Depth: anchors float without current evidence",()=>{
+    const state=(tracker,map,now)=>{const s=need("anchorSurfaces")(tracker,map,now).tracks[0].surface;
+      return [s.status,s.reason,s.normal,s.pointDeg,s.inverseDepth].map(String).join("|");};
+    const floating=reason=>"floating|"+reason+"|null|null|null";
+    // The tracker is current at `now`; only the depth map (captured at 1000 ms) ages.
+    const at=(now,extra,source="synthetic")=>{need("anchorSurfaces");return state(tracked(source,now),make(sceneValues(),extra),now);};
+    T.eq(attempt(()=>state(tracked(),null,1100)),floating("no-depth-map"),"no depth map means no surface");
+    T.eq(attempt(()=>at(1001+constant("depthFreshMs"))),floating("stale-depth"),"a depth map past its freshness window is not used");
+    T.eq(attempt(()=>at(1000+constant("depthFreshMs")).split("|")[0]),"attached","the freshness window is inclusive");
+    T.eq(attempt(()=>at(900)),floating("future-depth"),"a depth map from the future is not used");
+    T.eq(attempt(()=>at(1100,{session:2})),floating("session-mismatch"),"a previous session's depth cannot anchor this session");
+    T.eq(attempt(()=>at(1100,{},"camera")),floating("source-mismatch"),"synthetic depth cannot anchor camera tracks");
+    T.eq(attempt(()=>at(1100,{source:"camera"})),floating("source-mismatch"),"camera depth cannot be laundered onto synthetic tracks");
+    T.eq(attempt(()=>{const hidden=Core.trackObjects(tracked(),{timeMs:1100,session:1,source:"synthetic",detections:[]});
+      return hidden.tracks[0].status+">"+state(hidden,make(sceneValues(),{timeMs:1100}),1150);}),"occluded>"+floating("occluded"),
+      "an occluded anchor is not attached to whatever hides it");
+    T.eq(attempt(()=>{
+      const anchor=need("anchorSurfaces"),now=1001+constant("depthFreshMs"),map=make(sceneValues());
+      let tracker=anchor(tracked(),map,1100);
+      for(let t=1700;t<now;t+=700)tracker=tracked("synthetic",t,tracker);
+      tracker=tracked("synthetic",now,tracker);
+      return state(tracker,map,now);
+    }),floating("stale-depth"),"an earlier attachment is withdrawn once its depth map is stale");
+    T.eq(attempt(()=>{
+      const anchored=need("anchorSurfaces")(tracked(),make(sceneValues()),1100);
+      const advanced=tracked("synthetic",1700,anchored);
+      return anchored.tracks[0].surface.status+"|"+("surface" in advanced.tracks[0]);
+    }),"attached|false","a tracker step never carries an earlier surface forward");
+    rejects(()=>Core.anchorSurfaces(tracked(),make(sceneValues()),NaN),"anchoring requires a valid time");
+  });
+
+  T.suite("Depth: pure core boundary",()=>{
+    // tests/geometry-gate.mjs scans the whole CORE region; these repeat its comment and
+    // string stripping and its identifier lists for each new entry point by name.
+    const executable=source=>source.replace(/\/\/[^\n]*|\/\*[\s\S]*?\*\/|"(?:\\[\s\S]|[^"\\])*"|'(?:\\[\s\S]|[^'\\])*'/g," ");
+    const ambient=/\b(document|window|globalThis|navigator|HTMLElement|HTMLCanvasElement|OffscreenCanvas|ImageData|fetch|XMLHttpRequest|WebSocket|localStorage|sessionStorage|indexedDB|Date|performance|setTimeout|setInterval|requestAnimationFrame)\b|Math\.random\s*\(/;
+    for(const name of ["createDepthMap","viewRay","createDepthSchedule","stepDepthSchedule","applyDepthMap","fitSurface","anchorSurfaces"]){
+      T.eq(typeof Core[name],"function","Core."+name+" is part of the pure core");
+      T.eq(attempt(()=>ambient.test(executable(String(need(name))))),false,"Core."+name+" reads no DOM, clock, network, storage or random source");
+    }
+    T.eq(attempt(()=>{const values=plane(wall,2),copy=Array.from(values).join();Core.fitSurface(make(values),box);
+      return Array.from(values).join()===copy;}),true,"fitting leaves the caller's samples untouched");
+    T.eq(attempt(()=>JSON.stringify(Core.fitSurface(make(noisyValues()),box))===JSON.stringify(Core.fitSurface(make(noisyValues()),box))),true,
+      "equal input gives an equal fit: no hidden clock or randomness");
+    T.eq(attempt(()=>JSON.stringify(Core.anchorSurfaces(tracked(),make(sceneValues()),1100))===
+      JSON.stringify(Core.anchorSurfaces(tracked(),make(sceneValues()),1100))),true,"equal input gives equal anchoring");
+    T.eq(attempt(()=>{const s=Core.createDepthSchedule({hz:1}),e={type:"frame",timeMs:0,session:1,source:"synthetic"};
+      return JSON.stringify(Core.stepDepthSchedule(s,e))===JSON.stringify(Core.stepDepthSchedule(s,e));}),true,"equal input gives an equal schedule step");
+  });
+}
 function registerCameraSceneTests(T) {
   const fov={horizontalDeg:60,verticalDeg:33.75,diagonalDeg:Math.hypot(60,33.75)};
   const track={id:"anchor-1",label:"cup",boxDeg:{leftDeg:-24,topDeg:10.125,widthDeg:12,heightDeg:6.75},
@@ -2255,6 +2869,7 @@ function registerCameraSceneTests(T) {
   });
 }
 const T = createHarness();
+registerStage8Tests(T);
 registerCameraSceneTests(T);
 registerStage7Tests(T);
 registerStage6Tests(T);
@@ -2471,6 +3086,10 @@ function mountObjectPipeline(doc,view) {
   let evidenceStart=0,evidenceCompleted=0,evidenceCpuTotal=0,evidenceDetections=0,evidenceTier1=0,evidenceLabels=new Set();
   let tracker=Core.createTracker(),previousFrame=null,previousTime=null,trackingCpuMs=0;
   let appearanceMemory=[],attempted=new Set(),embeddingPhase="stopped";
+  // Stage 8: no depth model is pinned or loaded in this build, so no depth map ever
+  // arrives and every anchor is decided as floating (no-depth-map). Debug readout only.
+  const depthMap=null;
+  const anchored=(next,now)=>Core.anchorSurfaces(next,depthMap,now);
   const embedding=createEmbeddingController({createWorker:()=>createEmbeddingWorker(view),
     onStatus(status){embeddingPhase=status;get("load-embeddings").disabled=["loading","ready"].includes(status);
       get("embedding-status").textContent=status==="ready"?"CLIP ready · worker CPU/WASM · browser quality unverified":status;},
@@ -2514,7 +3133,8 @@ function mountObjectPipeline(doc,view) {
     get("anchor-list").textContent=tracker.tracks.map(t=>
       t.id+" · "+t.label+" · "+t.status+" · "+t.source+" · "+
       (t.tier===2?"Tier 2 association":"no live tier")+" · score "+t.confidence.toFixed(2)+
-      (t.reidentification?" · appearance "+t.reidentification.reason+" "+t.reidentification.confidence.toFixed(3):"")
+      (t.reidentification?" · appearance "+t.reidentification.reason+" "+t.reidentification.confidence.toFixed(3):"")+
+      " · surface: "+(t.surface?t.surface.status+(t.surface.reason?" ("+t.surface.reason+")":""):"not evaluated")
     ).join("\n")||"No tracked anchors";
     get("anchor-list").textContent+="\nTracking CPU: "+trackingCpuMs.toFixed(2)+" ms";
   }
@@ -2530,8 +3150,8 @@ function mountObjectPipeline(doc,view) {
       // An older detector result cannot rewind the every-frame tracker.
       // Skip it conservatively; a later eligible detection will refresh identity.
       if(tracker.timeMs===null||result.timeMs>=tracker.timeMs) {
-        tracker=Core.trackObjects(tracker,{timeMs:result.timeMs,session:epoch,
-          source:result.metadata.source,detections:latest.observations});
+        tracker=anchored(Core.trackObjects(tracker,{timeMs:result.timeMs,session:epoch,
+          source:result.metadata.source,detections:latest.observations}),now);
         previousFrame={width:captured.width,height:captured.height,data:captured.data,source:result.metadata.source};
         previousTime=result.timeMs;showTracks();scheduleAppearance(captured,result.metadata);
       }
@@ -2589,7 +3209,7 @@ function mountObjectPipeline(doc,view) {
     // While a detector frame is pending, retain its timestamp boundary so its
     // eventual result can be applied without retroactive identity changes.
     if(!creating&&!pipeline.snapshot().busy) {
-      tracker=Core.trackObjects(tracker,{timeMs:now,session:epoch,source:frame.source,flow});
+      tracker=anchored(Core.trackObjects(tracker,{timeMs:now,session:epoch,source:frame.source,flow}),now);
       previousFrame={...frame,data:new Uint8ClampedArray(frame.data)};previousTime=now;
     }
     trackingCpuMs=view.performance.now()-started;showTracks();
@@ -2606,7 +3226,7 @@ function mountObjectPipeline(doc,view) {
   },diagnostics(now) {
     appearanceMemory=appearanceMemory.filter(m=>now-m.timeMs<=30000);
     if(tracker.tracks.some(t=>now-t.lastDetectionMs>800)) {
-      tracker=Core.trackObjects(tracker,{timeMs:now,session:epoch,source:tracker.source});
+      tracker=anchored(Core.trackObjects(tracker,{timeMs:now,session:epoch,source:tracker.source}),now);
       showTracks();
     }
     completed=completed.filter(t=>now-t<=2000);

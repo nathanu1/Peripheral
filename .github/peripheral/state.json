@@ -453,9 +453,40 @@
       "stage": 8,
       "name": "Depth + surface estimation (Tier 2)",
       "commitMessage": "feat(perception): monocular depth and surface anchoring",
-      "status": "pending",
+      "status": "in_progress",
       "reportPath": ".github/peripheral/reports/stage-08.md",
-      "testResults": null
+      "testResults": {
+        "passed": 655,
+        "failed": 0,
+        "newAssertions": 198,
+        "runtime": "v22.23.5",
+        "sourceSha256": "524cab4aef20287205d79de37f36650519a08a9a619ed95e5890a439a92153f7",
+        "evidencePath": ".github/peripheral/reports/stage-08-green.json",
+        "redPhases": [
+          {
+            "passed": 457,
+            "failed": 197,
+            "evidencePath": ".github/peripheral/reports/stage-08-red.json"
+          },
+          {
+            "passed": 654,
+            "failed": 1,
+            "evidencePath": ".github/peripheral/reports/stage-08-carry-red.json",
+            "note": "Fix preceded its test; red produced by temporarily reverting the fix line"
+          }
+        ]
+      },
+      "gate": {
+        "status": "not_met",
+        "mode": "synthetic analytic depth maps only; no depth model pinned, loaded or run",
+        "verifiedBy": "independent read-only gate-verifier agent, 2026-11-22",
+        "limitations": [
+          "No depth model worker, adapter, revision or hash exists; the shell passes a null depth map",
+          "Real depth inference, rate, latency, output convention and licence unverified",
+          "No acceptance method is defined for 'Overlays sit on things' before the Stage 13 renderer",
+          "Surface orientation is relative and uncalibrated; unknown model shift biases normals"
+        ]
+      }
     },
     {
       "stage": 9,
@@ -563,10 +594,17 @@
       "status": "resolved",
       "reason": "Stage 5 passed the approved prerecorded-image gate at 21fc7f05c354946676b9caf675574b88442e5ed7; stale blocker reconciled against main.",
       "reportPath": ".github/peripheral/reports/stage-05.md",
-      "scheduleImpact": "Stages 5\u20137 completed; Stage 8 next. Live browser validation remains unverified."
+      "scheduleImpact": "Stages 5–7 completed; Stage 8 next. Live browser validation remains unverified."
+    },
+    {
+      "stage": 8,
+      "status": "open",
+      "reason": "Stage 8 gate not met: the real Depth Anything V2 Small model has not been pinned, hash-verified or run. The 2026-11-22 cloud session could not reach huggingface.co or cdn.jsdelivr.net. Needs a run on a machine that can download the model, or Nathan's written approval of an amended acceptance method.",
+      "reportPath": ".github/peripheral/reports/stage-08.md",
+      "scheduleImpact": "Stage 8 remains next. Stages 9 onward are not started."
     }
   ],
-  "lastUpdated": "2026-09-15",
+  "lastUpdated": "2026-11-22",
   "cameraCompanion": {
     "status": "implemented_software_verified",
     "requestedAt": "2026-10-03 America/New_York",
